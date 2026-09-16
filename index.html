@@ -972,6 +972,15 @@
         // ─── INIT ───
         async function initializeApp() {
             await Promise.all([fetchDevices(), fetchDepartments(), fetchMaps()]);
+            if (cameras.length > 0) {
+                const devDepts = [...new Set(cameras.map(c => c.department || c.group).filter(g => g && g !== 'ไม่มีแผนก'))];
+                devDepts.forEach(d => {
+                    if (!departments.includes(d)) {
+                        departments.push(d);
+                        departmentRecords.push({ _recordId: `local_${departmentRecords.length}`, department: d });
+                    }
+                });
+            }
             if (maps.length > 0 && !selectedMapId) selectedMapId = String(maps[0].map_id);
             renderMapSelector();
             showFloorPlan();
@@ -1072,7 +1081,11 @@
                         numY = Math.round(numY * 10000) / 100;
                     }
 
-                    const dept = f.department || f.Department || f.dept || f.group || '';
+                    let rawDept = f.department || f.Department || f.dept || f.Dept || f.group || f['แผนก'] || f['ชื่อแผนก'] || '';
+                    if (Array.isArray(rawDept)) {
+                        rawDept = rawDept.length > 0 ? (typeof rawDept[0] === 'object' && rawDept[0].name ? rawDept[0].name : String(rawDept[0])) : '';
+                    }
+                    const dept = String(rawDept || '').trim();
                     const devType = f.type || f.Type || 'Other';
                     const devStatus = f.status || f.Status || 'Active';
                     const devBrand = f.brand || f.Brand || '';
@@ -1119,14 +1132,38 @@
         async function fetchDepartments() {
             try {
                 const records = await apiGetAll('department');
-                departmentRecords = records.map(r => ({ _recordId: String(r.id), department: r.fields.department || '' })).filter(r => r.department);
-                departments = departmentRecords.map(r => r.department);
+                departmentRecords = records.map(r => {
+                    const f = r.fields || {};
+                    let name = f.department || f.Department || f.Name || f.name || f.dept || f.Dept || f['แผนก'] || f['ชื่อแผนก'] || '';
+                    if (!name && typeof f === 'object') {
+                        const vals = Object.values(f).filter(v => typeof v === 'string' && v.trim() && !v.startsWith('http') && !v.startsWith('rec'));
+                        if (vals.length > 0) name = vals[0];
+                    }
+                    return {
+                        _recordId: String(r.id),
+                        department: String(name || '').trim()
+                    };
+                }).filter(r => r.department);
+                departments = [...new Set(departmentRecords.map(r => r.department))];
                 if (departments.length > 0) hideAirtableErrorBanner();
             } catch (err) {
                 console.error('Failed to fetch departments:', err);
-                if (departments.length === 0) {
-                    departments = ['บุคคลฯ', 'ผลิต', 'รับวัตถุดิบ', 'สโตร์ฯ', 'เครื่องกล', 'เทคโนโลยีสารสนเทศ', 'แพคกิ้ง', 'สิ่งแวดล้อม', 'ห้องปฏิบัติการ'];
+            }
+
+            // Fallback 1: Extract from devices if Airtable department table is empty
+            if (departments.length === 0 && cameras && cameras.length > 0) {
+                const devDepts = [...new Set(cameras.map(c => c.department || c.group).filter(g => g && g !== 'ไม่มีแผนก'))];
+                if (devDepts.length > 0) {
+                    departments = devDepts;
+                    departmentRecords = devDepts.map((d, i) => ({ _recordId: `local_${i}`, department: d }));
                 }
+            }
+
+            // Fallback 2: Default standard department list
+            if (departments.length === 0) {
+                const defaults = ['บุคคลฯ', 'ผลิต', 'รับวัตถุดิบ', 'สโตร์ฯ', 'เครื่องกล', 'เทคโนโลยีสารสนเทศ', 'แพคกิ้ง', 'สิ่งแวดล้อม', 'ห้องปฏิบัติการ'];
+                departments = defaults;
+                departmentRecords = defaults.map((d, i) => ({ _recordId: `local_${i}`, department: d }));
             }
         }
 
@@ -1172,11 +1209,18 @@
         }
 
         function populateDepartmentSelects() {
-            ['cam-department', 'new-user-dept'].forEach(id => {
+            ['cam-department', 'new-user-dept', 'dev-mgr-filter-dept'].forEach(id => {
                 const sel = document.getElementById(id);
                 if (!sel) return;
                 const isUser = id === 'new-user-dept';
-                sel.innerHTML = isUser ? '<option value="admin">admin</option>' : '<option value="">-- เลือกแผนก --</option>';
+                const isFilter = id === 'dev-mgr-filter-dept';
+                if (isUser) {
+                    sel.innerHTML = '<option value="admin">admin</option>';
+                } else if (isFilter) {
+                    sel.innerHTML = '<option value="">ทุกแผนก</option>';
+                } else {
+                    sel.innerHTML = '<option value="">-- เลือกแผนก --</option>';
+                }
                 departments.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
             });
         }
@@ -1590,11 +1634,25 @@
         // ─── GROUP FILTER ───
         function renderGroupFilter() {
             const container = document.getElementById('group-filter');
-            const visibleGroups = [...new Set(getVisibleCameras().map(c => c.group || 'ไม่มีแผนก'))];
+            if (!container) return;
+            const visibleGroups = [...new Set(getVisibleCameras().map(c => c.group || c.department || 'ไม่มีแผนก'))];
             const isAdmin = currentUser && currentUser.isAdmin;
-            const groups = (isAdmin && departments.length > 0 ? [...departments] : visibleGroups).sort(compareText);
+            
+            const groupSet = new Set();
+            if (isAdmin) {
+                departments.forEach(d => groupSet.add(d));
+                visibleGroups.forEach(g => groupSet.add(g));
+            } else if (currentUser && Array.isArray(currentUser.departments) && currentUser.departments.length > 0) {
+                currentUser.departments.forEach(d => groupSet.add(d));
+                visibleGroups.forEach(g => groupSet.add(g));
+            } else {
+                visibleGroups.forEach(g => groupSet.add(g));
+                departments.forEach(d => groupSet.add(d));
+            }
+
+            const groups = Array.from(groupSet).filter(Boolean).sort(compareText);
             container.innerHTML = '';
-            if (groups.length === 0) { container.innerHTML = '<span class="text-xs text-slate-500">ยังไม่มีกลุ่ม</span>'; return; }
+            if (groups.length === 0) { container.innerHTML = '<span class="text-xs text-slate-500">ยังไม่มีแผนก</span>'; return; }
             
             const allBtn = document.createElement('button');
             allBtn.className = `group-tag font-medium transition-all ${activeGroups.size === 0 ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300'}`;
@@ -2201,7 +2259,13 @@
                     renderCameras();
                     renderCameraList();
                 } else if (deleteTargetType === 'department') {
-                    await fetchDepartments();
+                    if (String(deleteTargetId).startsWith('local_')) {
+                        departmentRecords = departmentRecords.filter(d => String(d._recordId) !== String(deleteTargetId));
+                        departments = departmentRecords.map(d => d.department);
+                    } else {
+                        await apiDelete(actualTable, deleteTargetId);
+                        await fetchDepartments();
+                    }
                     renderGroupsList();
                     renderGroupFilter();
                     populateDepartmentSelects();
@@ -2665,6 +2729,15 @@
         // ─── GROUP MANAGER ───
         async function openGroupManager() {
             await fetchDepartments();
+            if (cameras.length > 0) {
+                const devDepts = [...new Set(cameras.map(c => c.department || c.group).filter(g => g && g !== 'ไม่มีแผนก'))];
+                devDepts.forEach(d => {
+                    if (!departments.includes(d)) {
+                        departments.push(d);
+                        departmentRecords.push({ _recordId: `local_${departmentRecords.length}`, department: d });
+                    }
+                });
+            }
             renderGroupsList();
             const addSection = document.getElementById('groups-add-section');
             if (currentUser && currentUser.isAdmin) addSection.classList.remove('hidden');
@@ -2678,7 +2751,7 @@
             list.innerHTML = '';
             if (departmentRecords.length === 0) { list.innerHTML = '<p class="text-slate-500 text-sm text-center">ยังไม่มีแผนก</p>'; return; }
             departmentRecords.forEach((rec, i) => {
-                const count = cameras.filter(c => c.department === rec.department).length;
+                const count = cameras.filter(c => (c.department || c.group) === rec.department).length;
                 const div = document.createElement('div');
                 div.className = 'flex items-center gap-3 p-3 bg-slate-700 rounded-xl';
                 if (isAdmin) {
@@ -2701,16 +2774,25 @@
         }
 
         async function saveDepartment(recordId) {
-            const name = document.getElementById(`dept-name-${recordId}`).value.trim();
+            const inputEl = document.getElementById(`dept-name-${recordId}`);
+            if (!inputEl) return;
+            const name = inputEl.value.trim();
             if (!name) return;
-            const oldRec = departmentRecords.find(r => r._recordId === recordId);
+            const oldRec = departmentRecords.find(r => String(r._recordId) === String(recordId));
             const oldName = oldRec ? oldRec.department : '';
             try {
-                await apiUpdate('department', recordId, { department: name });
+                if (String(recordId).startsWith('local_') || !String(recordId).startsWith('rec')) {
+                    const res = await apiCreate('department', { department: name });
+                    if (res && res.id && oldRec) oldRec._recordId = String(res.id);
+                } else {
+                    await apiUpdate('department', recordId, { department: name });
+                }
                 if (oldName && oldName !== name) {
                     const camsToUpdate = cameras.filter(c => c.department === oldName);
                     for (const cam of camsToUpdate) {
-                        await apiUpdate('device', cam._recordId, { department: name });
+                        if (cam._recordId && cam._recordId.startsWith('rec')) {
+                            await apiUpdate('device', cam._recordId, { department: name });
+                        }
                     }
                 }
                 await Promise.all([fetchDepartments(), fetchDevices()]);

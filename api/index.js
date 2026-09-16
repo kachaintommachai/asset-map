@@ -102,6 +102,18 @@ function normalizeFields(table, fields) {
     else if (f['Map ID'] != null && f['Map ID'] !== '') devMapId = String(f['Map ID']);
     else if (f.map_name != null && f.map_name !== '') devMapId = String(f.map_name);
 
+    let rawHolder = f.holder || f.Holder || f.thai_name || f.user || f.User || f['ผู้ถือครอง'] || f['ชื่อผู้ใช้'] || '';
+    if (Array.isArray(rawHolder)) {
+      rawHolder = rawHolder.length > 0 ? (typeof rawHolder[0] === 'object' && rawHolder[0].name ? rawHolder[0].name : String(rawHolder[0])) : '';
+    }
+    const holder = String(rawHolder || '').trim();
+
+    let rawDept = f.department || f.Department || f.dept || f.Dept || f.group || f['แผนก'] || f['ชื่อแผนก'] || '';
+    if (Array.isArray(rawDept)) {
+      rawDept = rawDept.length > 0 ? (typeof rawDept[0] === 'object' && rawDept[0].name ? rawDept[0].name : String(rawDept[0])) : '';
+    }
+    const devDept = String(rawDept || '').trim();
+
     return {
       ...f,
       asset_code: String(code),
@@ -109,14 +121,14 @@ function normalizeFields(table, fields) {
       id: String(code),
       asset_name: String(name),
       eng_name: String(name),
-      holder: String(holder),
-      thai_name: String(holder),
+      holder: holder,
+      thai_name: holder,
       type: f.type || f.Type || 'Other',
       status: f.status || f.Status || 'Active',
       brand: f.brand || f.Brand || '',
       model: f.model || f.Model || '',
       serial: f.serial || f.Serial || f.serial_number || '',
-      department: f.department || f.Department || f.dept || f.group || '',
+      department: devDept,
       ip: f.ip || f.IP || f.ip_address || '',
       mac_address: f.mac_address || f.MAC || f.mac || '',
       image: img,
@@ -155,6 +167,19 @@ function normalizeFields(table, fields) {
       department: f.department || f.Department || '',
       camera_user: f.camera_user || '',
       map_user: f.map_user || ''
+    };
+  }
+
+  if (t === 'department' || t === 'departments') {
+    let deptName = f.department || f.Department || f.dept || f.Dept || f.Name || f.name || f['แผนก'] || f['ชื่อแผนก'] || '';
+    if (!deptName && typeof f === 'object') {
+      const vals = Object.values(f).filter(v => typeof v === 'string' && v.trim() && !v.startsWith('http') && !v.startsWith('rec'));
+      if (vals.length > 0) deptName = vals[0];
+    }
+    return {
+      ...f,
+      department: String(deptName).trim(),
+      Name: String(deptName).trim()
     };
   }
 
@@ -509,6 +534,12 @@ module.exports = async (req, res) => {
       if (preparedFields.asset_name) preparedFields.eng_name = preparedFields.asset_name;
       if (preparedFields.holder) preparedFields.thai_name = preparedFields.holder;
     }
+    if (table.toLowerCase().startsWith('department')) {
+      if (preparedFields.department) {
+        preparedFields.Name = preparedFields.department;
+        preparedFields.Department = preparedFields.department;
+      }
+    }
 
     const postUrl = `${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(targetTable)}`;
     const writeResult = await writeAirtableWithRetry(postUrl, 'POST', token, preparedFields);
@@ -541,6 +572,12 @@ module.exports = async (req, res) => {
       }
       if (preparedFields.asset_name) preparedFields.eng_name = preparedFields.asset_name;
       if (preparedFields.holder) preparedFields.thai_name = preparedFields.holder;
+    }
+    if (table.toLowerCase().startsWith('department')) {
+      if (preparedFields.department) {
+        preparedFields.Name = preparedFields.department;
+        preparedFields.Department = preparedFields.department;
+      }
     }
 
     const patchUrl = `${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(targetTable)}/${encodeURIComponent(realRecordId)}`;
