@@ -69,7 +69,6 @@ function normalizeFields(table, fields) {
   if (t === 'device' || t === 'devices' || t === 'camera' || t === 'cameras') {
     const code = f.asset_code || f.Asset_Code || f['Asset Code'] || f.asset_no || f.account_no || f.cam_id || f.id || f.ID || f.Name || f.name || '';
     const name = f.asset_name || f.Asset_Name || f['Asset Name'] || f.eng_name || f.Name || f.name || code;
-    const holder = f.holder || f.Holder || f.thai_name || f.user || f.User || '';
     let img = '';
     if (Array.isArray(f.image) && f.image.length > 0) {
       img = f.image[0].url || '';

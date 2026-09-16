@@ -863,7 +863,13 @@
             if (options.name) url += '&name=' + encodeURIComponent(options.name);
             if (options.password) url += '&password=' + encodeURIComponent(options.password);
             const res = await fetch(url);
-            const data = await res.json();
+            let data;
+            const text = await res.text();
+            try {
+                data = JSON.parse(text);
+            } catch (err) {
+                throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP ${res.status}): ${text.slice(0, 150)}`);
+            }
             if (data.error && !data.records) {
                 const errMsg = typeof data.error === 'string' ? data.error : (data.error.message || JSON.stringify(data.error));
                 throw new Error(errMsg);
@@ -877,7 +883,12 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ fields })
             });
-            return await res.json();
+            const text = await res.text();
+            try {
+                return JSON.parse(text);
+            } catch (err) {
+                throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP ${res.status}): ${text.slice(0, 150)}`);
+            }
         }
 
         async function apiUpdate(table, id, fields) {
@@ -886,14 +897,24 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ fields })
             });
-            return await res.json();
+            const text = await res.text();
+            try {
+                return JSON.parse(text);
+            } catch (err) {
+                throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP ${res.status}): ${text.slice(0, 150)}`);
+            }
         }
 
         async function apiDelete(table, id) {
             const res = await fetch(`${API_BASE}?table=${encodeURIComponent(table)}&id=${id}`, {
                 method: 'DELETE'
             });
-            return await res.json();
+            const text = await res.text();
+            try {
+                return JSON.parse(text);
+            } catch (err) {
+                throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP ${res.status}): ${text.slice(0, 150)}`);
+            }
         }
 
         // ─── LOGIN ───
