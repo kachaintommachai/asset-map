@@ -1,9 +1,11 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/api.php", "destination": "/api/index.js" },
+    { "source": "/api/upload", "destination": "/api/upload.js" },
+    { "source": "/api/upload.js", "destination": "/api/upload.js" },
     { "source": "/upload_device.php", "destination": "/api/upload.js" },
     { "source": "/upload_map.php", "destination": "/api/upload.js" },
+    { "source": "/api.php", "destination": "/api/index.js" },
     { "source": "/api/(.*)", "destination": "/api/index.js" },
     { "source": "/api", "destination": "/api/index.js" }
   ]

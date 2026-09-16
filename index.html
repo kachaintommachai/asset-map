@@ -1920,24 +1920,23 @@
         async function uploadDetailDeviceImage(input, recordId) {
             const file = input.files[0];
             if (!file) return;
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('record_id', recordId);
             try {
-                const res = await fetch('upload_device.php', { method: 'POST', body: formData });
-                const data = await res.json();
-                if (data.success) {
-                    const inputUrl = document.getElementById('detail-image-url');
-                    if (inputUrl) inputUrl.value = data.url;
+                const dataUrl = await compressAndReadImage(file, 900, 0.75);
+                const inputUrl = document.getElementById('detail-image-url');
+                if (inputUrl) inputUrl.value = dataUrl;
+                if (recordId && String(recordId).startsWith('rec')) {
+                    await apiUpdate('device', recordId, {
+                        image_url: dataUrl,
+                        image: dataUrl,
+                        go2rtc_link: dataUrl
+                    });
                     await fetchDevices();
                     const updatedCam = cameras.find(c => String(c._recordId) === String(recordId));
                     if (updatedCam) showCameraDetail(updatedCam);
                     renderCameras();
                     renderBookmarks();
-                    alert('อัปโหลดภาพอุปกรณ์เรียบร้อยแล้ว');
-                } else {
-                    alert('อัปโหลดไม่สำเร็จ: ' + (data.error || ''));
                 }
+                alert('อัปโหลดภาพอุปกรณ์เรียบร้อยแล้ว');
             } catch (err) {
                 alert('เกิดข้อผิดพลาดในการอัปโหลด: ' + err.message);
             }
@@ -2141,28 +2140,67 @@
         }
         const openEditCamera = openEditDevice;
 
+        function compressAndReadImage(file, maxDimension = 1200, quality = 0.75) {
+            return new Promise((resolve, reject) => {
+                if (!file) return reject(new Error('ไม่พบไฟล์'));
+                if (!file.type || !file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result);
+                    reader.onerror = err => reject(new Error('อ่านไฟล์ไม่สำเร็จ: ' + err.message));
+                    reader.readAsDataURL(file);
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        try {
+                            let width = img.width;
+                            let height = img.height;
+                            if (width > maxDimension || height > maxDimension) {
+                                if (width > height) {
+                                    height = Math.round((height * maxDimension) / width);
+                                    width = maxDimension;
+                                } else {
+                                    width = Math.round((width * maxDimension) / height);
+                                    height = maxDimension;
+                                }
+                            }
+                            const canvas = document.createElement('canvas');
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            const mime = (file.type === 'image/png' && file.size < 300000) ? 'image/png' : 'image/jpeg';
+                            const dataUrl = canvas.toDataURL(mime, quality);
+                            resolve(dataUrl);
+                        } catch (cvsErr) {
+                            resolve(e.target.result);
+                        }
+                    };
+                    img.onerror = () => resolve(e.target.result);
+                    img.src = e.target.result;
+                };
+                reader.onerror = err => reject(new Error('อ่านไฟล์ไม่สำเร็จ: ' + err.message));
+                reader.readAsDataURL(file);
+            });
+        }
+
         async function handleDeviceImageUpload(input) {
             const file = input.files[0];
             if (!file) return;
             const textEl = document.getElementById('cam-upload-text');
-            const originalText = textEl.textContent;
-            textEl.textContent = 'กำลังอัปโหลด...';
+            const originalText = textEl ? textEl.textContent : '';
+            if (textEl) textEl.textContent = 'กำลังแปลงภาพ...';
             
-            const formData = new FormData();
-            formData.append('file', file);
             try {
-                const res = await fetch('upload_device.php', { method: 'POST', body: formData });
-                const data = await res.json();
-                if (data.success) {
-                    document.getElementById('cam-image-url').value = data.url;
-                    showDeviceImagePreview(data.url);
-                } else {
-                    alert('อัปโหลดภาพไม่สำเร็จ: ' + (data.error || ''));
-                }
+                const dataUrl = await compressAndReadImage(file, 900, 0.75);
+                document.getElementById('cam-image-url').value = dataUrl;
+                showDeviceImagePreview(dataUrl);
             } catch (err) {
                 alert('เกิดข้อผิดพลาดในการอัปโหลดภาพ: ' + err.message);
             } finally {
-                textEl.textContent = originalText;
+                if (textEl) textEl.textContent = originalText;
             }
         }
 
@@ -2680,29 +2718,32 @@
             if (!file) return;
             const label = document.getElementById(`map-file-label-${recordId}`);
             const status = document.getElementById(`map-upload-status-${recordId}`);
-            label.textContent = file.name;
-            status.textContent = 'กำลังอัปโหลด...';
-            status.className = 'text-[11px] text-amber-400';
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('record_id', recordId);
+            if (label) label.textContent = file.name;
+            if (status) {
+                status.textContent = 'กำลังแปลงภาพ...';
+                status.className = 'text-[11px] text-amber-400';
+            }
             try {
-                const res = await fetch('upload_map.php', { method: 'POST', body: formData });
-                const data = await res.json();
-                if (data.success) {
+                const dataUrl = await compressAndReadImage(file, 1600, 0.82);
+                if (recordId && String(recordId).startsWith('rec')) {
+                    await apiUpdate('map', recordId, {
+                        map_url: dataUrl,
+                        map_pic: dataUrl
+                    });
+                }
+                if (status) {
                     status.textContent = 'อัปโหลดสำเร็จ!';
                     status.className = 'text-[11px] text-emerald-400';
-                    await fetchMaps();
-                    renderMapsList();
-                    renderMapSelector();
-                    showFloorPlan();
-                } else {
-                    status.textContent = data.error || 'อัปโหลดไม่สำเร็จ';
+                }
+                await fetchMaps();
+                renderMapsList();
+                renderMapSelector();
+                showFloorPlan();
+            } catch (err) {
+                if (status) {
+                    status.textContent = 'เกิดข้อผิดพลาด: ' + err.message;
                     status.className = 'text-[11px] text-red-400';
                 }
-            } catch (err) {
-                status.textContent = 'เกิดข้อผิดพลาด';
-                status.className = 'text-[11px] text-red-400';
             }
         }
 
@@ -2727,13 +2768,16 @@
             const btn = e.target.querySelector('button[type="submit"]');
             if (btn) { btn.disabled = true; btn.textContent = 'กำลังดำเนินการ...'; }
             try {
-                const created = await apiCreate('map', { map_name: mapName });
-                if (file && created && created.id) {
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    formData.append('record_id', created.id);
-                    await fetch('upload_map.php', { method: 'POST', body: formData });
+                let mapUrl = '';
+                if (file) {
+                    mapUrl = await compressAndReadImage(file, 1600, 0.82);
                 }
+                const fields = { map_name: mapName };
+                if (mapUrl) {
+                    fields.map_url = mapUrl;
+                    fields.map_pic = mapUrl;
+                }
+                await apiCreate('map', fields);
                 document.getElementById('add-map-form').reset();
                 document.getElementById('new-map-file-label').textContent = 'เลือกไฟล์รูปภาพแผนผัง...';
                 await fetchMaps();
