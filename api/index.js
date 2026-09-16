@@ -151,6 +151,7 @@ async function inspectBaseTables(baseId, token) {
 // Fetch all records with pagination support and fallback across candidate table names
 async function fetchAllRecords(baseId, token, candidateTables, sortField, requestedTable) {
   let lastError = null;
+  let firstAttempt = null;
 
   for (const tableName of candidateTables) {
     let records = [];
@@ -160,9 +161,6 @@ async function fetchAllRecords(baseId, token, candidateTables, sortField, reques
     do {
       let url = `${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(tableName)}?pageSize=100`;
       if (offset) url += `&offset=${encodeURIComponent(offset)}`;
-      if (sortField) {
-        url += `&sort[0][field]=${encodeURIComponent(sortField)}&sort[0][direction]=asc`;
-      }
 
       try {
         const res = await fetch(url, {
@@ -171,14 +169,18 @@ async function fetchAllRecords(baseId, token, candidateTables, sortField, reques
           }
         });
 
+        const data = await res.json().catch(() => ({}));
+
+        if (!firstAttempt) {
+          firstAttempt = { tableName, status: res.status, error: data.error || null };
+        }
+
         if (res.status === 404 || res.status === 403) {
-          const errData = await res.json().catch(() => ({}));
-          lastError = errData.error || { message: `Airtable API error ${res.status}` };
+          lastError = data.error || { message: `Airtable API error ${res.status}` };
           success = false;
           break;
         }
 
-        const data = await res.json();
         if (!res.ok) {
           lastError = data.error || { message: `Airtable API error ${res.status}` };
           success = false;
@@ -229,19 +231,11 @@ async function fetchAllRecords(baseId, token, candidateTables, sortField, reques
         }
       };
     }
-
-    if (meta.status === 403 || (meta.error && meta.error.type === 'INVALID_PERMISSIONS_OR_MODEL_NOT_FOUND')) {
-      return {
-        ok: false,
-        error: {
-          type: 'BASE_ACCESS_DENIED',
-          message: `Token ของคุณยังไม่ได้รับสิทธิ์เข้าถึง Base นี้ (${baseId}) กรุณาไปที่ airtable.com/create/tokens > แก้ไข Token > ในหัวข้อ Access ให้กด '+ Add a base' แล้วเลือก Base '${baseId}'`
-        }
-      };
-    }
   }
 
-  return { ok: false, error: lastError || { message: 'Table not found in Airtable' } };
+  // Use the error from the primary candidate attempt instead of masked meta error
+  const finalErr = (firstAttempt && firstAttempt.error) || lastError || { message: 'Table not found in Airtable' };
+  return { ok: false, error: finalErr, status: firstAttempt ? firstAttempt.status : 500 };
 }
 
 // Helper to write to Airtable with unknown field pruning retry
@@ -346,28 +340,38 @@ module.exports = async (req, res) => {
 
   // ─── DEBUG / STATUS CHECK ───
   if (table === 'debug' || query.action === 'debug') {
-    const meta = await inspectBaseTables(baseId, token);
-    if (meta.ok) {
-      return res.status(200).json({
-        success: true,
-        baseId,
-        tables: meta.tables.map(t => ({
-          id: t.id,
-          name: t.name,
-          fields: (t.fields || []).map(f => f.name)
-        }))
-      });
-    } else {
-      return res.status(200).json({
-        success: false,
-        baseId,
-        status: meta.status,
-        error: meta.error,
-        help: (meta.status === 403 || (meta.error && meta.error.type === 'INVALID_PERMISSIONS_OR_MODEL_NOT_FOUND'))
-          ? `Token ยังไม่ได้รับสิทธิ์เข้าถึง Base '${baseId}' กรุณาไปที่ airtable.com/create/tokens > แก้ไข Token > ในหัวข้อ Access ให้กด '+ Add a base' แล้วเลือก Base '${baseId}'`
-          : (meta.error && meta.error.message ? meta.error.message : 'Unknown error')
-      });
+    const testTables = ['department', 'map', 'user', 'device'];
+    const tableResults = {};
+
+    for (const t of testTables) {
+      try {
+        const testRes = await fetch(`${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(t)}?pageSize=1`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const testData = await testRes.json().catch(() => ({}));
+        tableResults[t] = {
+          status: testRes.status,
+          ok: testRes.ok,
+          hasRecords: Array.isArray(testData.records) && testData.records.length > 0,
+          sampleFields: testData.records && testData.records[0] ? Object.keys(testData.records[0].fields || {}) : [],
+          error: testData.error || null
+        };
+      } catch (err) {
+        tableResults[t] = { status: 500, ok: false, error: { message: err.message } };
+      }
     }
+
+    const anyOk = Object.values(tableResults).some(r => r.ok);
+    const all403 = Object.values(tableResults).every(r => r.status === 403);
+    const any404 = Object.values(tableResults).some(r => r.status === 404);
+
+    return res.status(200).json({
+      success: anyOk,
+      baseId,
+      all403,
+      any404,
+      tables: tableResults
+    });
   }
 
   const candidateTables = getCandidateTables(table);

@@ -901,12 +901,24 @@
             try {
                 const res = await fetch(`${API_BASE}?table=debug`);
                 const data = await res.json();
+                let summary = `Base ID: ${data.baseId || 'ไม่ระบุ'}\n\n`;
+                if (data.tables) {
+                    for (const [tName, tInfo] of Object.entries(data.tables)) {
+                        if (tInfo.ok) {
+                            const fStr = (tInfo.sampleFields || []).slice(0, 4).join(', ');
+                            summary += `✅ ${tName}: พบตาราง (HTTP 200) ฟิลด์: [${fStr || 'ว่าง'}]\n`;
+                        } else {
+                            const errDesc = tInfo.error ? (tInfo.error.message || tInfo.error.type || JSON.stringify(tInfo.error)) : `HTTP ${tInfo.status}`;
+                            summary += `❌ ${tName}: ไม่สำเร็จ (HTTP ${tInfo.status}) - ${errDesc}\n`;
+                        }
+                    }
+                }
+                if (data.all403) {
+                    summary += `\n⚠️ ทุกตารางขึ้น HTTP 403: Token ยังไม่ได้รับสิทธิ์เข้าถึง Base นี้ใน airtable.com/create/tokens > ในหัวข้อ Access`;
+                }
+                alert(summary);
                 if (data.success) {
-                    const tableNames = (data.tables || []).map(t => `• ${t.name} (${(t.fields || []).slice(0, 5).join(', ')}...)`).join('\n');
-                    alert(`✅ เชื่อมต่อ Airtable สำเร็จ!\n\nBase ID: ${data.baseId}\nพบตารางใน Base (${data.tables.length} ตาราง):\n${tableNames || 'ไม่มีตาราง'}\n\nระบบจะทำการโหลดข้อมูลใหม่...`);
                     initializeApp();
-                } else {
-                    alert(`❌ การเชื่อมต่อ Airtable ไม่สำเร็จ:\n\n${data.help || data.error || 'Unknown error'}\n\n(Base ID: ${data.baseId})`);
                 }
             } catch (err) {
                 alert('เกิดข้อผิดพลาดในการตรวจสอบ: ' + err.message);
