@@ -1,0 +1,17 @@
+# OS & Editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+.claude/
+
+# Temporary & Log files
+*.log
+/tmp/
+
+# Sensitive or environment configuration
+# db_config.local.php
+airtable.local.php

@@ -1,0 +1,167 @@
+﻿asset_code,asset_name,holder,type,brand,model,serial,department,ip,mac_address,status,image,map_id,x,y
+N1C102,Packing_set_room,หน้าห้องแต่งตัวลูกค้า,Camera,Hikvision,DS-2CD2025FWD-I,I20190118AAWRC89463423,2แพคกิ้ง,192.168.20.11,,Active,,1,48.3900,38.5000
+N3C602,peel_line_2,"รีดเม็ด ผลิต",Camera,Hikvision,DS-2CD3021G0-I,DS-2CD3021G0-I20231211AAWRAX8234245,2ผลิต,192.168.20.48,,Active,,1,75.6600,24.0400
+N1C702,costume,โรงเก็บผ้า,Camera,Hikvision,DS-2CD2025FWD-I,I20190118AAWRC89463414,2บุคคลฯ,192.168.20.8,,Active,,1,45.6600,16.0800
+N4C902,Load_ST,ช่องโหลด,Camera,Hikvision,,,2สโตร์ฯ,192.168.20.89,,Active,,1,66.9700,50.7300
+N4C1502,locker_PA,"ล๊อกเกอร์ แพคกิ้ง",Camera,Hikvision,,,2แพคกิ้ง,192.168.20.90,,Active,,1,47.2200,43.4100
+PR58,CM1-PR58,PR58,Camera,Hikvision,,,1ผลิต,,,Active,,13,71.1200,59.5300
+OS09,CM1-OS09,OS09,Camera,Hikvision,,,1บุคคลฯ,,,Active,,13,64.8500,15.8500
+N4C1302,basket_clean,ลานล้างตระกร้า,Camera,Hikvision,,,2ผลิต,192.168.20.73,,Active,,1,78.5100,23.3400
+N1C2902,ST_dry_front,หน้าสโตร์แห้ง,Camera,Hikvision,DS-2CD3021G0-I,I20231201AAWRAX3842231,2สโตร์ฯ,192.168.20.56,,Active,,1,39.3500,18.4500
+N4C1002,locker_PR,ห้องเก็บของผลิต,Camera,Hikvision,,,2ผลิต,192.168.20.74,,Active,,1,77.4300,33.3100
+N1C1502,load_new,"ทางขึ้น โรงใหม่",Camera,Hikvision,DS-2CD3021G0-I,20240715AAWRFH4748685,2สโตร์ฯ,192.168.20.68,,Active,,1,53.5000,85.8500
+N2C1202,Auto_A,"Auto A",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929375,2แพคกิ้ง,192.168.20.41,,Active,,1,50.8500,34.6900
+CONNETTA52,CM1-CONNETTA52,CONNETTA52,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,91.3300,37.1300
+N3C1102,Cutter_line_2,"Cutter line 2",Camera,Hikvision,DS-2CD3021G0-I,DS-2CD3021G0-I20231211AAWRAX8234242,2ผลิต,192.168.20.47,,Active,,1,69.9100,25.1500
+PA32,CM1-PA32,PA32,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,38.2800,45.1100
+RM60,CM1-RM60,RM60,Camera,Hikvision,,,1รับวัตถุดิบ,,,Active,,13,86.4700,20.0000
+N4C2302,Bean_gliding,"ร่อนถั่ว ผลิต",Camera,Hikvision,,,2ผลิต,192.168.20.94,,Active,,1,54.1500,29.4900
+N4C2202,select_PR_line_2,"เครื่องคัด ไลน์ 2",Camera,Hikvision,,,2ผลิต,192.168.20.98,,Active,,1,65.4200,29.7400
+ST16,CM1-ST16,ST16,Camera,Hikvision,,,1สโตร์ฯ,,,Active,,13,38.5900,29.5700
+N3C1202,chemical_PA,"ห้องสารเคมี แพคกิ้ง",Camera,Hikvision,DS-2CD3021G0-I,DS-2CD3021G0-I20231201AAWRAX3842245,2แพคกิ้ง,192.168.20.62,,Active,,1,48.7800,34.2300
+PA37,CM1-PA37,PA37,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,36.1700,40.5900
+OS01,CM1-OS01,OS01,Camera,Hikvision,,,1บุคคลฯ,,,Active,,13,28.8900,12.9900
+N1C3002,Newload_E,"ลานห้องเย็นใหม่ ตะวันออก",Camera,Hikvision,DS-2CD3021G0-I,20240715AAWRFH4748623,2สโตร์ฯ,192.168.20.67,,Active,,1,55.4800,79.2300
+N4C602,CD2,"ห้องเย็น 2",Camera,Hikvision,,,2สโตร์ฯ,192.168.20.86,,Active,,1,54.3600,44.7900
+N3C702,larn_RM,ลานรับวัตถุดิบ,Camera,Hikvision,DS-2CD3021G0-I,DS-2CD3021G0-I20231211AAWRAX8234397,2รับวัตถุดิบ,192.168.20.49,,Active,,1,71.6400,37.0300
+N1C1302,Motorcycle_garage,"โรงจอดรถ ตะวันตก",Camera,Hikvision,DS-2CD2027G1-L,L20201106AAWRF05200774,2บุคคลฯ,192.168.0.214,,Active,,1,23.1100,55.1500
+N1C402,ExitDoor_Office,"ทางออกฉุกเฉิน สำนักงาน",Camera,Hikvision,DS-2CD2025FWD-I,I20190118AAWRC89463381,2บุคคลฯ,192.168.20.5,,Active,,4,72.7400,91.4900
+PR43,CM1-PR43,PR43,Camera,Hikvision,,,1ผลิต,,,Active,,13,59.9500,45.8900
+N2C902,Auto_D,"Auto D",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929293,2แพคกิ้ง,192.168.20.38,,Active,,1,53.2700,34.7300
+PA34,CM1-PA34,PA34,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,41.2900,58.9300
+CONNETTA50,CM1-CONNETTA50,CONNETTA50,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,91.4300,43.2400
+N3C902,check_bag_GB,"เช็คถุง GB",Camera,Hikvision,DS-2CD3021G0-I,,2แพคกิ้ง,192.168.20.63,,Active,,1,47.3100,46.2400
+N3C802,load_RM,"ช่องจอดรถ รับวัตถุดิบ",Camera,Hikvision,DS-2CD3021G0-I,,2รับวัตถุดิบ,192.168.20.53,,Active,,1,72.2400,37.0300
+ST17,CM1-ST17,ST17,Camera,Hikvision,,,1สโตร์ฯ,,,Active,,13,16.9000,96.5600
+N4C1402,Water_tredment,บ่อบำบัด,Camera,Hikvision,,,2สิ่งแวดล้อม,192.168.20.72,,Active,,1,79.2500,26.6500
+N1C1802,FN_gb,"บรรจุกล่อง GB",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929376,2แพคกิ้ง,192.168.20.19,,Active,,1,53.6500,47.2500
+N1C1402,Data_center,ห้องกล้องวงจรปิด,Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929272,2เทคโนโลยีสารสนเทศ,192.168.20.42,,Active,,1,49.1800,49.9500
+N4C402,Larn_Load,ลานโหลด,Camera,Hikvision,DS-2CD3021G0-I,DS-2CD3021G0-I20240821AAWRFM4617264,2สโตร์ฯ,192.168.20.84,,Active,,1,65.7400,50.6300
+N4C1802,dress_room_PA,"ห้องแขวนชุด แพคกิ้ง",Camera,Hikvision,,,2แพคกิ้ง,192.168.20.92,,Active,,1,48.4400,44.2000
+PR54,CM1-PR54,PR54,Camera,Hikvision,,,1ผลิต,,,Active,,13,73.0000,31.6700
+N1C302,Front_Office,"ประตูใหญ่ สำนักงาน",Camera,Hikvision,DS-2CD2025FWD-I,I20190118AAWRC89463460,2บุคคลฯ,192.168.20.4,,Active,,1,50.7300,56.2500
+RM68,CM1-RM68,RM68,Camera,Hikvision,,,1รับวัตถุดิบ,,,Active,,13,98.6200,33.0100
+PR41,CM1-PR41,PR41,Camera,Hikvision,,,1ผลิต,,,Active,,13,48.9600,43.7000
+N4C1902,Control_MC,"ห้องควบคุม เครื่องกล",Camera,Hikvision,,,2เครื่องกล,192.168.20.97,,Active,,1,65.1500,26.7300
+PA36,CM1-PA36,PA36,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,30.8500,36.2900
+PR71,CM1-PR71,PR71,Camera,Hikvision,,,1ผลิต,,,Active,,13,,
+CONNETTA49,CM1-CONNETTA49,CONNETTA49,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,89.7800,40.1900
+N3C102,hand_wash_PR,"ล้างมือ ผลิต",Camera,Hikvision,DS-2CD3021G0-I,I20231211AAWRAX8234354,2ผลิต,192.168.20.57,,Active,,1,76.8300,29.0700
+N1C2302,Auto_detector,"ตรวจสอบโลหะ Auto",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929288,2แพคกิ้ง,192.168.20.26,,Active,,1,50.5300,32.9700
+ST46,CM1-ST46,ST46,Camera,Hikvision,,,1สโตร์ฯ,,,Active,,13,14.2200,80.6500
+PA27,CM1-PA27,PA27,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,30.9800,58.8200
+MC63,CM1-MC63,MC63,Camera,Hikvision,,,1เครื่องกล,,,Active,,13,55.1200,42.7400
+RM65,CM1-RM65,RM65,Camera,Hikvision,,,1รับวัตถุดิบ,,,Active,,13,89.4000,20.7500
+OS08,CM1-OS08,OS08,Camera,Hikvision,,,1บุคคลฯ,,,Active,,13,15.2400,12.0000
+N1C502,Nure_room,หน้าห้องพยาบาล,Camera,Hikvision,DS-2CD2025FWD-I,I20190118AAWRC89463457,2บุคคลฯ,192.168.20.6,,Active,,1,46.4400,54.9200
+PA21,CM1-PA21,PA21,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,28.7500,59.1900
+N1C2102,receive_SB,"บรรจุกล่อง SB",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929300,2แพคกิ้ง,192.168.20.23,,Active,,1,53.5400,38.3700
+N1C202,Packing_exit,"ทางออก แพคกิ้ง",Camera,Hikvision,DS-2CD2025FWD-I,I20190118AAWRC89463425,2แพคกิ้ง,192.168.20.55,,Active,,1,49.2200,42.1700
+N4C102,CD3,"ห้องเย็น 3",Camera,Hikvision,DS-2CD3021G0-I,DS-2CD3021G0-I20240821AAWRFM4617272,2สโตร์ฯ,192.168.20.81,,Active,,1,54.3600,46.8900
+OS11,CM1-OS11,OS11,Camera,Hikvision,,,1บุคคลฯ,,,Active,,13,17.3100,39.1200
+OS04,CM1-OS04,OS04,Camera,Hikvision,,,1บุคคลฯ,,,Active,,13,4.1400,12.3900
+OS05,CM1-OS05,OS05,Camera,Hikvision,,,1บุคคลฯ,,,Active,,13,10.1400,20.3500
+N1C2202,Cabitnet_PA,"ห้องเก็บของ แพคกิ้ง",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929294,2แพคกิ้ง,192.168.20.25,,Active,,1,49.7600,35.1200
+PA23,CM1-PA23,PA23,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,35.5800,32.3100
+PR57,CM1-PR57,PR57,Camera,Hikvision,,,1ผลิต,,,Active,,13,89.5100,14.3700
+N2C1702,Fastback_Auto1,"รางลำเลียง Auto1",Camera,Hikvision,DS-2CD2026G2-I,I20201216AAWRF21488682,2แพคกิ้ง,192.168.20.15,,Active,,1,50.4100,34.4300
+PR70,CM1-PR70,PR70,Camera,Hikvision,,,1ผลิต,,,Active,,13,,
+RM67,CM1-RM67,RM67,Camera,Hikvision,,,1รับวัตถุดิบ,,,Active,,13,,
+PA24,CM1-PA24,PA24,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,30.9500,43.8300
+N1C2002,SB_select,"สายพานรวม SB",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929275,2แพคกิ้ง,192.168.20.22,,Active,,1,50.5600,36.8300
+N2C802,Auto_AB,"Auto AB",Camera,Hikvision,DS-2CD3021G0-I,I20230824AAWRAF6298033,2แพคกิ้ง,192.168.20.37,,Active,,1,51.9400,36.5500
+N2C602,Fastback_auto2,"รางลำเลียง Auto2",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929276,2แพคกิ้ง,192.168.20.35,,Active,,1,53.7500,34.3100
+N1C602,Side_Office,"ประตูข้าง สำนักงาน",Camera,Hikvision,DS-2CD2025FWD-I,I20190118AAWRC89463436,2บุคคลฯ,192.168.20.7,,Active,,1,46.4300,54.5800
+D4C202,Bio2,"ห้องเตรียมสาร Lab",Camera,Hikvision,,,2ห้องปฏิบัติการ,192.168.20.204,,Active,,4,12.3400,12.2600
+OS14,CM1-OS14,OS14,Camera,Hikvision,,,1บุคคลฯ,,,Active,,13,12.3700,78.5700
+OS06,CM1-OS06,OS06,Camera,Hikvision,,,1บุคคลฯ,,,Active,,13,3.2300,12.4300
+N3C1302,F1_PA,"ห้องกล่อง แพคกิ้ง",Camera,Hikvision,DS-2CD3021G0-I,DS-2CD3021G0-I20231201AAWRAX3842227,2แพคกิ้ง,192.168.20.61,,Active,,1,49.9100,33.4400
+ST47,CM1-ST47,ST47,Camera,Hikvision,,,1สโตร์ฯ,,,Active,,13,19.5000,96.0300
+N1C1002,workway_door,"ประตูทางเข้า เล็ก",Camera,Hikvision,DS-2CD2027G1-L,L20201106AAWRF05200742,2บุคคลฯ,192.168.0.211,,Active,,1,16.8000,55.1300
+OS20,CM1-OS20,OS20,Camera,Hikvision,,,1บุคคลฯ,,,Active,,13,26.3400,31.5200
+OS07,CM1-OS07,OS07,Camera,Hikvision,,,1บุคคลฯ,,,Active,,13,12.4000,11.2200
+PA35,CM1-PA35,PA35,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,34.0400,40.1600
+N4C2102,Larn_MC,"ลาน เครื่องกล",Camera,Hikvision,,,2เครื่องกล,192.168.20.96,,Active,,1,66.6700,23.8700
+N2C402,IQF_line1,"IQF line 2",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929319,2ผลิต,192.168.20.33,,Active,,1,56.8000,29.3200
+OS03,CM1-OS03,OS03,Camera,Hikvision,,,1บุคคลฯ,,,Active,,13,3.5900,24.5300
+N1C1102,Big_Factory_Gate,"ประตูทางเข้า ใหญ่",Camera,Hikvision,DS-2CD2027G1-L,L20201106AAWRF05200760,2บุคคลฯ,192.168.0.212,,Active,,1,17.0800,58.1100
+ST10,CM1-ST10,ST10,Camera,Hikvision,,,1สโตร์ฯ,,,Active,,13,20.4700,80.0000
+N2C1302,GB_1,"โต๊ะคัด 1",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929262,2แพคกิ้ง,192.168.20.43,,Active,,1,53.6100,46.6100
+N3C1602,Water_Tank,บ่อบาดาล,Camera,Hikvision,DS-2CD3021G0-I,DS-2CD3021G0-I20231211AAWRAX8219180,2เครื่องกล,192.168.20.64,,Active,,1,44.5900,27.2400
+D4C102,Chem2,"ห้องสกัดสาร Lab",Camera,Hikvision,,,2ห้องปฏิบัติการ,192.168.20.204,,Active,,4,24.0800,79.2300
+N2C1402,GB_4,"โต๊ะคัด 4",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929227,2แพคกิ้ง,192.168.20.44,,Active,,1,53.5800,42.0400
+N2C502,Salt_storage,โรงเก็บเกลือ,Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929270,2ผลิต,192.168.20.34,,Active,,1,49.1100,18.0300
+PR56,CM1-PR56,PR56,Camera,Hikvision,,,1ผลิต,,,Active,,13,74.8100,32.2600
+N1C2602,Salt_tank_line,"ถังเกลือ ไลน์ 2",Camera,Hikvision,DS-2CD3021G0-I,DS-2CD3021G0-I20240821AAWRFM4617235,2ผลิต,192.168.20.29,,Active,,1,60.0000,29.9600
+N4C502,CD1,"ห้องเย็น 1",Camera,Hikvision,DS-2CD3021G0-I,DS-2CD3021G0-I20240821AAWRFM4617282,2สโตร์ฯ,192.168.20.85,,Active,,1,54.0800,36.7900
+N4C2002,F1_PR,"ห้องกล่อง ผลิต",Camera,Hikvision,,,2ผลิต,192.168.20.95,,Active,,1,56.7300,27.9100
+N2C702,Auto_CD,"Auto CD",Camera,Hikvision,DS-2CD3021G0-I,DS-2CD3021G0-I20230712AAWRAD6929294,2แพคกิ้ง,192.168.20.36,,Active,,1,52.3400,36.5900
+N3C202,Chill_room,"ห้องชิล รับวัตถุดิบ",Camera,Hikvision,DS-2CD3021G0-I,I20231211AAWRAX8234253,2รับวัตถุดิบ,192.168.20.58,,Active,,1,65.8900,40.3300
+PA26,CM1-PA26,PA26,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,38.0800,40.7700
+N1C1202,Motorcycle_garage,"โรงจอดรถ ตะวันออก",Camera,Hikvision,DS-2CD2027G1-L,L20201106AAWRF05200745,2บุคคลฯ,192.168.0.213,,Active,,1,23.7400,55.1300
+N1C2402,FN_auto,"บรรจุกล่อง Auto",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929307,2แพคกิ้ง,192.168.20.27,,Active,,1,53.6100,33.7300
+N1C802,lonry_mac,โรงซักผ้า,Camera,Hikvision,DS-2CD2025FWD-I,I20190118AAWRC89463512,2บุคคลฯ,192.168.20.9,,Active,,1,46.1300,17.9700
+N1C902,locker_room_pa,"ตู้ล๊อกเกอร์ แพคกิ้ง",Camera,Hikvision,DS-2CD2025FWD-I,I20200824AAWRE73014076,2แพคกิ้ง,192.168.20.10,,Active,,1,47.2700,41.1800
+C38.0960,C38.0960,คเชนทร์,UPS,APC,800,DS-2CD3021G0-I20240821AAWRFM4617274,2เทคโนโลยีสารสนเทศ,,,Active,,1,53.5700,51.3200
+N1C1702,GB_detector,"ตรวจสอบโลหะ GB",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929273,2แพคกิ้ง,192.168.20.18,,Active,,1,50.4900,50.7500
+CONNETTA51,CM1-CONNETTA51,CONNETTA51,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,88.7600,49.2300
+N1C1902,receive_GB,"ตกเกรด GB",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929353,2แพคกิ้ง,192.168.20.23,,Active,,1,52.0700,41.6200
+N4C1702,font_packing,"ถนนหน้า แพคกิ้ง",Camera,Hikvision,,,2แพคกิ้ง,192.168.20.91,,Active,,1,46.3800,48.0200
+PR72,CM1-PR72,PR72,Camera,Hikvision,,,1ผลิต,,,Active,,13,,
+D4C402,Chem1,"ห้องเขี่ยเชื้อ Lab",Camera,Hikvision,,,2ห้องปฏิบัติการ,192.168.20.204,,Active,,4,26.8300,79.3400
+N2C1802,Auto_F,"Auto F",Camera,Hikvision,DS-2CD1023G2-LIU,DS-2CD1023G2-LIU20251117AAWRGK8163825,2แพคกิ้ง,192.168.20.12,,Active,,1,53.8200,34.7500
+ST18,CM1-ST18,ST18,Camera,Hikvision,,,1สโตร์ฯ,,,Active,,13,12.1900,85.8100
+PA30,CM1-PA30,PA30,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,38.3100,58.9400
+N1C3102,Newload_W,"ลานห้องเย็นใหม่ ตะวันตก",Camera,Hikvision,DS-2CD3021G0-I,20240715AAWRFH4748741,2สโตร์ฯ,192.168.20.69,,Active,,1,35.8500,76.5500
+N2C1102,Auto_B,"Auto B",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929384,2แพคกิ้ง,192.168.20.40,,Active,,1,51.4200,34.6700
+OS12,CM1-OS12,OS12,Camera,Hikvision,,,1บุคคลฯ,,,Active,,13,20.8500,59.0100
+RM66,CM1-RM66,RM66,Camera,Hikvision,,,1รับวัตถุดิบ,,,Active,,13,64.7800,23.1200
+N1C3202,New_engine_room,"ห้องเครื่อง โรงใหม่",Camera,Hikvision,DS-2CD1023G0E-I,I20210228AAWRF59489439,2เครื่องกล,192.168.20.70,,Active,,1,57.9900,72.9900
+N1C2702,PA_hand-wash,"ล้างมือ แพคกิ้ง",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929346,2แพคกิ้ง,192.168.20.24,,Active,,1,49.8600,36.9100
+PR45,CM1-PR45,PR45,Camera,Hikvision,,,1ผลิต,,,Active,,13,,
+PR53,CM1-PR53,PR53,Camera,Hikvision,,,1ผลิต,,,Active,,13,,
+N3C1402,Check_bag_auto,"เช็คถุง Auto",Camera,Hikvision,DS-2CD3021G0-I,DS-2CD3021G0-I20231201AAWRAX3842250,2แพคกิ้ง,192.168.20.60,,Active,,1,47.4800,45.2700
+PR44,CM1-PR44,PR44,Camera,Hikvision,,,1ผลิต,,,Active,,13,42.6200,43.5600
+OS13,CM1-OS13,OS13,Camera,Hikvision,,,1บุคคลฯ,,,Active,,13,4.8100,78.4400
+N3C1002,larn_PR,ลานผลิต,Camera,Hikvision,DS-2CD3021G0-I,DS-2CD3021G0-I20231211AAWRAX8234351,2ผลิต,192.168.20.52,,Active,,1,75.5900,36.1800
+N2C1002,Auto_C," Auto C",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929319,2แพคกิ้ง,192.168.20.39,,Active,,1,52.4600,34.7100
+N3C1502,Y_way_STL,"3 แยก บ่อบาดาล",Camera,Hikvision,DS-2CD3021G0-I,DS-2CD3021G0-I20231211AAWRAX8219184,2เครื่องกล,192.168.20.65,,Active,,1,47.0700,22.4100
+N2C1502,Seal,"ซิล GB",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929374,2แพคกิ้ง,192.168.20.45,,Active,,1,50.5100,46.8300
+PR40,CM1-PR40,PR40,Camera,Hikvision,,,1ผลิต,,,Active,,13,58.7800,49.0700
+CONNETTA48,CM1-CONNETTA48,CONNETTA48,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,85.2700,44.5200
+N2C1602,GB_Weightier,"ชั่ง GB",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929377,2แพคกิ้ง,192.168.20.46,,Active,,1,50.5500,42.1400
+RM61,CM1-RM61,RM61,Camera,Hikvision,,,1รับวัตถุดิบ,,,Active,,13,87.5700,20.3200
+C38.0761,C38.0761,คเชนทร์,UPS,APC,800,DS-2CD3021G0-I20240821AAWRFM4617258,2เทคโนโลยีสารสนเทศ,,,Active,,1,53.8400,51.3300
+RM69,CM1-RM69,RM69,Camera,Hikvision,,,1รับวัตถุดิบ,,,Active,,13,99.1100,34.9500
+PA25,CM1-PA25,PA25,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,40.0100,33.0300
+PR55,CM1-PR55,PR55,Camera,Hikvision,,,1ผลิต,,,Active,,13,72.1900,42.3300
+N4C1102,Chemical_PR,ห้องสารเคมีผลิต,Camera,Hikvision,,,2ผลิต,192.168.20.75,,Active,,1,78.6200,28.0300
+N3C402,cutter_line_1,"สายพานไลน์ 1",Camera,Hikvision,DS-2CD3021G0-I,I20231211AAWRAX8234345,2ผลิต,192.168.20.51,,Active,,1,69.6700,31.7700
+RM73,CM1-RM73,RM73,Camera,Hikvision,,,1รับวัตถุดิบ,,,Active,,13,98.6600,58.6100
+ST15,CM1-ST15,ST15,Camera,Hikvision,,,1สโตร์ฯ,,,Active,,13,20.8800,87.8500
+N4C702,CD5,"ห้องเย็น 5",Camera,Hikvision,,,2สโตร์ฯ,192.168.20.87,,Active,,1,60.3500,40.3300
+N1C1602,Dry_store_warehouse,สโตร์แห้ง,Camera,Hikvision,DS-2CD1023G0E-I,I20210228AAWRF59489513,2สโตร์ฯ,192.168.20.17,,Active,,1,38.7500,18.1800
+PR59,CM1-PR59,PR59,Camera,Hikvision,,,1ผลิต,,,Active,,13,53.7600,58.9500
+ST19,CM1-ST19,ST19,Camera,Hikvision,,,1สโตร์ฯ,,,Active,,13,16.0400,77.1000
+N2C102,Wash_line2,"ถังล้าง ไลน์ 2",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929269,2ผลิต,192.168.20.30,,Active,,1,63.2500,29.9400
+PR38,CM1-PR38,PR38,Camera,Hikvision,,,1ผลิต,,,Active,,13,81.8600,37.9100
+D4C302,Bio1,"ห้องเก็บเชื้อ Lab",Camera,Hikvision,,,2ห้องปฏิบัติการ,192.168.20.204,,Active,,4,14.8900,15.2100
+RM64,CM1-RM64,RM64,Camera,Hikvision,,,1รับวัตถุดิบ,,,Active,,13,92.2000,23.2300
+RM39,CM1-RM39,RM39,Camera,Hikvision,,,1รับวัตถุดิบ,,,Active,,13,96.3400,17.4200
+PR42,CM1-PR42,PR42,Camera,Hikvision,,,1ผลิต,,,Active,,13,79.3500,63.3500
+OS02,CM1-OS02,OS02,Camera,Hikvision,,,1บุคคลฯ,,,Active,,13,30.7100,13.3300
+N2C302,IQF_line2,"IQF line 1",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929370,2ผลิต,192.168.20.32,,Active,,1,56.7400,32.6200
+N1C2502,Shaker_line,"ถังเกลือ ไลน์ 1",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929289,2ผลิต,192.168.20.28,,Active,,1,59.9800,31.6800
+N3C502,cutter_line_2,"สายพานลำเลียงไลน์ 1",Camera,Hikvision,DS-2CD3021G0-I,DS-2CD3021G0-I20231211AAWRAX8234269,2ผลิต,192.168.20.59,,Active,,1,69.7300,36.4300
+N2C202,wash_line1,"ถังล้าง ไลน์ 1",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929359,2ผลิต,192.168.20.31,,Active,,1,63.1800,31.7200
+N4C1602,Attendent_time,ลานรูดบัตร,Camera,Hikvision,,,2บุคคลฯ,192.168.20.93,,Active,,1,44.6300,49.0200
+N4C1202,dress_room_PR,ตู้ล๊อกเกอร์ผลิต,Camera,Hikvision,,,2ผลิต,192.168.20.71,,Active,,1,78.4500,29.0700
+N1C2802,SB_shaker,"รางลำเลียง SB",Camera,Hikvision,DS-2CD3021G0-I,I20230712AAWRAD6929301,2แพคกิ้ง,192.168.20.21,,Active,,1,50.5600,40.3100
+PA33,CM1-PA33,PA33,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,39.9500,45.0000
+PA22,CM1-PA22,PA22,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,34.2500,33.2400
+N4C802,CD11,"ห้องเย็น 11",Camera,Hikvision,,,2สโตร์ฯ,192.168.20.88,,Active,,1,54.4100,32.6400
+RM62,CM1-RM62,RM62,Camera,Hikvision,,,1รับวัตถุดิบ,,,Active,,13,90.0100,20.3200
+PA31,CM1-PA31,PA31,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,38.2800,46.2200
+N3C302,select_line2,"สายพาน ไลน์ 2",Camera,Hikvision,DS-2CD3021G0-I,I20231211AAWRAX8234257,2ผลิต,192.168.20.50,,Active,,1,66.4000,30.0400
+PA29,CM1-PA29,PA29,Camera,Hikvision,,,1แพคกิ้ง,,,Active,,13,38.2200,51.4900
+N4C2202,fn_dry,"ลิฟท์ F/n Dry",Camera,Hikvision,,,2สโตร์ฯ,192.168.20.98,,Active,,1,47.9200,34.3800

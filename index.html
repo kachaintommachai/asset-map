@@ -1,0 +1,2404 @@
+<!doctype html>
+<html lang="th" class="h-full">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT Asset Map - แผนผังอุปกรณ์ไอที</title>
+    <script src="asset/vendor/tailwindcss.js"></script>
+    <script src="asset/vendor/lucide.min.js"></script>
+    <link rel="stylesheet" href="asset/vendor/fonts/font.css">
+    <style>
+        * { font-family: 'IBM Plex Sans Thai', sans-serif; }
+        
+        /* สัญลักษณ์อุปกรณ์ไอทีบนแผนผัง */
+        .device-dot {
+            --dot: 22px;
+            width: var(--dot);
+            height: var(--dot);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: absolute;
+            transform: translate(-50%, -50%);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 10;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4), 0 0 0 1.5px rgba(255,255,255,0.9);
+            color: #ffffff;
+        }
+        .device-dot:hover {
+            transform: translate(-50%, -50%) scale(1.4);
+            z-index: 30;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.6), 0 0 0 2px #10b981;
+        }
+        .device-dot.extra-device {
+            outline: 2px dashed #fbbf24;
+            outline-offset: 2px;
+        }
+        .device-dot svg {
+            width: 13px;
+            height: 13px;
+            stroke-width: 2.2;
+        }
+
+        /* รูปทรงเฉพาะตามชนิดอุปกรณ์ */
+        .type-pc { border-radius: 5px; }
+        .type-printer { border-radius: 7px; }
+        .type-monitor { border-radius: 4px; }
+        .type-switch { border-radius: 12px; }
+        .type-server { border-radius: 3px; }
+        .type-router { border-radius: 50%; }
+
+        /* ป้ายชื่อใต้สัญลักษณ์ */
+        .device-dot .dot-label {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 2px;
+            color: #0f172a;
+            background: transparent;
+            font-size: 10px;
+            font-weight: 600;
+            line-height: 1.2;
+            white-space: nowrap;
+            pointer-events: none;
+            text-shadow: 0 0 2px #fff, 0 0 2px #fff, 0 0 3px #fff, -1px 0 1px #fff, 1px 0 1px #fff, 0 -1px 1px #fff, 0 1px 1px #fff;
+        }
+
+        /* Tooltip เมื่อ Hover อุปกรณ์ */
+        .device-dot .tooltip {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0f172a;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            white-space: nowrap;
+            margin-bottom: 8px;
+            border: 1px solid #334155;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+            pointer-events: none;
+            z-index: 50;
+        }
+        .device-dot:hover .tooltip { display: block; }
+
+        .print-only { display: none; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            .print-area { position: fixed !important; top: 0; left: 0; margin: 0; padding: 4mm; background: white !important; border: 2px solid #000; box-sizing: border-box; display: block !important; overflow: hidden; }
+            #print-header { border-bottom: 1.5px solid #000; padding-bottom: 3mm; margin-bottom: 3mm; text-align: center; color: #000; box-sizing: border-box; overflow: hidden; }
+            #print-header .print-title { font-size: 20pt; font-weight: 700; letter-spacing: 1px; }
+            #print-header .print-sub { font-size: 10pt; margin-top: 1mm; }
+            #print-header .print-summary { display: flex; flex-wrap: wrap; justify-content: center; gap: 1mm 3mm; margin-top: 1.5mm; font-size: 8.5pt; }
+            #print-header .print-summary .sum-item { display: inline-flex; align-items: center; gap: 1mm; white-space: nowrap; }
+            #print-header .print-summary .sum-dot { width: 2.5mm; height: 2.5mm; border-radius: 50%; display: inline-block; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            #print-header .print-summary .sum-total { font-weight: 700; }
+            html.paper-a3 #print-header .print-summary { font-size: 11pt; }
+            html.paper-a3 #print-header .print-title { font-size: 28pt; }
+            html.paper-a3 #print-header .print-sub { font-size: 13pt; }
+            html.paper-a3 .device-dot { --dot: 26px; }
+            html.paper-a3 .device-dot .dot-label { font-size: 13px; }
+            #map-viewport { display: block !important; width: 100%; border: 1px solid #000 !important; border-radius: 0 !important; background: white !important; overflow: hidden !important; position: relative; padding: 0 !important; box-sizing: border-box; }
+            #map-content { position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%); height: auto !important; margin: 0 !important; }
+            #floor-plan-img { width: 100% !important; height: auto !important; box-shadow: none !important; }
+            .device-dot { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            .device-dot .dot-label { color: #000 !important; background: transparent !important; font-weight: 600 !important; }
+        }
+        .dragging { opacity: 0.6; }
+        .floor-plan-container { position: relative; background: #0f172a; border: 2px dashed #334155; min-height: 400px; overflow: auto; }
+        .group-tag { font-size: 11px; padding: 3px 8px; border-radius: 9999px; }
+        .sidebar-item { transition: background 0.15s; }
+        .sidebar-item:hover { background: #1e293b; }
+        .modal-overlay { background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(2px); }
+        body { box-sizing: border-box; }
+        .map-radio:checked + label { background: #10b981; color: white; border-color: #10b981; }
+        .map-radio + label { cursor: pointer; transition: all 0.15s; }
+    </style>
+</head>
+
+<body class="h-full bg-slate-900 text-slate-100 overflow-hidden">
+    <!-- Login Screen -->
+    <div id="login-screen" class="fixed inset-0 z-50 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div class="w-full max-w-sm px-4">
+            <div class="bg-slate-800 rounded-2xl p-8 border border-slate-700 shadow-2xl">
+                <div class="text-center mb-8">
+                    <div class="inline-block bg-emerald-600 rounded-2xl p-4 mb-4 shadow-lg shadow-emerald-600/30">
+                        <i data-lucide="server" class="w-8 h-8 text-white"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-white">IT Asset Map</h1>
+                    <p class="text-slate-400 text-sm mt-2">ระบบจัดการและแผนผังตำแหน่งอุปกรณ์ไอที</p>
+                </div>
+                <form id="login-form" class="space-y-4" onsubmit="handleLogin(event)">
+                    <div>
+                        <label class="text-sm text-slate-400 font-medium">ชื่อผู้ใช้</label>
+                        <input type="text" id="login-username" placeholder="Username" class="w-full mt-2 px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors" required autocomplete="username">
+                    </div>
+                    <div>
+                        <label class="text-sm text-slate-400 font-medium">รหัสผ่าน</label>
+                        <div class="relative mt-2">
+                            <input type="password" id="login-password" placeholder="Password" class="w-full px-4 py-3 pr-10 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors" required autocomplete="current-password">
+                            <button type="button" onclick="togglePasswordVisibility('login-password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1" title="แสดง/ซ่อนรหัสผ่าน">
+                                <i data-lucide="eye" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <p id="login-error" class="text-xs text-red-400 mt-2 text-center hidden"></p>
+                    </div>
+                    <button type="submit" id="login-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg font-semibold transition-all shadow-md shadow-emerald-600/20">เข้าสู่ระบบ</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="app" class="h-full w-full flex flex-col hidden">
+        <!-- Top Bar -->
+        <header class="no-print bg-slate-800 border-b border-slate-700 px-4 py-2 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-600/20 p-1.5 rounded-lg border border-emerald-500/30">
+                    <i data-lucide="network" class="w-5 h-5 text-emerald-400"></i>
+                </div>
+                <div>
+                    <h1 id="app-title" class="text-base font-bold text-white tracking-wide flex items-center gap-2">
+                        IT Asset Map
+                        <span class="text-[11px] bg-slate-700 text-emerald-400 px-2 py-0.5 rounded font-normal">Port 3003</span>
+                    </h1>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 sm:gap-3">
+                <div id="user-info" class="flex items-center gap-2 bg-slate-700 rounded-lg px-3 py-1.5">
+                    <i data-lucide="user" class="w-4 h-4 text-emerald-400"></i>
+                    <span id="user-display" class="text-sm text-slate-200"></span>
+                    <span id="dept-display" class="text-xs text-slate-400"></span>
+                </div>
+                <div class="relative" id="admin-menu-wrap">
+                    <button onclick="toggleAdminMenu(event)" id="admin-menu-btn" class="hidden items-center gap-1 bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium transition-all" title="เมนูผู้ดูแลระบบ">
+                        <i data-lucide="settings" class="w-4 h-4 text-amber-400"></i> Admin
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+                    </button>
+                    <div id="admin-menu" class="hidden absolute right-0 mt-1 w-56 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+                        <div class="px-3 py-2 text-[11px] text-slate-500 uppercase tracking-wider border-b border-slate-700 font-semibold">ตั้งค่าระบบ</div>
+                        <button onclick="runAdminAction(openAddDevice)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-all text-left">
+                            <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i> เพิ่มอุปกรณ์ไอที
+                        </button>
+                        <button onclick="runAdminAction(openGroupManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-all text-left">
+                            <i data-lucide="layers" class="w-4 h-4 text-slate-400 shrink-0"></i> จัดการแผนก / กลุ่ม
+                        </button>
+                        <button onclick="runAdminAction(openMapManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-all text-left">
+                            <i data-lucide="map" class="w-4 h-4 text-slate-400 shrink-0"></i> จัดการแผนผัง
+                        </button>
+                        <button onclick="runAdminAction(openUserManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-all text-left">
+                            <i data-lucide="users" class="w-4 h-4 text-slate-400 shrink-0"></i> จัดการผู้ใช้
+                        </button>
+                    </div>
+                </div>
+                <button onclick="openHelp()" class="flex items-center gap-1 bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium transition-all" title="คู่มือการใช้งาน">
+                    <i data-lucide="help-circle" class="w-4 h-4 text-emerald-400"></i> คู่มือ
+                </button>
+                <div class="flex items-center gap-1 bg-slate-700 rounded-lg pl-2">
+                    <select id="paper-size" onchange="setPaperSize(this.value)" class="bg-slate-700 text-slate-200 text-sm py-1.5 pr-1 focus:outline-none cursor-pointer">
+                        <option value="A4-landscape">A4 แนวนอน</option>
+                        <option value="A4-portrait">A4 แนวตั้ง</option>
+                        <option value="A3-landscape">A3 แนวนอน</option>
+                        <option value="A3-portrait">A3 แนวตั้ง</option>
+                    </select>
+                    <button onclick="printMap()" class="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all">
+                        <i data-lucide="printer" class="w-4 h-4"></i> พิมพ์
+                    </button>
+                </div>
+                <button id="btn-logout" onclick="logout()" class="flex items-center gap-1 bg-red-600/90 hover:bg-red-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all">
+                    <i data-lucide="log-out" class="w-4 h-4"></i> ออกจากระบบ
+                </button>
+            </div>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Sidebar -->
+            <aside id="sidebar" class="no-print w-80 bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden shrink-0">
+                <!-- Map Selector -->
+                <div class="p-3 border-b border-slate-700">
+                    <label class="text-xs text-slate-400 font-medium uppercase tracking-wider flex items-center justify-between">
+                        <span>เลือกแผนผัง</span>
+                        <span id="map-device-count" class="text-[11px] text-emerald-400 font-normal"></span>
+                    </label>
+                    <div id="map-selector" class="mt-2 flex flex-wrap gap-1.5 max-h-24 overflow-y-auto"></div>
+                </div>
+
+                <!-- Device Type Filter -->
+                <div class="p-3 border-b border-slate-700">
+                    <label class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-2 block">ชนิดอุปกรณ์ (Type)</label>
+                    <div id="type-filter" class="flex flex-wrap gap-1"></div>
+                </div>
+
+                <!-- Department / Group Filter -->
+                <div class="p-3 border-b border-slate-700">
+                    <label class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-2 block">แผนก / กลุ่มอุปกรณ์</label>
+                    <div id="group-filter" class="flex flex-wrap gap-1 max-h-24 overflow-y-auto"></div>
+                </div>
+
+                <!-- Search Box -->
+                <div class="p-2 border-b border-slate-700 bg-slate-800/60">
+                    <div class="relative">
+                        <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="device-search" oninput="renderDeviceList()" placeholder="ค้นหารหัส, ชื่อ, IP, ยี่ห้อ..." class="w-full pl-8 pr-3 py-1.5 bg-slate-700/80 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+
+                <!-- Device List -->
+                <div class="flex-1 overflow-y-auto p-2" id="camera-list"></div>
+            </aside>
+
+            <!-- Main Map Area + Bookmarks -->
+            <main class="flex-1 overflow-hidden flex flex-row">
+                <!-- Map View Area -->
+                <div class="flex-1 overflow-auto p-4">
+                    <div id="print-area" class="print-area h-full w-full relative">
+                        <div id="print-header" class="print-only">
+                            <div class="print-title">IT Asset Map - แผนผังอุปกรณ์ไอที</div>
+                            <div class="print-sub" id="print-subtitle"></div>
+                            <div class="print-summary" id="print-summary"></div>
+                        </div>
+                        <div class="absolute bottom-4 right-4 z-40 flex flex-col gap-2 bg-slate-800/90 p-2 rounded-xl border border-slate-700 shadow-xl backdrop-blur-sm no-print items-center">
+                            <button onclick="zoomMap(50)" class="p-2 hover:bg-slate-600 rounded-lg text-slate-200 transition-colors" title="ซูมเข้า (Zoom In)"><i data-lucide="zoom-in" class="w-5 h-5"></i></button>
+                            <span id="zoom-level-text" class="text-xs font-mono font-bold text-slate-300">100%</span>
+                            <button onclick="resetZoom()" class="p-2 hover:bg-slate-600 rounded-lg text-slate-200 transition-colors" title="รีเซ็ตขนาด (Reset Zoom)"><i data-lucide="maximize" class="w-5 h-5"></i></button>
+                            <button onclick="zoomMap(-50)" class="p-2 hover:bg-slate-600 rounded-lg text-slate-200 transition-colors" title="ซูมออก (Zoom Out)"><i data-lucide="zoom-out" class="w-5 h-5"></i></button>
+                        </div>
+                        <div id="map-viewport" class="floor-plan-container rounded-xl w-full h-full overflow-auto bg-slate-900 block relative">
+                            <div id="floor-plan-placeholder" class="flex flex-col items-center justify-center h-full w-full text-slate-400 absolute inset-0 z-0 pointer-events-none">
+                                <i data-lucide="map" class="w-16 h-16 mb-3 opacity-50"></i>
+                                <p class="text-lg">ยังไม่มีแผนผัง</p>
+                                <p class="text-sm mt-1">เลือกแผนผังจากเมนูด้านซ้าย หรืออัปโหลดแผนผังใหม่</p>
+                            </div>
+                            <div id="map-content" class="relative z-10" style="width: 100%;">
+                                <img id="floor-plan-img" class="w-full h-auto block hidden shadow-2xl" alt="Floor Plan">
+                                <div id="cameras-overlay" class="absolute inset-0"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bookmarks Panel (Right Side: Device Photo Gallery) -->
+                <div id="bookmarks-panel" class="no-print shrink-0 bg-slate-800 border-l border-slate-700 hidden flex-col" style="width: 360px;">
+                    <div class="flex items-center justify-between px-3 py-2.5 border-b border-slate-700 bg-slate-800/80">
+                        <span class="text-xs text-slate-300 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                            <i data-lucide="bookmark" class="w-4 h-4 text-amber-400"></i> อุปกรณ์ที่ปักหมุด
+                        </span>
+                        <div class="flex items-center gap-1">
+                            <button onclick="clearAllBookmarks()" class="text-[11px] text-slate-400 hover:text-red-400 px-1.5 py-0.5 rounded transition-colors" title="ล้างหมุดทั้งหมด">ล้างทั้งหมด</button>
+                            <button onclick="toggleBookmarksPanel()" class="text-slate-400 hover:text-slate-200 p-1"><i data-lucide="chevron-right" class="w-4 h-4" id="bookmarks-toggle-icon"></i></button>
+                        </div>
+                    </div>
+                    <div id="bookmarks-streams" class="flex flex-col gap-3 p-3 overflow-y-auto flex-1"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add/Edit Device Modal -->
+    <div id="modal-camera" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
+        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-lg mx-4 border border-slate-700 shadow-2xl max-h-[92vh] overflow-y-auto">
+            <h3 id="modal-camera-title" class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <i data-lucide="plus-circle" class="w-5 h-5 text-emerald-400"></i>
+                <span>เพิ่มอุปกรณ์ไอที</span>
+            </h3>
+            <form id="camera-form" class="space-y-3" onsubmit="saveCamera(event)">
+                <input type="hidden" id="cam-edit-rec-id">
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="cam-id" class="text-xs text-slate-400 font-medium">รหัสทรัพย์สิน / รหัสอุปกรณ์ (Asset Code) *</label>
+                        <input id="cam-id" type="text" required placeholder="เช่น PC-001, NB-IT-01, ACC-2024-001" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label for="cam-type" class="text-xs text-slate-400 font-medium">ชนิดอุปกรณ์ (Type) *</label>
+                        <select id="cam-type" required class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                            <option value="PC">PC (คอมพิวเตอร์ตั้งโต๊ะ)</option>
+                            <option value="Notebook">Notebook (โน้ตบุ๊ก)</option>
+                            <option value="Printer">Printer (เครื่องพิมพ์)</option>
+                            <option value="Monitor">Monitor (จอภาพ)</option>
+                            <option value="Switch">Switch (สวิตช์เครือข่าย)</option>
+                            <option value="Server">Server (เซิร์ฟเวอร์)</option>
+                            <option value="Router">Router / AP (เราเตอร์)</option>
+                            <option value="UPS">UPS (เครื่องสำรองไฟ)</option>
+                            <option value="Camera">Camera (กล้องวงจรปิด)</option>
+                            <option value="Other">Other (อุปกรณ์อื่นๆ)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="cam-brand" class="text-xs text-slate-400">ยี่ห้อ (Brand)</label>
+                        <input id="cam-brand" type="text" placeholder="เช่น Dell, HP, Cisco, Canon" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label for="cam-model" class="text-xs text-slate-400">รุ่น (Model)</label>
+                        <input id="cam-model" type="text" placeholder="เช่น OptiPlex 7090" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="cam-serial" class="text-xs text-slate-400">หมายเลขเครื่อง (Serial Number)</label>
+                        <input id="cam-serial" type="text" placeholder="S/N" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label for="cam-status" class="text-xs text-slate-400">สถานะอุปกรณ์</label>
+                        <select id="cam-status" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                            <option value="Active">ใช้งานอยู่ (Active)</option>
+                            <option value="Spare">สำรอง (Spare)</option>
+                            <option value="Repair">ซ่อมบำรุง (Repair)</option>
+                            <option value="Retired">จำหน่ายออก (Retired)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="cam-department" class="text-xs text-slate-400">แผนก / หน่วยงานที่ใช้งาน</label>
+                    <select id="cam-department" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="cam-eng-name" class="text-xs text-slate-400">ชื่อทรัพย์สิน / อุปกรณ์ (Asset Name)</label>
+                        <input id="cam-eng-name" type="text" placeholder="เช่น Computer Dell OptiPlex, Core Switch" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label for="cam-thai-name" class="text-xs text-slate-400">ผู้ถือครอง / ผู้ใช้งาน (Holder)</label>
+                        <input id="cam-thai-name" type="text" placeholder="เช่น สมชาย บัญชี, ห้องประชุมใหญ่" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="cam-map-id" class="text-xs text-slate-400">แผนผังที่ติดตั้ง</label>
+                    <select id="cam-map-id" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="cam-ip" class="text-xs text-slate-400">IP Address</label>
+                        <input id="cam-ip" type="text" placeholder="เช่น 192.168.1.50" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label for="cam-mac" class="text-xs text-slate-400">MAC Address</label>
+                        <input id="cam-mac" type="text" placeholder="เช่น AA:BB:CC:DD:EE:FF" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+
+                <!-- ภาพอุปกรณ์ (Device Image Upload & URL) -->
+                <div class="bg-slate-700/50 p-3 rounded-xl border border-slate-600/70 space-y-2">
+                    <label class="text-xs text-slate-300 font-medium flex items-center gap-1.5">
+                        <i data-lucide="image" class="w-3.5 h-3.5 text-emerald-400"></i> ภาพอุปกรณ์ไอที
+                    </label>
+                    <div class="flex items-center gap-2">
+                        <input id="cam-image-url" type="text" placeholder="URL รูปภาพ หรืออัปโหลดไฟล์ด้านขวา" class="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                        <label class="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium cursor-pointer transition-all shrink-0">
+                            <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                            <span id="cam-upload-text">อัปโหลดภาพ</span>
+                            <input type="file" id="cam-image-file" accept="image/*" class="hidden" onchange="handleDeviceImageUpload(this)">
+                        </label>
+                    </div>
+                    <div id="cam-image-preview-container" class="hidden mt-2">
+                        <div class="relative w-32 h-20 rounded-lg overflow-hidden border border-slate-600 bg-slate-800">
+                            <img id="cam-image-preview" src="" alt="Preview" class="w-full h-full object-cover">
+                            <button type="button" onclick="removeDeviceImagePreview()" class="absolute top-1 right-1 bg-red-600 text-white rounded-full p-0.5 hover:bg-red-500">
+                                <i data-lucide="x" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-3">
+                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md shadow-emerald-600/20">บันทึกข้อมูลอุปกรณ์</button>
+                    <button type="button" onclick="closeModal('modal-camera')" class="flex-1 bg-slate-600 hover:bg-slate-500 text-white py-2.5 rounded-lg text-sm font-medium transition-all">ยกเลิก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Group Manager Modal -->
+    <div id="modal-groups" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
+        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-md mx-4 border border-slate-700 shadow-2xl">
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <i data-lucide="layers" class="w-5 h-5 text-emerald-400"></i> จัดการแผนก / กลุ่มอุปกรณ์
+            </h3>
+            <div id="groups-list" class="space-y-2 max-h-60 overflow-y-auto mb-4"></div>
+            <div id="groups-add-section" class="border-t border-slate-700 pt-4 mb-4 hidden">
+                <h4 class="text-sm font-medium mb-3 text-slate-200">เพิ่มแผนกใหม่</h4>
+                <form id="add-dept-form" class="flex gap-2" onsubmit="addDepartment(event)">
+                    <input type="text" id="new-dept-name" required placeholder="ชื่อแผนก เช่น ฝ่ายไอที, การเงิน" class="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">เพิ่ม</button>
+                </form>
+            </div>
+            <button onclick="closeModal('modal-groups')" class="w-full bg-slate-600 hover:bg-slate-500 text-white py-2 rounded-lg text-sm font-medium transition-all">ปิด</button>
+        </div>
+    </div>
+
+    <!-- Map Manager Modal -->
+    <div id="modal-maps" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
+        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-lg mx-4 border border-slate-700 shadow-2xl">
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <i data-lucide="map" class="w-5 h-5 text-emerald-400"></i> จัดการแผนผังอาคาร/ห้อง
+            </h3>
+            <div id="maps-list" class="space-y-3 max-h-80 overflow-y-auto mb-4"></div>
+            <div class="border-t border-slate-700 pt-4">
+                <h4 class="text-sm font-medium mb-3 text-slate-200">เพิ่มแผนผังใหม่</h4>
+                <form id="add-map-form" class="space-y-2" onsubmit="addMap(event)">
+                    <div>
+                        <label class="text-xs text-slate-400">ชื่อแผนผัง</label>
+                        <input type="text" id="new-map-name" required placeholder="เช่น ห้องเซิร์ฟเวอร์, สำนักงานชั้น 2" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400">ไฟล์ภาพแผนผัง</label>
+                        <label class="flex items-center gap-2 mt-1 px-3 py-2 bg-slate-700 border border-slate-600 border-dashed rounded-lg cursor-pointer hover:border-emerald-500 transition-all">
+                            <i data-lucide="upload" class="w-4 h-4 text-slate-400"></i>
+                            <span class="text-sm text-slate-400" id="new-map-file-label">เลือกไฟล์รูปภาพแผนผัง...</span>
+                            <input type="file" id="new-map-file" accept="image/*" class="hidden" onchange="document.getElementById('new-map-file-label').textContent = this.files[0] ? this.files[0].name : 'เลือกไฟล์รูปภาพแผนผัง...'">
+                        </label>
+                    </div>
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-medium transition-all">เพิ่มแผนผัง</button>
+                </form>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-3 text-center" id="build-stamp"></p>
+            <button onclick="closeModal('modal-maps')" class="w-full mt-2 bg-slate-600 hover:bg-slate-500 text-white py-2 rounded-lg text-sm font-medium transition-all">ปิด</button>
+        </div>
+    </div>
+
+    <!-- User Manager Modal -->
+    <div id="modal-users" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
+        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-lg mx-4 border border-slate-700 shadow-2xl">
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <i data-lucide="users" class="w-5 h-5 text-emerald-400"></i> จัดการผู้ใช้
+            </h3>
+            <div id="users-list" class="space-y-2 max-h-60 overflow-y-auto mb-4"></div>
+            <div class="border-t border-slate-700 pt-4">
+                <h4 class="text-sm font-medium mb-3 text-slate-200">เพิ่มผู้ใช้ใหม่</h4>
+                <form id="add-user-form" class="space-y-2" onsubmit="addUser(event)">
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="text-xs text-slate-400">ชื่อผู้ใช้</label>
+                            <input type="text" id="new-user-name" required class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400">รหัสผ่าน</label>
+                            <div class="relative mt-1">
+                                <input type="password" id="new-user-pass" required class="w-full px-3 py-2 pr-9 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                                <button type="button" onclick="togglePasswordVisibility('new-user-pass', this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1">
+                                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400">แผนก (เลือกได้หลายแผนก)</label>
+                            <select id="new-user-dept" multiple size="4" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-500">กด Ctrl (หรือ Cmd) เพื่อเลือกหลายแผนก</p>
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-medium transition-all">เพิ่มผู้ใช้</button>
+                </form>
+            </div>
+            <button onclick="closeModal('modal-users')" class="w-full mt-3 bg-slate-600 hover:bg-slate-500 text-white py-2 rounded-lg text-sm font-medium transition-all">ปิด</button>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="modal-change-pass" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
+        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-sm mx-4 border border-slate-700 shadow-2xl">
+            <h3 class="text-lg font-semibold mb-1" id="change-pass-title">ตั้งรหัสผ่านใหม่</h3>
+            <p class="text-xs text-slate-400 mb-4" id="change-pass-subtitle"></p>
+            <form onsubmit="saveNewPassword(event)">
+                <input type="hidden" id="change-pass-rec-id">
+                <div class="mb-4">
+                    <label class="text-xs text-slate-400">รหัสผ่านใหม่</label>
+                    <div class="relative mt-1">
+                        <input type="password" id="change-pass-input" required class="w-full px-3 py-2 pr-9 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                        <button type="button" onclick="togglePasswordVisibility('change-pass-input', this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1">
+                            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-medium transition-all">บันทึก</button>
+                    <button type="button" onclick="closeModal('modal-change-pass')" class="flex-1 bg-slate-600 hover:bg-slate-500 text-white py-2 rounded-lg text-sm font-medium transition-all">ยกเลิก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit User Maps Modal -->
+    <div id="modal-user-maps" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
+        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-md mx-4 border border-slate-700 shadow-2xl">
+            <h3 class="text-lg font-semibold mb-1" id="user-maps-title">กำหนดแผนผังที่ดูได้</h3>
+            <p class="text-xs text-slate-400 mb-3" id="user-maps-subtitle"></p>
+            <input type="hidden" id="user-maps-rec-id">
+            <div id="user-maps-list" class="space-y-2 max-h-60 overflow-y-auto mb-4"></div>
+            <p class="text-[11px] text-slate-400 mb-4">* ไม่เลือกเลย = สามารถดูได้ทุกแผนผัง</p>
+            <div class="flex gap-2">
+                <button onclick="saveUserMaps()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-medium transition-all">บันทึก</button>
+                <button onclick="closeModal('modal-user-maps')" class="flex-1 bg-slate-600 hover:bg-slate-500 text-white py-2 rounded-lg text-sm font-medium transition-all">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Departments Modal -->
+    <div id="modal-user-depts" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
+        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-sm mx-4 border border-slate-700 shadow-2xl">
+            <h3 class="text-lg font-semibold mb-1">แผนกที่ดูได้</h3>
+            <p id="user-depts-name" class="text-xs text-slate-400 mb-3"></p>
+            <input type="hidden" id="user-depts-rec-id">
+            <div id="user-depts-list" class="space-y-1 max-h-64 overflow-y-auto mb-4"></div>
+            <div class="flex gap-2">
+                <button onclick="saveUserDepartments()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-medium transition-all">บันทึก</button>
+                <button onclick="closeModal('modal-user-depts')" class="flex-1 bg-slate-600 hover:bg-slate-500 text-white py-2 rounded-lg text-sm font-medium transition-all">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Detail Modal (เปลี่ยน Live View เป็นภาพอุปกรณ์ไอที) -->
+    <div id="modal-detail" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
+        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-md mx-4 border border-slate-700 shadow-2xl max-h-[92vh] overflow-y-auto">
+            <div id="detail-content"></div>
+            <button onclick="closeModal('modal-detail')" class="w-full mt-4 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium transition-all">ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
+    <!-- Full Image Viewer Modal -->
+    <div id="modal-image-viewer" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/90 p-4" onclick="closeModal('modal-image-viewer')">
+        <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center" onclick="event.stopPropagation()">
+            <img id="image-viewer-src" src="" alt="Device Photo" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl">
+            <button onclick="closeModal('modal-image-viewer')" class="absolute -top-10 right-0 text-white hover:text-red-400 p-2 text-sm flex items-center gap-1 font-medium">
+                <i data-lucide="x" class="w-5 h-5"></i> ปิด
+            </button>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation -->
+    <div id="modal-delete" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
+        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-sm mx-4 border border-slate-700 shadow-2xl text-center">
+            <i data-lucide="alert-triangle" class="w-12 h-12 text-amber-400 mx-auto mb-3"></i>
+            <h3 class="text-lg font-semibold mb-2">ยืนยันการลบ</h3>
+            <p id="delete-msg" class="text-sm text-slate-400 mb-4"></p>
+            <div class="flex gap-2">
+                <button onclick="confirmDelete()" class="flex-1 bg-red-600 hover:bg-red-500 text-white py-2 rounded-lg text-sm font-medium transition-all">ลบ</button>
+                <button onclick="closeModal('modal-delete')" class="flex-1 bg-slate-600 hover:bg-slate-500 text-white py-2 rounded-lg text-sm font-medium transition-all">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help / Manual Modal -->
+    <div id="modal-help" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
+        <div class="bg-slate-800 rounded-2xl w-full max-w-3xl mx-4 border border-slate-700 shadow-2xl flex flex-col" style="max-height: 88vh;">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i data-lucide="book-open" class="w-5 h-5 text-emerald-400"></i> คู่มือการใช้งานระบบแผนผังอุปกรณ์ไอที
+                </h3>
+                <button onclick="closeModal('modal-help')" class="text-slate-400 hover:text-white p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="overflow-y-auto px-6 py-4 space-y-6 text-sm text-slate-300">
+                <section>
+                    <h4 class="text-emerald-400 font-semibold mb-2 flex items-center gap-2">
+                        <i data-lucide="shield-check" class="w-4 h-4"></i> เข้าสู่ระบบและสิทธิ์การมองเห็น
+                    </h4>
+                    <ul class="space-y-1.5 list-disc pl-5">
+                        <li>ล็อกอินด้วยชื่อผู้ใช้และรหัสผ่านที่ได้รับจากผู้ดูแลระบบ</li>
+                        <li>ผู้ใช้ทั่วไปจะเห็นอุปกรณ์ไอทีตาม <span class="text-white font-medium">แผนกของตนเอง</span> และแผนผังที่ได้รับอนุญาต</li>
+                        <li>ผู้ดูแลระบบ (Admin) มีสิทธิ์เพิ่ม แก้ไข ลบอุปกรณ์ ลากวางตำแหน่งบนแผนผัง และจัดการผู้ใช้</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h4 class="text-emerald-400 font-semibold mb-2 flex items-center gap-2">
+                        <i data-lucide="cpu" class="w-4 h-4"></i> สัญลักษณ์และชนิดอุปกรณ์ไอที
+                    </h4>
+                    <p class="text-xs text-slate-400 mb-2">สัญลักษณ์บนแผนผังแยกตามชนิดอุปกรณ์ และสีตามกลุ่มแผนก:</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                        <div class="bg-slate-700/60 p-2.5 rounded-lg flex items-center gap-2"><i data-lucide="monitor" class="w-4 h-4 text-emerald-400"></i> <span>PC / คอมพิวเตอร์</span></div>
+                        <div class="bg-slate-700/60 p-2.5 rounded-lg flex items-center gap-2"><i data-lucide="printer" class="w-4 h-4 text-blue-400"></i> <span>Printer / เครื่องพิมพ์</span></div>
+                        <div class="bg-slate-700/60 p-2.5 rounded-lg flex items-center gap-2"><i data-lucide="tv" class="w-4 h-4 text-purple-400"></i> <span>Monitor / จอภาพ</span></div>
+                        <div class="bg-slate-700/60 p-2.5 rounded-lg flex items-center gap-2"><i data-lucide="network" class="w-4 h-4 text-amber-400"></i> <span>Switch / สวิตช์</span></div>
+                    </div>
+                </section>
+
+                <section>
+                    <h4 class="text-emerald-400 font-semibold mb-2 flex items-center gap-2">
+                        <i data-lucide="image" class="w-4 h-4"></i> ภาพถ่ายอุปกรณ์ไอที
+                    </h4>
+                    <ul class="space-y-1.5 list-disc pl-5">
+                        <li>คลิกที่อุปกรณ์เพื่อดูรายละเอียดสเปก พร้อม <span class="text-white font-medium">ภาพถ่ายอุปกรณ์ไอทีจริง</span></li>
+                        <li>สามารถคลิกที่ภาพเพื่อขยายดูภาพขนาดเต็ม (Full View) ได้</li>
+                        <li>สามารถกดปักหมุด (Bookmark) อุปกรณ์ เพื่อดูแกลเลอรีภาพอุปกรณ์ในแถบด้านขวา</li>
+                        <li>Admin สามารถอัปโหลดภาพถ่ายใหม่หรือเปลี่ยนภาพอุปกรณ์ได้ตลอดเวลา</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h4 class="text-emerald-400 font-semibold mb-2 flex items-center gap-2">
+                        <i data-lucide="move" class="w-4 h-4"></i> การย้ายตำแหน่งและจัดการบนแผนผัง (Admin)
+                    </h4>
+                    <ul class="space-y-1.5 list-disc pl-5">
+                        <li>สามารถลากมาร์กเกอร์บนแผนผังเพื่อย้ายตำแหน่งได้ทันที</li>
+                        <li>สามารถลากอุปกรณ์จากรายการด้านซ้าย (Sidebar) มาวางลงบนแผนผังได้</li>
+                        <li>ใช้ล้อเลื่อนของเมาส์ (Scroll wheel) เพื่อซูมเข้า-ออก และคลิกลากแผนผังเพื่อแพน (Pan)</li>
+                    </ul>
+                </section>
+            </div>
+            <div class="px-6 py-3 border-t border-slate-700 text-xs text-slate-500 text-right" id="help-build"></div>
+        </div>
+    </div>
+
+    <script>
+        // ─── BUILD ───
+        const APP_BUILD = '2026-09-14.IT-Asset';
+        console.log('[it-asset-map] build', APP_BUILD);
+
+        // ─── API CONFIG ───
+        const API_BASE = 'api.php';
+
+        // ─── GLOBAL STATE ───
+        let cameras = []; // เก็บอุปกรณ์ทั้งหมด (รักษาตัวแปรชื่อเดิม cameras เพื่อ backward compatibility)
+        let maps = [];
+        let departments = [];
+        let currentUser = null;
+        let selectedMapId = null;
+        let activeGroups = new Set();
+        let selectedTypeFilter = 'ALL';
+        let dragTarget = null;
+        let deleteTargetId = null;
+        let deleteTargetType = null;
+        let bookmarks = JSON.parse(localStorage.getItem('it_asset_bookmarks') || localStorage.getItem('cctv_bookmarks') || '[]');
+        let bookmarksPanelCollapsed = false;
+        const groupColors = [
+            '#10b981','#3b82f6','#f59e0b','#ef4444','#8b5cf6',
+            '#ec4899','#14b8a6','#f97316','#06b6d4','#84cc16',
+            '#6366f1','#d946ef','#0ea5e9','#22c55e','#eab308','#e11d48'
+        ];
+        let currentZoom = 100;
+        let allUsers = [];
+
+        // ─── IT DEVICE TYPE ICONS & MAPPINGS ───
+        const DEVICE_TYPES = ['PC', 'Notebook', 'Printer', 'Monitor', 'Switch', 'Server', 'Router', 'UPS', 'Camera', 'Other'];
+
+        function getDeviceType(type) {
+            const t = (type || '').trim();
+            const lower = t.toLowerCase();
+            if (lower.includes('laptop') || lower.includes('notebook') || lower.includes('โน้ตบุ๊ก') || lower.includes('โน้ตบุ๊ค')) return 'Notebook';
+            if (lower.includes('pc') || lower.includes('computer') || lower.includes('คอม')) return 'PC';
+            if (lower.includes('print') || lower.includes('พิมพ์')) return 'Printer';
+            if (lower.includes('monit') || lower.includes('screen') || lower.includes('จอ')) return 'Monitor';
+            if (lower.includes('switch') || lower.includes('hub') || lower.includes('สวิตช์')) return 'Switch';
+            if (lower.includes('serv') || lower.includes('เซิร์ฟ')) return 'Server';
+            if (lower.includes('rout') || lower.includes('ap') || lower.includes('wifi') || lower.includes('เราเตอร์')) return 'Router';
+            if (lower.includes('ups') || lower.includes('power') || lower.includes('สำรองไฟ')) return 'UPS';
+            if (lower.includes('cam') || lower.includes('bullet') || lower.includes('dome') || lower.includes('ptz') || lower.includes('box') || lower.includes('กล้อง')) return 'Camera';
+            return t || 'Other';
+        }
+
+        function getDeviceIconName(type) {
+            const devType = getDeviceType(type);
+            switch (devType) {
+                case 'PC': return 'monitor';
+                case 'Notebook': return 'laptop';
+                case 'Printer': return 'printer';
+                case 'Monitor': return 'tv';
+                case 'Switch': return 'network';
+                case 'Server': return 'server';
+                case 'Router': return 'wifi';
+                case 'UPS': return 'zap';
+                case 'Camera': return 'camera';
+                default: return 'hard-drive';
+            }
+        }
+
+        function getDeviceTypeClass(type) {
+            const devType = getDeviceType(type).toLowerCase();
+            return `type-${devType}`;
+        }
+
+        // ─── PASSWORD UTILS ───
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const isPass = input.type === 'password';
+            input.type = isPass ? 'text' : 'password';
+            const icon = btn.querySelector('[data-lucide]') || btn.querySelector('svg');
+            if (icon) {
+                icon.setAttribute('data-lucide', isPass ? 'eye-off' : 'eye');
+                lucide.createIcons();
+            }
+        }
+
+        // ─── API CLIENT ───
+        async function apiGetAll(table, options = {}) {
+            let url = `${API_BASE}?table=${encodeURIComponent(table)}`;
+            if (options.sort) url += '&sort=' + encodeURIComponent(options.sort[0].field);
+            if (options.name) url += '&name=' + encodeURIComponent(options.name);
+            if (options.password) url += '&password=' + encodeURIComponent(options.password);
+            const res = await fetch(url);
+            const data = await res.json();
+            return data.records || [];
+        }
+
+        async function apiCreate(table, fields) {
+            const res = await fetch(`${API_BASE}?table=${encodeURIComponent(table)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fields })
+            });
+            return await res.json();
+        }
+
+        async function apiUpdate(table, id, fields) {
+            const res = await fetch(`${API_BASE}?table=${encodeURIComponent(table)}&id=${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fields })
+            });
+            return await res.json();
+        }
+
+        async function apiDelete(table, id) {
+            const res = await fetch(`${API_BASE}?table=${encodeURIComponent(table)}&id=${id}`, {
+                method: 'DELETE'
+            });
+            return await res.json();
+        }
+
+        // ─── LOGIN ───
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            const errorEl = document.getElementById('login-error');
+            const loginBtn = document.getElementById('login-btn');
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'กำลังตรวจสอบ...';
+            try {
+                const records = await apiGetAll('user', { name: username, password: password });
+                if (records.length > 0) {
+                    const user = records[0].fields;
+                    const depts = parseDepartments(user.department);
+                    currentUser = {
+                        name: user.Name,
+                        department: user.department,
+                        departments: depts,
+                        isAdmin: depts.includes('admin') || (user.Name || '').toLowerCase() === 'admin',
+                        allowedMaps: parseMapUser(user.map_user),
+                        extraCameras: parseCameraUser(user.camera_user)
+                    };
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('app').classList.remove('hidden');
+                    document.getElementById('user-display').textContent = currentUser.name;
+                    document.getElementById('dept-display').textContent = currentUser.isAdmin ? '(Admin)'
+                        : `(${currentUser.departments.join(', ')}${currentUser.extraCameras.length ? ` +${currentUser.extraCameras.length} อุปกรณ์นอกแผนก` : ''})`;
+                    
+                    const adminBtn = document.getElementById('admin-menu-btn');
+                    if (currentUser.isAdmin) {
+                        adminBtn.classList.remove('hidden');
+                        adminBtn.classList.add('flex');
+                    } else {
+                        adminBtn.classList.add('hidden');
+                        adminBtn.classList.remove('flex');
+                    }
+                    await initializeApp();
+                } else {
+                    errorEl.textContent = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+                    errorEl.classList.remove('hidden');
+                    setTimeout(() => errorEl.classList.add('hidden'), 3000);
+                }
+            } catch (err) {
+                console.error('Login error:', err);
+                errorEl.textContent = 'ไม่สามารถเชื่อมต่อระบบได้';
+                errorEl.classList.remove('hidden');
+            }
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'เข้าสู่ระบบ';
+        }
+
+        function logout() {
+            currentUser = null;
+            cameras = [];
+            maps = [];
+            selectedMapId = null;
+            activeGroups.clear();
+            selectedTypeFilter = 'ALL';
+            document.getElementById('app').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+            const adminBtn = document.getElementById('admin-menu-btn');
+            adminBtn.classList.add('hidden');
+            adminBtn.classList.remove('flex');
+            document.getElementById('admin-menu').classList.add('hidden');
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+        }
+
+        // ─── INIT ───
+        async function initializeApp() {
+            await Promise.all([fetchDevices(), fetchDepartments(), fetchMaps()]);
+            if (maps.length > 0 && !selectedMapId) selectedMapId = String(maps[0].map_id);
+            renderMapSelector();
+            showFloorPlan();
+            renderTypeFilter();
+            renderCameras();
+            renderCameraList();
+            renderGroupFilter();
+            populateDepartmentSelects();
+            populateMapSelects();
+            renderBookmarks();
+            lucide.createIcons();
+        }
+
+        // ─── FETCH DATA ───
+        async function fetchDevices() {
+            try {
+                const records = await apiGetAll('device');
+                cameras = records.map(rec => {
+                    const f = rec.fields || {};
+                    const assetCode = f.asset_code || f.asset_no || f.account_no || f.id || '';
+                    const assetName = f.asset_name || f.eng_name || '';
+                    const holder = f.holder || f.thai_name || '';
+                    let imgUrl = '';
+                    if (Array.isArray(f.image) && f.image.length > 0) {
+                        imgUrl = f.image[0].url || '';
+                    } else if (typeof f.image === 'string') {
+                        imgUrl = f.image;
+                    } else if (f.image_url) {
+                        imgUrl = f.image_url;
+                    } else if (f.go2rtc_link) {
+                        imgUrl = f.go2rtc_link;
+                    }
+                    return {
+                        _recordId: String(rec.id),
+                        id: assetCode,
+                        asset_code: assetCode,
+                        account_no: assetCode,
+                        eng_name: assetName,
+                        asset_name: assetName,
+                        thai_name: holder,
+                        holder: holder,
+                        type: f.type || 'Other',
+                        brand: f.brand || '',
+                        model: f.model || '',
+                        serial: f.serial || f.serial_number || '',
+                        department: f.department || '',
+                        group: f.department || 'ไม่มีแผนก',
+                        ip: f.ip || f.ip_address || '',
+                        mac_address: f.mac_address || '',
+                        status: f.status || 'Active',
+                        image_url: imgUrl,
+                        image: imgUrl,
+                        go2rtc: imgUrl,
+                        map_id: String(f.map_id || '1'),
+                        x: f.x != null ? f.x : null,
+                        y: f.y != null ? f.y : null
+                    };
+                });
+            } catch (err) {
+                console.error('Failed to fetch devices:', err);
+            }
+        }
+        const fetchCameras = fetchDevices;
+
+        let departmentRecords = [];
+        async function fetchDepartments() {
+            try {
+                const records = await apiGetAll('department');
+                departmentRecords = records.map(r => ({ _recordId: String(r.id), department: r.fields.department || '' })).filter(r => r.department);
+                departments = departmentRecords.map(r => r.department);
+            } catch (err) { console.error('Failed to fetch departments:', err); }
+        }
+
+        async function fetchMaps() {
+            try {
+                const records = await apiGetAll('map', { sort: [{ field: 'map_id' }] });
+                maps = records.map(r => {
+                    let imgUrl = '';
+                    const f = r.fields || {};
+                    if (Array.isArray(f.map_pic) && f.map_pic.length > 0) {
+                        imgUrl = f.map_pic[0].url || '';
+                    } else if (typeof f.map_pic === 'string') {
+                        imgUrl = f.map_pic;
+                    } else if (f.map_url) {
+                        imgUrl = f.map_url;
+                    }
+                    return { _recordId: String(r.id), map_id: f.map_id, map_name: f.map_name || '', map_url: imgUrl, map_pic: imgUrl };
+                });
+            } catch (err) { console.error('Failed to fetch maps:', err); }
+        }
+
+        function populateDepartmentSelects() {
+            ['cam-department', 'new-user-dept'].forEach(id => {
+                const sel = document.getElementById(id);
+                if (!sel) return;
+                const isUser = id === 'new-user-dept';
+                sel.innerHTML = isUser ? '<option value="admin">admin</option>' : '<option value="">-- เลือกแผนก --</option>';
+                departments.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
+            });
+        }
+
+        function parseDepartments(value) {
+            if (!value) return [];
+            return String(value).split(',').map(s => s.trim()).filter(Boolean);
+        }
+
+        function getSelectedDepartments(selectId) {
+            const sel = document.getElementById(selectId);
+            if (!sel) return [];
+            return Array.from(sel.selectedOptions).map(o => o.value).filter(Boolean);
+        }
+
+        function populateMapSelects() {
+            const sel = document.getElementById('cam-map-id');
+            if (!sel) return;
+            sel.innerHTML = '';
+            maps.forEach(m => {
+                const o = document.createElement('option');
+                o.value = m.map_id;
+                o.textContent = m.map_name || `แผนผัง ${m.map_id}`;
+                sel.appendChild(o);
+            });
+        }
+
+        function parseMapUser(value) {
+            if (!value) return [];
+            return String(value).split(/[,;\s]+/).map(s => s.trim()).filter(Boolean);
+        }
+
+        function getVisibleMaps() {
+            if (!currentUser || currentUser.isAdmin || !currentUser.allowedMaps || currentUser.allowedMaps.length === 0) {
+                return maps;
+            }
+            return maps.filter(m => currentUser.allowedMaps.includes(String(m.map_id)));
+        }
+
+        // ─── MAP SELECTOR ───
+        function renderMapSelector() {
+            const container = document.getElementById('map-selector');
+            container.innerHTML = '';
+            const visibleMaps = getVisibleMaps();
+            if (visibleMaps.length === 0) { container.innerHTML = '<span class="text-xs text-slate-500">ไม่มีแผนผังที่เข้าถึงได้</span>'; return; }
+            if (!visibleMaps.some(m => String(m.map_id) === selectedMapId)) {
+                selectedMapId = String(visibleMaps[0].map_id);
+            }
+            
+            const countEl = document.getElementById('map-device-count');
+            const totalOnMap = cameras.filter(c => c.map_id === selectedMapId).length;
+            if (countEl) countEl.textContent = `รวม ${totalOnMap} อุปกรณ์`;
+
+            visibleMaps.forEach(m => {
+                const id = `map-radio-${m.map_id}`;
+                const checked = String(m.map_id) === selectedMapId;
+                const label = m.map_name || `แผนผัง ${m.map_id}`;
+                const devCount = cameras.filter(c => c.map_id === String(m.map_id)).length;
+                const wrapper = document.createElement('div');
+                wrapper.className = 'flex items-center';
+                wrapper.innerHTML = `
+                    <input type="radio" name="map-select" id="${id}" value="${m.map_id}" class="map-radio hidden" ${checked ? 'checked' : ''}>
+                    <label for="${id}" class="text-xs px-2.5 py-1 rounded-lg border border-slate-600 ${checked ? 'bg-emerald-600 text-white border-emerald-600 font-semibold' : 'bg-slate-700 text-slate-300'}">${label} <span class="opacity-70">(${devCount})</span></label>`;
+                wrapper.querySelector('input').addEventListener('change', () => selectMap(String(m.map_id)));
+                container.appendChild(wrapper);
+            });
+        }
+
+        function selectMap(mapId) {
+            selectedMapId = mapId;
+            activeGroups.clear();
+            showFloorPlan();
+            renderMapSelector();
+            renderCameras();
+            renderCameraList();
+            renderGroupFilter();
+        }
+
+        // ─── DEVICE FILTERING ───
+        function parseCameraUser(value) {
+            if (!value) return [];
+            return String(value).split(/[,;\s]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+        }
+
+        function isExtraCamera(cam) {
+            const allowed = (currentUser && currentUser.extraCameras) || [];
+            if (allowed.length === 0) return false;
+            return allowed.includes((cam.id || '').trim().toLowerCase())
+                || allowed.includes((cam.eng_name || '').trim().toLowerCase());
+        }
+
+        function getVisibleCameras() {
+            if (!currentUser) return [];
+            let cams = cameras.filter(c => c.map_id === selectedMapId);
+            if (!currentUser.isAdmin) cams = cams.filter(c => currentUser.departments.includes(c.department) || isExtraCamera(c));
+            return cams;
+        }
+
+        function getFilteredCameras() {
+            let list = getVisibleCameras();
+            
+            // กรองตามแผนก
+            if (activeGroups.size > 0) {
+                list = list.filter(c => activeGroups.has(c.group || 'ไม่มีแผนก'));
+            }
+
+            // กรองตามชนิดอุปกรณ์
+            if (selectedTypeFilter && selectedTypeFilter !== 'ALL') {
+                list = list.filter(c => getDeviceType(c.type) === selectedTypeFilter);
+            }
+
+            // ค้นหาตามข้อความ (search)
+            const searchInput = document.getElementById('device-search');
+            const term = searchInput ? searchInput.value.trim().toLowerCase() : '';
+            if (term) {
+                list = list.filter(c => 
+                    (c.id || '').toLowerCase().includes(term) ||
+                    (c.asset_code || '').toLowerCase().includes(term) ||
+                    (c.asset_name || '').toLowerCase().includes(term) ||
+                    (c.eng_name || '').toLowerCase().includes(term) ||
+                    (c.holder || '').toLowerCase().includes(term) ||
+                    (c.thai_name || '').toLowerCase().includes(term) ||
+                    (c.department || '').toLowerCase().includes(term) ||
+                    (c.ip || '').toLowerCase().includes(term) ||
+                    (c.mac_address || '').toLowerCase().includes(term) ||
+                    (c.brand || '').toLowerCase().includes(term) ||
+                    (c.model || '').toLowerCase().includes(term) ||
+                    (c.serial || '').toLowerCase().includes(term) ||
+                    (c.account_no || '').toLowerCase().includes(term)
+                );
+            }
+
+            return list;
+        }
+
+        // ─── TYPE FILTER BAR ───
+        function renderTypeFilter() {
+            const container = document.getElementById('type-filter');
+            if (!container) return;
+            const visible = getVisibleCameras();
+            const counts = { 'ALL': visible.length };
+            visible.forEach(c => {
+                const t = getDeviceType(c.type);
+                counts[t] = (counts[t] || 0) + 1;
+            });
+
+            const types = ['ALL', 'PC', 'Notebook', 'Printer', 'Monitor', 'Switch', 'Server', 'Other'];
+            container.innerHTML = types.map(t => {
+                const isSelected = selectedTypeFilter === t;
+                const c = counts[t] || 0;
+                const label = t === 'ALL' ? 'ทั้งหมด' : t;
+                const iconName = t === 'ALL' ? 'grid' : getDeviceIconName(t);
+                return `
+                    <button onclick="setTypeFilter('${t}')" class="group-tag flex items-center gap-1 transition-all ${isSelected ? 'bg-emerald-600 text-white font-semibold' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}">
+                        <i data-lucide="${iconName}" class="w-3 h-3"></i>
+                        <span>${label}</span>
+                        <span class="opacity-70 text-[10px]">(${c})</span>
+                    </button>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function setTypeFilter(t) {
+            selectedTypeFilter = t;
+            renderTypeFilter();
+            renderCameras();
+            renderCameraList();
+        }
+
+        // ─── FLOOR PLAN ───
+        function showFloorPlan() {
+            const img = document.getElementById('floor-plan-img');
+            const placeholder = document.getElementById('floor-plan-placeholder');
+            const currentMap = maps.find(m => String(m.map_id) === selectedMapId);
+            const mapUrl = currentMap ? (currentMap.map_url || '').trim() : '';
+            const mapId = currentMap ? currentMap.map_id : '';
+
+            const showPlaceholder = () => {
+                img.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+                const mapLabel = currentMap ? (currentMap.map_name || `แผนผัง ${mapId}`) : '';
+                placeholder.innerHTML = `<i data-lucide="map" class="w-16 h-16 mb-3 opacity-50"></i><p class="text-lg">${mapLabel || 'ยังไม่มีแผนผัง'}</p><p class="text-sm mt-1">อัปโหลดไฟล์แผนผังในเมนู "จัดการแผนผัง"</p>`;
+                lucide.createIcons();
+            };
+
+            if (!mapUrl) { showPlaceholder(); return; }
+            img.onload = () => { img.classList.remove('hidden'); placeholder.classList.add('hidden'); fitPrintMap(); };
+            img.onerror = () => showPlaceholder();
+            img.src = mapUrl;
+        }
+
+        // ─── RENDER DEVICES ON MAP ───
+        function renderCameras() {
+            const overlay = document.getElementById('cameras-overlay');
+            overlay.innerHTML = '';
+            const filtered = getFilteredCameras();
+            const isAdmin = currentUser && currentUser.isAdmin;
+
+            filtered.forEach(cam => {
+                if (cam.x == null || cam.y == null) return;
+                const dot = document.createElement('div');
+                const extra = !isAdmin && isExtraCamera(cam);
+                const gColor = getGroupColor(cam.group);
+                const devType = getDeviceType(cam.type);
+                const iconName = getDeviceIconName(cam.type);
+                const typeClass = getDeviceTypeClass(cam.type);
+
+                dot.className = `device-dot ${typeClass}` + (extra ? ' extra-device' : '');
+                dot.style.left = cam.x + '%';
+                dot.style.top = cam.y + '%';
+                dot.style.background = gColor;
+
+                const displayName = (cam.eng_name || cam.id) + (cam.thai_name ? ' - ' + cam.thai_name : '');
+                const subDetails = [devType, cam.brand, cam.model, cam.ip].filter(Boolean).join(' | ');
+
+                dot.innerHTML = `
+                    <i data-lucide="${iconName}"></i>
+                    <span class="dot-label">${cam.id || cam.eng_name || ''}</span>
+                    <div class="tooltip">
+                        <div class="font-bold text-emerald-400 text-xs">${cam.id} (${devType})</div>
+                        <div class="text-white">${displayName}</div>
+                        <div class="text-[10px] text-slate-300 mt-0.5">${subDetails}</div>
+                        <div class="text-[10px] text-slate-400">แผนก: ${cam.group || '-'}</div>
+                        ${cam.image_url ? '<div class="text-[10px] text-emerald-300 mt-1 flex items-center gap-1">📷 มีรูปภาพอุปกรณ์</div>' : ''}
+                    </div>
+                `;
+                
+                dot.onclick = () => showCameraDetail(cam);
+                if (isAdmin) {
+                    dot.draggable = true;
+                    dot.style.cursor = 'grab';
+                    dot.ondragstart = () => { dragTarget = cam; dot.classList.add('dragging'); };
+                    dot.ondragend = () => dot.classList.remove('dragging');
+                }
+                overlay.appendChild(dot);
+            });
+
+            const container = document.getElementById('map-content');
+            if (container) {
+                container.ondragover = (e) => e.preventDefault();
+                container.ondrop = async (e) => {
+                    e.preventDefault();
+                    if (!dragTarget || !currentUser || !currentUser.isAdmin) return;
+                    const rect = container.getBoundingClientRect();
+                    const x = Math.round(((e.clientX - rect.left) / rect.width) * 10000) / 100;
+                    const y = Math.round(((e.clientY - rect.top) / rect.height) * 10000) / 100;
+                    dragTarget.x = x;
+                    dragTarget.y = y;
+                    try {
+                        await apiUpdate('device', dragTarget._recordId, { x, y });
+                    } catch (err) {
+                        console.error('Failed to save position:', err);
+                    }
+                    renderCameras();
+                    dragTarget = null;
+                };
+            }
+            lucide.createIcons();
+        }
+
+        function getGroupColor(group) {
+            const groups = [...new Set(getVisibleCameras().map(c => c.group || 'ไม่มีแผนก'))];
+            const idx = groups.indexOf(group || 'ไม่มีแผนก');
+            return groupColors[idx % groupColors.length];
+        }
+
+        // ─── DEVICE LIST SIDEBAR ───
+        function cameraSortName(cam) {
+            return (cam.id || cam.thai_name || cam.eng_name || '').trim();
+        }
+
+        function compareText(ka, kb) {
+            const ta = /^[\u0E00-\u0E7F]/.test(ka) ? 1 : 0;
+            const tb = /^[\u0E00-\u0E7F]/.test(kb) ? 1 : 0;
+            if (ta !== tb) return ta - tb;
+            return ka.localeCompare(kb, 'th', { numeric: true, sensitivity: 'base' });
+        }
+
+        function compareCameraNames(a, b) {
+            return compareText(cameraSortName(a), cameraSortName(b));
+        }
+
+        function renderCameraList() {
+            const list = document.getElementById('camera-list');
+            const filtered = getFilteredCameras().slice().sort(compareCameraNames);
+            const isAdmin = currentUser && currentUser.isAdmin;
+            list.innerHTML = '';
+            
+            if (filtered.length === 0) {
+                list.innerHTML = '<p class="text-slate-500 text-xs text-center py-6">ไม่พบอุปกรณ์ไอทีตามเงื่อนไข</p>';
+                return;
+            }
+
+            filtered.forEach(cam => {
+                const div = document.createElement('div');
+                div.className = 'sidebar-item flex items-center gap-2.5 p-2 rounded-xl mb-1 border border-transparent hover:border-slate-700 cursor-pointer';
+                const gColor = getGroupColor(cam.group);
+                const isBookmarked = bookmarks.includes(cam.id);
+                const iconName = getDeviceIconName(cam.type);
+                const hasPosition = cam.x != null && cam.y != null;
+
+                div.innerHTML = `
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm text-white relative" style="background:${gColor}">
+                        <i data-lucide="${iconName}" class="w-4 h-4"></i>
+                        ${cam.image_url ? '<span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 border-2 border-slate-800 rounded-full" title="มีภาพถ่าย"></span>' : ''}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-bold text-slate-100">${cam.id}</span>
+                            <span class="text-[10px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.2 rounded font-medium">${getDeviceType(cam.type)}</span>
+                            ${!hasPosition ? '<span class="text-[10px] text-amber-400" title="ยังไม่ได้วางบนแผนผัง">⚠️</span>' : ''}
+                        </div>
+                        <div class="text-[11px] text-slate-200 truncate font-medium">${cam.asset_name || cam.eng_name || cam.asset_code || cam.id || '-'}</div>
+                        <div class="text-[10px] text-slate-400 truncate flex items-center gap-1.5">
+                            ${(cam.holder || cam.thai_name) ? `<span class="text-emerald-300 font-normal truncate">👤 ${cam.holder || cam.thai_name}</span><span>•</span>` : ''}
+                            <span class="truncate">${cam.department || 'ไม่ระบุแผนก'}</span>
+                            ${cam.ip ? `<span class="font-mono text-slate-400 shrink-0">(${cam.ip})</span>` : ''}
+                        </div>
+                    </div>
+                    <button onclick="event.stopPropagation(); toggleBookmark('${cam.id}')" class="p-1.5 rounded-lg hover:bg-slate-700 ${isBookmarked ? 'text-amber-400' : 'text-slate-500 hover:text-amber-400'}" title="${isBookmarked ? 'เอาออกจากหมุด' : 'ปักหมุดดูภาพถ่าย'}">
+                        <i data-lucide="bookmark" class="w-4 h-4" ${isBookmarked ? 'fill="currentColor"' : ''}></i>
+                    </button>
+                    ${isAdmin ? `
+                        <button onclick="event.stopPropagation(); openEditDevice('${cam._recordId}')" class="text-slate-400 hover:text-emerald-400 p-1 rounded hover:bg-slate-700" title="แก้ไข">
+                            <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button onclick="event.stopPropagation(); requestDelete('${cam._recordId}','device')" class="text-slate-400 hover:text-red-400 p-1 rounded hover:bg-slate-700" title="ลบ">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    ` : ''}
+                `;
+
+                div.onclick = (e) => {
+                    if (e.target.closest('button')) return;
+                    showCameraDetail(cam);
+                };
+
+                if (isAdmin) {
+                    div.draggable = true;
+                    div.style.cursor = 'grab';
+                    div.ondragstart = () => { dragTarget = cam; div.classList.add('opacity-50'); };
+                    div.ondragend = () => div.classList.remove('opacity-50');
+                }
+                list.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+        const renderDeviceList = renderCameraList;
+
+        // ─── GROUP FILTER ───
+        function renderGroupFilter() {
+            const container = document.getElementById('group-filter');
+            const visibleGroups = [...new Set(getVisibleCameras().map(c => c.group || 'ไม่มีแผนก'))];
+            const isAdmin = currentUser && currentUser.isAdmin;
+            const groups = (isAdmin && departments.length > 0 ? [...departments] : visibleGroups).sort(compareText);
+            container.innerHTML = '';
+            if (groups.length === 0) { container.innerHTML = '<span class="text-xs text-slate-500">ยังไม่มีกลุ่ม</span>'; return; }
+            
+            const allBtn = document.createElement('button');
+            allBtn.className = `group-tag font-medium transition-all ${activeGroups.size === 0 ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300'}`;
+            allBtn.textContent = 'ทั้งหมด';
+            allBtn.onclick = () => { activeGroups.clear(); renderGroupFilter(); renderCameras(); renderCameraList(); };
+            container.appendChild(allBtn);
+
+            groups.forEach((g, i) => {
+                const btn = document.createElement('button');
+                const active = activeGroups.has(g);
+                btn.className = 'group-tag font-medium transition-all';
+                btn.style.background = active ? (getGroupColor(g) || groupColors[i % groupColors.length]) : '#334155';
+                btn.style.color = active ? 'white' : '#94a3b8';
+                btn.textContent = g;
+                btn.onclick = () => {
+                    if (activeGroups.has(g)) activeGroups.delete(g);
+                    else activeGroups.add(g);
+                    renderGroupFilter();
+                    renderCameras();
+                    renderCameraList();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        // ─── ADMIN MENU ───
+        function toggleAdminMenu(e) {
+            if (e) e.stopPropagation();
+            const menu = document.getElementById('admin-menu');
+            menu.classList.toggle('hidden');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function closeAdminMenu() {
+            document.getElementById('admin-menu').classList.add('hidden');
+        }
+
+        function runAdminAction(fn) {
+            closeAdminMenu();
+            fn();
+        }
+
+        window.addEventListener('click', (e) => {
+            if (!e.target.closest || !e.target.closest('#admin-menu-wrap')) closeAdminMenu();
+        });
+        window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAdminMenu(); });
+
+        // ─── HELP ───
+        function openHelp() {
+            document.getElementById('help-build').textContent = `เวอร์ชันระบบ: ${APP_BUILD}`;
+            openModal('modal-help');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // ─── MODALS ───
+        function openModal(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.remove('hidden');
+                el.classList.add('flex');
+            }
+        }
+        function closeModal(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.add('hidden');
+                el.classList.remove('flex');
+            }
+        }
+        window.addEventListener('click', (e) => {
+            if (e.target && e.target.classList && e.target.classList.contains('modal-overlay')) closeModal(e.target.id);
+        });
+
+        // ─── IMAGE VIEWER ───
+        function openImageViewer(url) {
+            if (!url) return;
+            document.getElementById('image-viewer-src').src = url;
+            openModal('modal-image-viewer');
+        }
+
+        // ─── DEVICE IMAGE HTML COMPONENT ───
+        function getDeviceImageHtml(cam) {
+            const imgUrl = (cam.image_url || cam.go2rtc || '').trim();
+            const devType = getDeviceType(cam.type);
+            const iconName = getDeviceIconName(cam.type);
+            const hasRealImage = imgUrl && !imgUrl.includes('stream.html');
+
+            if (hasRealImage) {
+                return `
+                    <div class="mt-4 pt-3 border-t border-slate-700">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                                <i data-lucide="image" class="w-3.5 h-3.5 text-emerald-400"></i> ภาพถ่ายอุปกรณ์จริง
+                            </span>
+                            <button onclick="openImageViewer('${imgUrl}')" class="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
+                                <i data-lucide="maximize-2" class="w-3 h-3"></i> ขยายภาพ
+                            </button>
+                        </div>
+                        <div class="relative group rounded-xl overflow-hidden border border-slate-700 bg-slate-950 aspect-video flex items-center justify-center shadow-inner cursor-pointer" onclick="openImageViewer('${imgUrl}')">
+                            <img src="${imgUrl}" alt="${cam.id}" class="w-full h-full object-contain" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'flex flex-col items-center justify-center p-6 text-slate-500\\'><i data-lucide=\\'image-off\\' class=\\'w-8 h-8 mb-2\\'></i><span>ไม่สามารถโหลดรูปภาพได้</span></div>'; lucide.createIcons();">
+                            <div class="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <span class="bg-slate-800 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 shadow">
+                                    <i data-lucide="zoom-in" class="w-3.5 h-3.5"></i> คลิกเพื่อดูภาพขนาดเต็ม
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="mt-4 pt-3 border-t border-slate-700">
+                        <span class="text-xs font-bold text-slate-300 block mb-2 flex items-center gap-1.5">
+                            <i data-lucide="image" class="w-3.5 h-3.5 text-slate-400"></i> ภาพถ่ายอุปกรณ์
+                        </span>
+                        <div class="relative rounded-xl border border-dashed border-slate-700 bg-slate-900/60 aspect-video flex flex-col items-center justify-center text-slate-400 p-4">
+                            <div class="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center mb-2 text-slate-500 shadow-inner">
+                                <i data-lucide="${iconName}" class="w-7 h-7 text-emerald-400"></i>
+                            </div>
+                            <span class="text-xs font-medium text-slate-300">ยังไม่มีภาพถ่ายอุปกรณ์</span>
+                            <span class="text-[11px] text-slate-500 mt-0.5">ประเภท: ${devType}</span>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // ─── DEVICE DETAIL MODAL ───
+        function showCameraDetail(cam) {
+            const content = document.getElementById('detail-content');
+            const gColor = getGroupColor(cam.group);
+            const isAdmin = currentUser && currentUser.isAdmin;
+            const devType = getDeviceType(cam.type);
+            const iconName = getDeviceIconName(cam.type);
+            const imageHtml = getDeviceImageHtml(cam);
+            const displayName = (cam.asset_name || cam.eng_name || cam.asset_code || cam.id) + (cam.holder || cam.thai_name ? ' - ' + (cam.holder || cam.thai_name) : '');
+            const currentMapLabel = maps.find(m => String(m.map_id) === cam.map_id);
+            const mapLabel = currentMapLabel ? (currentMapLabel.map_name || `แผนผัง ${currentMapLabel.map_id}`) : cam.map_id;
+
+            if (isAdmin) {
+                let deptOpts = departments.map(d => `<option value="${d}" ${cam.department === d ? 'selected' : ''}>${d}</option>`).join('');
+                let mapOpts = maps.map(m => `<option value="${m.map_id}" ${cam.map_id === String(m.map_id) ? 'selected' : ''}>${m.map_name || 'แผนผัง ' + m.map_id}</option>`).join('');
+                let typeOpts = DEVICE_TYPES.map(t => `<option value="${t}" ${devType === t ? 'selected' : ''}>${t}</option>`).join('');
+
+                content.innerHTML = `
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-700 pb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white" style="background:${gColor}">
+                                <i data-lucide="${iconName}" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-base font-bold text-white">แก้ไขข้อมูลทรัพย์สินไอที</h4>
+                                <span class="text-xs text-emerald-400 font-mono">${cam.asset_code || cam.id}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form id="detail-form" class="space-y-3" onsubmit="saveDetailEdit(event, '${cam._recordId}')">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="text-xs text-slate-400">รหัสทรัพย์สิน (Asset Code)</label><input type="text" id="detail-id" value="${cam.asset_code || cam.account_no || cam.id || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono font-semibold focus:outline-none focus:border-emerald-500"></div>
+                            <div><label class="text-xs text-slate-400">ชนิดอุปกรณ์ (Type)</label><select id="detail-type" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">${typeOpts}</select></div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="text-xs text-slate-400">ยี่ห้อ (Brand)</label><input type="text" id="detail-brand" value="${cam.brand || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
+                            <div><label class="text-xs text-slate-400">รุ่น (Model)</label><input type="text" id="detail-model" value="${cam.model || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="text-xs text-slate-400">Serial Number</label><input type="text" id="detail-serial" value="${cam.serial || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
+                            <div><label class="text-xs text-slate-400">สถานะ</label>
+                                <select id="detail-status" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                                    <option value="Active" ${cam.status==='Active'?'selected':''}>ใช้งานอยู่ (Active)</option>
+                                    <option value="Spare" ${cam.status==='Spare'?'selected':''}>สำรอง (Spare)</option>
+                                    <option value="Repair" ${cam.status==='Repair'?'selected':''}>ซ่อมบำรุง (Repair)</option>
+                                    <option value="Retired" ${cam.status==='Retired'?'selected':''}>จำหน่ายออก (Retired)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="text-xs text-slate-400">แผนก / หน่วยงาน</label><select id="detail-department" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"><option value="">--</option>${deptOpts}</select></div>
+                            <div><label class="text-xs text-slate-400">แผนผัง</label><select id="detail-map-id" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">${mapOpts}</select></div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="text-xs text-slate-400">ชื่อทรัพย์สิน / อุปกรณ์ (Asset Name)</label><input type="text" id="detail-eng-name" value="${cam.asset_name || cam.eng_name || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
+                            <div><label class="text-xs text-slate-400">ผู้ถือครอง / ผู้ใช้งาน (Holder)</label><input type="text" id="detail-thai-name" value="${cam.holder || cam.thai_name || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="text-xs text-slate-400">IP Address</label><input type="text" id="detail-ip" value="${cam.ip || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
+                            <div><label class="text-xs text-slate-400">MAC Address</label><input type="text" id="detail-mac" value="${cam.mac_address || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
+                        </div>
+
+                        <!-- อัปโหลดภาพอุปกรณ์ในหน้าแก้ไข -->
+                        <div class="bg-slate-700/60 p-3 rounded-xl border border-slate-600 space-y-2">
+                            <label class="text-xs text-slate-300 font-medium flex items-center gap-1.5">
+                                <i data-lucide="image" class="w-3.5 h-3.5 text-emerald-400"></i> ลิงก์ / ไฟล์ภาพถ่ายอุปกรณ์
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <input type="text" id="detail-image-url" value="${(cam.image_url || cam.go2rtc || '').replace(/"/g, '&quot;')}" placeholder="URL ภาพอุปกรณ์" class="flex-1 px-2.5 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                                <label class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium cursor-pointer transition-all shrink-0 flex items-center gap-1">
+                                    <i data-lucide="upload" class="w-3 h-3"></i> อัปโหลดรูป
+                                    <input type="file" accept="image/*" class="hidden" onchange="uploadDetailDeviceImage(this, '${cam._recordId}')">
+                                </label>
+                            </div>
+                        </div>
+
+                        ${imageHtml}
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-semibold transition-all mt-3 shadow-md shadow-emerald-600/20">บันทึกการเปลี่ยนแปลง</button>
+                    </form>`;
+            } else {
+                content.innerHTML = `
+                    <div class="text-center mb-4">
+                        <div class="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 shadow-lg text-white" style="background:${gColor}">
+                            <i data-lucide="${iconName}" class="w-7 h-7"></i>
+                        </div>
+                        <h4 class="text-lg font-bold text-white">${displayName}</h4>
+                        <div class="flex items-center justify-center gap-2 mt-1">
+                            <span class="group-tag inline-block" style="background:${gColor}33;color:${gColor}">${cam.department || '-'}</span>
+                            <span class="text-[11px] bg-slate-700 text-emerald-400 px-2 py-0.5 rounded font-medium">${devType}</span>
+                            <span class="text-[11px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded">${cam.status || 'Active'}</span>
+                        </div>
+                    </div>
+                    <div class="space-y-2 text-xs bg-slate-900/50 p-3 rounded-xl border border-slate-700/60">
+                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">รหัสทรัพย์สิน (Asset Code)</span><span class="text-right font-mono font-bold text-emerald-400">${cam.asset_code || cam.account_no || cam.id || '-'}</span></div>
+                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">ชื่อทรัพย์สิน / อุปกรณ์</span><span class="text-right font-medium">${cam.asset_name || cam.eng_name || '-'}</span></div>
+                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">ผู้ถือครอง / ผู้ใช้งาน</span><span class="text-right font-medium text-emerald-300">${cam.holder || cam.thai_name || '-'}</span></div>
+                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">ชนิดอุปกรณ์</span><span class="text-right font-medium">${devType}</span></div>
+                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">ยี่ห้อ (Brand)</span><span class="text-right">${cam.brand || '-'}</span></div>
+                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">รุ่น (Model)</span><span class="text-right">${cam.model || '-'}</span></div>
+                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">Serial Number</span><span class="text-right font-mono text-[11px] text-slate-300">${cam.serial || '-'}</span></div>
+                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">IP Address</span><span class="text-right font-mono text-emerald-400">${cam.ip || '-'}</span></div>
+                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">MAC Address</span><span class="text-right font-mono text-[11px] text-slate-400">${cam.mac_address || '-'}</span></div>
+                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">แผนก</span><span class="text-right font-medium text-emerald-400">${cam.department || '-'}</span></div>
+                        <div class="flex justify-between py-1"><span class="text-slate-400">แผนผังที่ติดตั้ง</span><span class="text-right text-slate-300">${mapLabel || '-'}</span></div>
+                    </div>
+                    ${imageHtml}`;
+            }
+            openModal('modal-detail');
+            lucide.createIcons();
+        }
+
+        async function uploadDetailDeviceImage(input, recordId) {
+            const file = input.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('record_id', recordId);
+            try {
+                const res = await fetch('upload_device.php', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    const inputUrl = document.getElementById('detail-image-url');
+                    if (inputUrl) inputUrl.value = data.url;
+                    await fetchDevices();
+                    const updatedCam = cameras.find(c => String(c._recordId) === String(recordId));
+                    if (updatedCam) showCameraDetail(updatedCam);
+                    renderCameras();
+                    renderBookmarks();
+                    alert('อัปโหลดภาพอุปกรณ์เรียบร้อยแล้ว');
+                } else {
+                    alert('อัปโหลดไม่สำเร็จ: ' + (data.error || ''));
+                }
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการอัปโหลด: ' + err.message);
+            }
+        }
+
+        async function saveDetailEdit(e, recordId) {
+            e.preventDefault();
+            const imageUrl = document.getElementById('detail-image-url').value.trim();
+            const assetCode = document.getElementById('detail-id').value.trim();
+            const assetName = document.getElementById('detail-eng-name').value.trim();
+            const holder = document.getElementById('detail-thai-name').value.trim();
+            const fields = {
+                asset_code: assetCode,
+                id: assetCode,
+                account_no: assetCode,
+                asset_name: assetName,
+                eng_name: assetName,
+                holder: holder,
+                thai_name: holder,
+                type: document.getElementById('detail-type').value,
+                brand: document.getElementById('detail-brand').value.trim(),
+                model: document.getElementById('detail-model').value.trim(),
+                serial: document.getElementById('detail-serial').value.trim(),
+                status: document.getElementById('detail-status').value,
+                department: document.getElementById('detail-department').value,
+                map_id: document.getElementById('detail-map-id').value,
+                ip: document.getElementById('detail-ip').value.trim(),
+                mac_address: document.getElementById('detail-mac').value.trim(),
+                image_url: imageUrl,
+                image: imageUrl,
+                go2rtc_link: imageUrl
+            };
+            try {
+                await apiUpdate('device', recordId, fields);
+                await fetchDevices();
+                closeModal('modal-detail');
+                renderMapSelector();
+                renderCameras();
+                renderCameraList();
+                renderTypeFilter();
+                renderGroupFilter();
+                renderBookmarks();
+                alert('บันทึกการเปลี่ยนแปลงเรียบร้อยแล้ว');
+            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+        }
+
+        // ─── BOOKMARKS (อุปกรณ์ที่ปักหมุด) ───
+        function saveBookmarks() {
+            localStorage.setItem('it_asset_bookmarks', JSON.stringify(bookmarks));
+        }
+
+        function toggleBookmark(camId) {
+            const idx = bookmarks.indexOf(camId);
+            if (idx >= 0) {
+                bookmarks.splice(idx, 1);
+            } else {
+                if (bookmarks.length >= 8) { alert('ปักหมุดได้สูงสุด 8 ชิ้น'); return; }
+                bookmarks.push(camId);
+            }
+            saveBookmarks();
+            renderBookmarks();
+            renderCameraList();
+        }
+
+        function clearAllBookmarks() {
+            if (bookmarks.length === 0) return;
+            bookmarks = [];
+            saveBookmarks();
+            renderBookmarks();
+            renderCameraList();
+        }
+
+        function toggleBookmarksPanel() {
+            bookmarksPanelCollapsed = !bookmarksPanelCollapsed;
+            const streams = document.getElementById('bookmarks-streams');
+            const icon = document.getElementById('bookmarks-toggle-icon');
+            if (bookmarksPanelCollapsed) {
+                streams.classList.add('hidden');
+                icon.setAttribute('data-lucide', 'chevron-left');
+            } else {
+                streams.classList.remove('hidden');
+                icon.setAttribute('data-lucide', 'chevron-right');
+            }
+            lucide.createIcons();
+        }
+
+        function renderBookmarks() {
+            const panel = document.getElementById('bookmarks-panel');
+            const container = document.getElementById('bookmarks-streams');
+            if (bookmarks.length === 0) { panel.classList.add('hidden'); panel.classList.remove('flex'); return; }
+            panel.classList.remove('hidden');
+            panel.classList.add('flex');
+            container.innerHTML = '';
+
+            bookmarks.forEach(camId => {
+                const cam = cameras.find(c => c.id === camId);
+                if (!cam) return;
+                const imgUrl = (cam.image_url || cam.go2rtc || '').trim();
+                const devType = getDeviceType(cam.type);
+                const iconName = getDeviceIconName(cam.type);
+                const displayName = cam.id + (cam.thai_name ? ' - ' + cam.thai_name : '');
+                const gColor = getGroupColor(cam.group);
+                const card = document.createElement('div');
+                card.className = 'relative rounded-xl overflow-hidden border border-slate-700 bg-slate-900 shadow-lg cursor-pointer hover:border-emerald-500 transition-all';
+
+                let mediaHtml;
+                if (imgUrl && !imgUrl.includes('stream.html')) {
+                    mediaHtml = `
+                        <div class="h-36 w-full bg-slate-950 flex items-center justify-center overflow-hidden relative">
+                            <img src="${imgUrl}" alt="${cam.id}" class="w-full h-full object-cover" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'flex flex-col items-center justify-center p-4 text-slate-500 text-xs\\'><i data-lucide=\\'image-off\\' class=\\'w-6 h-6 mb-1\\'></i><span>ไม่สามารถโหลดรูปภาพ</span></div>'; lucide.createIcons();">
+                            <span class="absolute bottom-1 right-1 bg-slate-900/80 text-[10px] text-white px-1.5 py-0.5 rounded">คลิกดูภาพเต็ม</span>
+                        </div>
+                    `;
+                } else {
+                    mediaHtml = `
+                        <div class="h-36 w-full bg-slate-950/80 flex flex-col items-center justify-center text-slate-500">
+                            <div class="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center text-emerald-400 mb-1.5">
+                                <i data-lucide="${iconName}" class="w-6 h-6"></i>
+                            </div>
+                            <span class="text-xs text-slate-400">${devType} (ยังไม่มีภาพถ่าย)</span>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between p-2.5 bg-slate-800/90 border-b border-slate-700">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${gColor}"></span>
+                            <span class="text-xs font-bold text-white truncate">${cam.id}</span>
+                            <span class="text-[10px] text-emerald-400 bg-emerald-950 px-1 py-0.2 rounded font-medium">${devType}</span>
+                        </div>
+                        <button onclick="event.stopPropagation(); toggleBookmark('${camId}')" class="text-slate-400 hover:text-red-400 p-1 rounded hover:bg-slate-700 transition-colors" title="ยกเลิกการปักหมุด">
+                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                    ${mediaHtml}
+                    <div class="p-2.5 bg-slate-800/40 text-xs">
+                        <div class="font-medium text-slate-200 truncate">${displayName}</div>
+                        <div class="flex items-center justify-between text-[10px] text-slate-400 mt-1">
+                            <span>${cam.department || '-'}</span>
+                            <span class="font-mono text-emerald-400">${cam.ip || ''}</span>
+                        </div>
+                    </div>
+                `;
+
+                card.onclick = () => showCameraDetail(cam);
+                container.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        // ─── ADD/EDIT DEVICE ───
+        function openAddDevice() {
+            document.getElementById('modal-camera-title').innerHTML = '<i data-lucide="plus-circle" class="w-5 h-5 text-emerald-400"></i><span>เพิ่มอุปกรณ์ไอที</span>';
+            document.getElementById('cam-edit-rec-id').value = '';
+            document.getElementById('camera-form').reset();
+            removeDeviceImagePreview();
+            populateDepartmentSelects();
+            populateMapSelects();
+            if (selectedMapId) document.getElementById('cam-map-id').value = selectedMapId;
+            openModal('modal-camera');
+            lucide.createIcons();
+        }
+        const openAddCamera = openAddDevice;
+
+        function openEditDevice(recordId) {
+            const cam = cameras.find(c => String(c._recordId) === String(recordId));
+            if (!cam) return;
+            document.getElementById('modal-camera-title').innerHTML = '<i data-lucide="pencil" class="w-5 h-5 text-emerald-400"></i><span>แก้ไขอุปกรณ์ไอที</span>';
+            document.getElementById('cam-edit-rec-id').value = recordId;
+            document.getElementById('cam-id').value = cam.asset_code || cam.account_no || cam.id || '';
+            document.getElementById('cam-type').value = getDeviceType(cam.type);
+            document.getElementById('cam-brand').value = cam.brand || '';
+            document.getElementById('cam-model').value = cam.model || '';
+            document.getElementById('cam-serial').value = cam.serial || '';
+            document.getElementById('cam-status').value = cam.status || 'Active';
+            document.getElementById('cam-department').value = cam.department || '';
+            document.getElementById('cam-eng-name').value = cam.asset_name || cam.eng_name || '';
+            document.getElementById('cam-thai-name').value = cam.holder || cam.thai_name || '';
+            document.getElementById('cam-ip').value = cam.ip || '';
+            document.getElementById('cam-mac').value = cam.mac_address || '';
+            document.getElementById('cam-image-url').value = cam.image_url || cam.go2rtc || '';
+            
+            const imgUrl = cam.image_url || cam.go2rtc || '';
+            if (imgUrl && !imgUrl.includes('stream.html')) {
+                showDeviceImagePreview(imgUrl);
+            } else {
+                removeDeviceImagePreview();
+            }
+
+            populateDepartmentSelects();
+            populateMapSelects();
+            document.getElementById('cam-department').value = cam.department || '';
+            document.getElementById('cam-map-id').value = cam.map_id || '';
+            openModal('modal-camera');
+            lucide.createIcons();
+        }
+        const openEditCamera = openEditDevice;
+
+        async function handleDeviceImageUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const textEl = document.getElementById('cam-upload-text');
+            const originalText = textEl.textContent;
+            textEl.textContent = 'กำลังอัปโหลด...';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const res = await fetch('upload_device.php', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('cam-image-url').value = data.url;
+                    showDeviceImagePreview(data.url);
+                } else {
+                    alert('อัปโหลดภาพไม่สำเร็จ: ' + (data.error || ''));
+                }
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการอัปโหลดภาพ: ' + err.message);
+            } finally {
+                textEl.textContent = originalText;
+            }
+        }
+
+        function showDeviceImagePreview(url) {
+            const container = document.getElementById('cam-image-preview-container');
+            const img = document.getElementById('cam-image-preview');
+            img.src = url;
+            container.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function removeDeviceImagePreview() {
+            const container = document.getElementById('cam-image-preview-container');
+            container.classList.add('hidden');
+            document.getElementById('cam-image-preview').src = '';
+            document.getElementById('cam-image-file').value = '';
+        }
+
+        async function saveCamera(e) {
+            e.preventDefault();
+            const recordId = document.getElementById('cam-edit-rec-id').value;
+            const imageUrl = document.getElementById('cam-image-url').value.trim();
+            const assetCode = document.getElementById('cam-id').value.trim();
+            const assetName = document.getElementById('cam-eng-name').value.trim();
+            const holder = document.getElementById('cam-thai-name').value.trim();
+            const fields = {
+                asset_code: assetCode,
+                id: assetCode,
+                account_no: assetCode,
+                asset_name: assetName,
+                eng_name: assetName,
+                holder: holder,
+                thai_name: holder,
+                type: document.getElementById('cam-type').value,
+                brand: document.getElementById('cam-brand').value.trim(),
+                model: document.getElementById('cam-model').value.trim(),
+                serial: document.getElementById('cam-serial').value.trim(),
+                status: document.getElementById('cam-status').value,
+                department: document.getElementById('cam-department').value,
+                map_id: document.getElementById('cam-map-id').value,
+                ip: document.getElementById('cam-ip').value.trim(),
+                mac_address: document.getElementById('cam-mac').value.trim(),
+                image_url: imageUrl,
+                image: imageUrl,
+                go2rtc_link: imageUrl
+            };
+            try {
+                if (recordId) {
+                    await apiUpdate('device', recordId, fields);
+                    alert('อัปเดตข้อมูลอุปกรณ์เรียบร้อยแล้ว');
+                } else {
+                    await apiCreate('device', fields);
+                    alert('เพิ่มอุปกรณ์ไอทีเรียบร้อยแล้ว');
+                }
+                await fetchDevices();
+                closeModal('modal-camera');
+                renderMapSelector();
+                renderCameras();
+                renderCameraList();
+                renderTypeFilter();
+                renderGroupFilter();
+                renderBookmarks();
+            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+        }
+
+        // ─── DELETE ───
+        function requestDelete(recordId, type) {
+            deleteTargetId = recordId;
+            deleteTargetType = type;
+            let label = recordId;
+            if (type === 'device' || type === 'camera') {
+                const c = cameras.find(c => String(c._recordId) === String(recordId));
+                label = c ? `${c.asset_code || c.id} (${c.asset_name || c.eng_name || c.holder || c.thai_name || ''})` : recordId;
+            } else if (type === 'user') {
+                const u = allUsers.find(u => String(u._recordId) === String(recordId));
+                label = u ? u.name : recordId;
+            } else if (type === 'map') {
+                const m = maps.find(m => String(m._recordId) === String(recordId));
+                label = m ? (m.map_name || `แผนผัง ${m.map_id}`) : recordId;
+            } else if (type === 'department') {
+                const d = departmentRecords.find(d => String(d._recordId) === String(recordId));
+                label = d ? d.department : recordId;
+            }
+            document.getElementById('delete-msg').textContent = `คุณต้องการลบ "${label}" หรือไม่?`;
+            openModal('modal-delete');
+        }
+
+        async function confirmDelete() {
+            if (!deleteTargetId) { closeModal('modal-delete'); return; }
+            try {
+                const actualTable = deleteTargetType === 'device' ? 'camera' : deleteTargetType;
+                await apiDelete(actualTable, deleteTargetId);
+                if (deleteTargetType === 'device' || deleteTargetType === 'camera') {
+                    await fetchDevices();
+                    renderMapSelector();
+                    renderCameras();
+                    renderCameraList();
+                    renderTypeFilter();
+                    renderGroupFilter();
+                    renderBookmarks();
+                } else if (deleteTargetType === 'user') {
+                    await fetchAllUsers();
+                    renderUsersList();
+                } else if (deleteTargetType === 'map') {
+                    await fetchMaps();
+                    renderMapSelector();
+                    renderMapsList();
+                    showFloorPlan();
+                    renderCameras();
+                    renderCameraList();
+                } else if (deleteTargetType === 'department') {
+                    await fetchDepartments();
+                    renderGroupsList();
+                    renderGroupFilter();
+                    populateDepartmentSelects();
+                }
+                alert('ลบเรียบร้อยแล้ว');
+            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+            deleteTargetId = null;
+            deleteTargetType = null;
+            closeModal('modal-delete');
+        }
+
+        // ─── USER MANAGER ───
+        async function fetchAllUsers() {
+            try {
+                const records = await apiGetAll('user');
+                allUsers = records.map(r => ({
+                    _recordId: String(r.id),
+                    name: r.fields.Name || '',
+                    password: r.fields.password || '',
+                    department: r.fields.department || '',
+                    camera_user: r.fields.camera_user || '',
+                    map_user: r.fields.map_user || ''
+                }));
+            } catch (err) { console.error('Failed to fetch users:', err); }
+        }
+
+        async function openUserManager() {
+            await fetchAllUsers();
+            populateDepartmentSelects();
+            renderUsersList();
+            openModal('modal-users');
+        }
+
+        function renderUsersList() {
+            const list = document.getElementById('users-list');
+            list.innerHTML = '';
+            allUsers.forEach(u => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-3 p-3 bg-slate-700 rounded-xl';
+                const extras = parseCameraUser(u.camera_user);
+                const depts = parseDepartments(u.department);
+                const userMaps = parseMapUser(u.map_user);
+                const mapNames = userMaps.length ? maps.filter(m => userMaps.includes(String(m.map_id))).map(m => m.map_name || ('แผนผัง ' + m.map_id)).join(', ') : 'ทุกแผนผัง';
+                div.innerHTML = `
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-semibold text-white">${u.name}</div>
+                        <div class="text-xs text-slate-300 truncate" title="แผนก: ${depts.join(', ')}">แผนก: ${depts.join(', ') || '-'}</div>
+                        <div class="text-[11px] text-emerald-400 truncate">🗺️ แผนผัง: ${mapNames}</div>
+                        ${extras.length ? `<div class="text-[11px] text-amber-400 truncate">+ อุปกรณ์นอกแผนก: ${extras.join(', ')}</div>` : ''}
+                    </div>
+                    <button onclick="editUserDepartments('${u._recordId}','${u.name}')" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded transition-all">แผนก</button>
+                    <button onclick="editUserMaps('${u._recordId}','${u.name}')" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded transition-all">แผนผัง</button>
+                    <button onclick="changePassword('${u._recordId}','${u.name}')" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded transition-all">รหัสผ่าน</button>
+                    <button onclick="requestDelete('${u._recordId}','user')" class="text-xs bg-red-600/80 hover:bg-red-500 text-white px-2 py-1 rounded transition-all">ลบ</button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        async function addUser(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-user-name').value.trim();
+            const pass = document.getElementById('new-user-pass').value;
+            const depts = getSelectedDepartments('new-user-dept');
+            if (!name || !pass) return;
+            if (depts.length === 0) { alert('กรุณาเลือกแผนกอย่างน้อย 1 แผนก'); return; }
+            try {
+                await apiCreate('user', { Name: name, password: pass, department: depts.join(',') });
+                document.getElementById('add-user-form').reset();
+                await fetchAllUsers();
+                renderUsersList();
+                alert('เพิ่มผู้ใช้เรียบร้อย');
+            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+        }
+
+        function editUserDepartments(recordId, userName) {
+            const u = allUsers.find(u => String(u._recordId) === String(recordId));
+            if (!u) return;
+            const current = parseDepartments(u.department);
+            const options = ['admin', ...departments.filter(d => d !== 'admin')];
+            current.forEach(d => { if (!options.includes(d)) options.push(d); });
+            document.getElementById('user-depts-rec-id').value = recordId;
+            document.getElementById('user-depts-name').textContent = `ผู้ใช้: ${userName}`;
+            document.getElementById('user-depts-list').innerHTML = options.map(d => `
+                <label class="flex items-center gap-2 px-3 py-2 bg-slate-700 rounded-lg cursor-pointer hover:bg-slate-600">
+                    <input type="checkbox" value="${d}" ${current.includes(d) ? 'checked' : ''} class="user-dept-cb accent-emerald-500">
+                    <span class="text-sm ${d === 'admin' ? 'text-amber-400 font-medium' : 'text-slate-200'}">${d}</span>
+                </label>`).join('');
+            openModal('modal-user-depts');
+        }
+
+        function editUserMaps(recordId, userName) {
+            const u = allUsers.find(u => String(u._recordId) === String(recordId));
+            if (!u) return;
+            const current = parseMapUser(u.map_user);
+            document.getElementById('user-maps-rec-id').value = recordId;
+            document.getElementById('user-maps-subtitle').textContent = `ผู้ใช้: ${userName}`;
+            document.getElementById('user-maps-list').innerHTML = maps.map(m => {
+                const mapIdStr = String(m.map_id);
+                const checked = current.includes(mapIdStr);
+                const label = m.map_name || `แผนผัง ${m.map_id}`;
+                return `
+                    <label class="flex items-center gap-2 px-3 py-2 bg-slate-700 rounded-lg cursor-pointer hover:bg-slate-600">
+                        <input type="checkbox" value="${mapIdStr}" ${checked ? 'checked' : ''} class="user-map-cb accent-emerald-500">
+                        <span class="text-sm text-slate-200">${label}</span>
+                    </label>`;
+            }).join('');
+            openModal('modal-user-maps');
+        }
+
+        async function saveUserMaps() {
+            const recordId = document.getElementById('user-maps-rec-id').value;
+            const picked = Array.from(document.querySelectorAll('.user-map-cb:checked')).map(cb => cb.value);
+            try {
+                await apiUpdate('user', recordId, { map_user: picked.join(',') });
+                await fetchAllUsers();
+                renderUsersList();
+                closeModal('modal-user-maps');
+                alert('บันทึกสิทธิ์การดูแผนผังเรียบร้อย');
+            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+        }
+
+        async function saveUserDepartments() {
+            const recordId = document.getElementById('user-depts-rec-id').value;
+            const picked = Array.from(document.querySelectorAll('.user-dept-cb:checked')).map(cb => cb.value);
+            if (picked.length === 0) { alert('ต้องเลือกอย่างน้อย 1 แผนก'); return; }
+            try {
+                await apiUpdate('user', recordId, { department: picked.join(',') });
+                await fetchAllUsers();
+                renderUsersList();
+                closeModal('modal-user-depts');
+                alert('บันทึกแผนกเรียบร้อย');
+            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+        }
+
+        function changePassword(recordId, userName) {
+            document.getElementById('change-pass-rec-id').value = recordId;
+            document.getElementById('change-pass-subtitle').textContent = `ตั้งรหัสผ่านใหม่สำหรับ "${userName}"`;
+            const input = document.getElementById('change-pass-input');
+            input.value = '';
+            input.type = 'password';
+            openModal('modal-change-pass');
+            setTimeout(() => input.focus(), 100);
+        }
+
+        async function saveNewPassword(e) {
+            e.preventDefault();
+            const recordId = document.getElementById('change-pass-rec-id').value;
+            const newPass = document.getElementById('change-pass-input').value;
+            if (!newPass) return;
+            try {
+                await apiUpdate('user', recordId, { password: newPass });
+                await fetchAllUsers();
+                renderUsersList();
+                closeModal('modal-change-pass');
+                alert('เปลี่ยนรหัสผ่านเรียบร้อย');
+            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+        }
+
+        // ─── MAP MANAGER ───
+        function openMapManager() {
+            renderMapsList();
+            openModal('modal-maps');
+        }
+
+        function renderMapsList() {
+            const stamp = document.getElementById('build-stamp');
+            if (stamp) stamp.textContent = `เวอร์ชัน: ${APP_BUILD}`;
+            const list = document.getElementById('maps-list');
+            list.innerHTML = '';
+            maps.forEach(m => {
+                const div = document.createElement('div');
+                div.className = 'p-3 bg-slate-700 rounded-xl space-y-2';
+                const label = m.map_name || `แผนผัง ${m.map_id}`;
+                const devCount = cameras.filter(c => c.map_id === String(m.map_id)).length;
+                div.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="text-sm font-semibold text-white">${label}</span>
+                            <span class="text-xs text-slate-400 ml-2">(ID: ${m.map_id}, ${devCount} อุปกรณ์)</span>
+                        </div>
+                        <button onclick="requestDelete('${m._recordId}','map')" class="text-xs bg-red-600/80 hover:bg-red-500 text-white px-2 py-1 rounded transition-all">ลบ</button>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="map-name-${m._recordId}" value="${m.map_name || ''}" placeholder="ชื่อแผนผัง" class="flex-1 px-2.5 py-1.5 bg-slate-600 border border-slate-500 rounded text-white text-xs focus:outline-none focus:border-emerald-500">
+                        <button onclick="saveMap('${m._recordId}')" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded transition-all shrink-0">บันทึกชื่อ</button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="flex-1 flex items-center gap-2 px-2.5 py-1.5 bg-slate-600 border border-slate-500 border-dashed rounded cursor-pointer hover:border-emerald-500 transition-all">
+                            <i data-lucide="upload" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                            <span class="text-xs text-slate-300 truncate" id="map-file-label-${m._recordId}">${m.map_url ? 'เปลี่ยนไฟล์แผนผัง...' : 'เลือกไฟล์แผนผัง...'}</span>
+                            <input type="file" accept="image/*" class="hidden" onchange="uploadMapFile(this, '${m._recordId}', ${m.map_id})">
+                        </label>
+                        <span id="map-upload-status-${m._recordId}" class="text-[11px] text-slate-400"></span>
+                    </div>
+                    ${m.map_url ? `<div class="flex items-center gap-2"><img src="${m.map_url}" class="w-16 h-12 object-cover rounded-lg border border-slate-600" onerror="this.style.display='none'"><span class="text-[11px] text-emerald-400 truncate flex-1">${m.map_url}</span></div>` : '<span class="text-[11px] text-slate-500">ยังไม่มีไฟล์แผนผัง</span>'}
+                `;
+                list.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        async function uploadMapFile(input, recordId, mapId) {
+            let file = input.files[0];
+            if (!file) return;
+            const label = document.getElementById(`map-file-label-${recordId}`);
+            const status = document.getElementById(`map-upload-status-${recordId}`);
+            label.textContent = file.name;
+            status.textContent = 'กำลังอัปโหลด...';
+            status.className = 'text-[11px] text-amber-400';
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('record_id', recordId);
+            try {
+                const res = await fetch('upload_map.php', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    status.textContent = 'อัปโหลดสำเร็จ!';
+                    status.className = 'text-[11px] text-emerald-400';
+                    await fetchMaps();
+                    renderMapsList();
+                    renderMapSelector();
+                    showFloorPlan();
+                } else {
+                    status.textContent = data.error || 'อัปโหลดไม่สำเร็จ';
+                    status.className = 'text-[11px] text-red-400';
+                }
+            } catch (err) {
+                status.textContent = 'เกิดข้อผิดพลาด';
+                status.className = 'text-[11px] text-red-400';
+            }
+        }
+
+        async function saveMap(recordId) {
+            const name = document.getElementById(`map-name-${recordId}`).value.trim();
+            try {
+                await apiUpdate('map', recordId, { map_name: name });
+                await fetchMaps();
+                renderMapsList();
+                renderMapSelector();
+                showFloorPlan();
+                alert('บันทึกชื่อแผนผังเรียบร้อย');
+            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+        }
+
+        async function addMap(e) {
+            e.preventDefault();
+            const mapName = document.getElementById('new-map-name').value.trim();
+            const fileInput = document.getElementById('new-map-file');
+            let file = fileInput.files[0];
+            if (!mapName) return;
+            const btn = e.target.querySelector('button[type="submit"]');
+            if (btn) { btn.disabled = true; btn.textContent = 'กำลังดำเนินการ...'; }
+            try {
+                const created = await apiCreate('map', { map_name: mapName });
+                if (file && created && created.id) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('record_id', created.id);
+                    await fetch('upload_map.php', { method: 'POST', body: formData });
+                }
+                document.getElementById('add-map-form').reset();
+                document.getElementById('new-map-file-label').textContent = 'เลือกไฟล์รูปภาพแผนผัง...';
+                await fetchMaps();
+                renderMapsList();
+                renderMapSelector();
+                populateMapSelects();
+                alert('เพิ่มแผนผังเรียบร้อย');
+            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+            finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'เพิ่มแผนผัง'; }
+            }
+        }
+
+        // ─── GROUP MANAGER ───
+        async function openGroupManager() {
+            await fetchDepartments();
+            renderGroupsList();
+            const addSection = document.getElementById('groups-add-section');
+            if (currentUser && currentUser.isAdmin) addSection.classList.remove('hidden');
+            else addSection.classList.add('hidden');
+            openModal('modal-groups');
+        }
+
+        function renderGroupsList() {
+            const list = document.getElementById('groups-list');
+            const isAdmin = currentUser && currentUser.isAdmin;
+            list.innerHTML = '';
+            if (departmentRecords.length === 0) { list.innerHTML = '<p class="text-slate-500 text-sm text-center">ยังไม่มีแผนก</p>'; return; }
+            departmentRecords.forEach((rec, i) => {
+                const count = cameras.filter(c => c.department === rec.department).length;
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-3 p-3 bg-slate-700 rounded-xl';
+                if (isAdmin) {
+                    div.innerHTML = `
+                        <div class="w-4 h-4 rounded-full shrink-0" style="background:${groupColors[i % groupColors.length]}"></div>
+                        <input type="text" id="dept-name-${rec._recordId}" value="${rec.department}" class="flex-1 px-2.5 py-1 bg-slate-600 border border-slate-500 rounded text-white text-sm focus:outline-none focus:border-emerald-500">
+                        <span class="text-xs text-slate-400 shrink-0">${count} อุปกรณ์</span>
+                        <button onclick="saveDepartment('${rec._recordId}')" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded transition-all shrink-0">บันทึก</button>
+                        <button onclick="requestDelete('${rec._recordId}','department')" class="text-xs bg-red-600/80 hover:bg-red-500 text-white px-2.5 py-1 rounded transition-all shrink-0">ลบ</button>
+                    `;
+                } else {
+                    div.innerHTML = `
+                        <div class="w-4 h-4 rounded-full shrink-0" style="background:${groupColors[i % groupColors.length]}"></div>
+                        <span class="flex-1 text-sm text-white">${rec.department}</span>
+                        <span class="text-xs text-slate-400">${count} อุปกรณ์</span>
+                    `;
+                }
+                list.appendChild(div);
+            });
+        }
+
+        async function saveDepartment(recordId) {
+            const name = document.getElementById(`dept-name-${recordId}`).value.trim();
+            if (!name) return;
+            const oldRec = departmentRecords.find(r => r._recordId === recordId);
+            const oldName = oldRec ? oldRec.department : '';
+            try {
+                await apiUpdate('department', recordId, { department: name });
+                if (oldName && oldName !== name) {
+                    const camsToUpdate = cameras.filter(c => c.department === oldName);
+                    for (const cam of camsToUpdate) {
+                        await apiUpdate('device', cam._recordId, { department: name });
+                    }
+                }
+                await Promise.all([fetchDepartments(), fetchDevices()]);
+                renderGroupsList();
+                renderGroupFilter();
+                renderCameraList();
+                populateDepartmentSelects();
+                alert('บันทึกแผนกเรียบร้อย');
+            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+        }
+
+        async function addDepartment(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-dept-name').value.trim();
+            if (!name) return;
+            try {
+                await apiCreate('department', { department: name });
+                document.getElementById('add-dept-form').reset();
+                await fetchDepartments();
+                renderGroupsList();
+                renderGroupFilter();
+                populateDepartmentSelects();
+                alert('เพิ่มแผนกเรียบร้อย');
+            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+        }
+
+        // ─── PRINT & ZOOM ───
+        window.addEventListener('beforeprint', () => { updatePrintHeader(); fitPrintMap(); });
+        function updatePrintHeader() {
+            const m = maps.find(m => String(m.map_id) === selectedMapId);
+            const name = m ? (m.map_name || `แผนผัง ${m.map_id}`) : '';
+            const sub = document.getElementById('print-subtitle');
+            if (sub) sub.textContent = [name, new Date().toLocaleDateString('th-TH')].filter(Boolean).join(' | ');
+            updatePrintSummary();
+        }
+
+        function updatePrintSummary() {
+            const el = document.getElementById('print-summary');
+            if (!el) return;
+            const shown = getFilteredCameras().filter(c => c.x != null && c.y != null);
+            const counts = {};
+            const typeCounts = {};
+            shown.forEach(c => {
+                const g = c.group || 'ไม่มีแผนก';
+                counts[g] = (counts[g] || 0) + 1;
+                const t = getDeviceType(c.type);
+                typeCounts[t] = (typeCounts[t] || 0) + 1;
+            });
+            const groups = Object.keys(counts).sort(compareText);
+            const typeStr = Object.entries(typeCounts).map(([t, c]) => `${t}: ${c}`).join(' | ');
+            el.innerHTML = groups.map(g =>
+                `<span class="sum-item"><span class="sum-dot" style="background:${getGroupColor(g) || '#334155'}"></span>${g} ${counts[g]}</span>`
+            ).join('') + `<span class="sum-item sum-total">รวม ${shown.length} ชิ้น (${typeStr})</span>`;
+        }
+
+        const PAPER_SIZES = {
+            'A4-landscape': { w: 297, h: 210, header: 25 },
+            'A4-portrait':  { w: 210, h: 297, header: 25 },
+            'A3-landscape': { w: 420, h: 297, header: 34 },
+            'A3-portrait':  { w: 297, h: 420, header: 34 },
+        };
+        let paperSize = localStorage.getItem('paperSize') || 'A4-landscape';
+
+        function setPaperSize(size) {
+            if (!PAPER_SIZES[size]) size = 'A4-landscape';
+            paperSize = size;
+            localStorage.setItem('paperSize', size);
+            const [name, orient] = size.split('-');
+            const p = PAPER_SIZES[size];
+            document.documentElement.classList.toggle('paper-a3', name === 'A3');
+            document.documentElement.classList.toggle('paper-a4', name === 'A4');
+            let style = document.getElementById('page-size-style');
+            if (!style) { style = document.createElement('style'); style.id = 'page-size-style'; document.head.appendChild(style); }
+            const sel = document.getElementById('paper-size');
+            if (sel && sel.value !== size) sel.value = size;
+            fitPrintMap();
+        }
+
+        function fitPrintMap() {
+            const p = PAPER_SIZES[paperSize];
+            if (!p) return;
+            const [name, orient] = paperSize.split('-');
+            const availW = p.w - 12;
+            const availH = p.h - 12 - p.header - 3;
+            const img = document.getElementById('floor-plan-img');
+            let mapCss = '';
+            if (img && img.naturalWidth && img.naturalHeight) {
+                const ratio = img.naturalWidth / img.naturalHeight;
+                const w = (availW / ratio <= availH) ? availW : availH * ratio;
+                mapCss = `#map-content { width: ${w.toFixed(2)}mm !important; }`;
+            }
+            let style = document.getElementById('page-size-style');
+            if (!style) { style = document.createElement('style'); style.id = 'page-size-style'; document.head.appendChild(style); }
+            style.textContent = `@page { size: ${name} ${orient}; margin: 0; }
+                @media print {
+                    .print-area { width: ${p.w}mm !important; height: ${p.h}mm !important; }
+                    #print-header { height: ${p.header}mm !important; }
+                    #map-viewport { height: ${availH}mm !important; }
+                    ${mapCss}
+                }`;
+        }
+        setPaperSize(paperSize);
+
+        function printMap() { updatePrintHeader(); window.print(); }
+
+        function zoomMap(d, mouseX, mouseY) {
+            const viewport = document.getElementById('map-viewport');
+            const content = document.getElementById('map-content');
+            if (!viewport || !content) return;
+            const oldZoom = currentZoom;
+            const factor = d > 0 ? 1.1 : 1 / 1.1;
+            currentZoom = Math.max(20, Math.min(1000, Math.round(currentZoom * factor)));
+            if (currentZoom === oldZoom) return;
+
+            const ratio = currentZoom / oldZoom;
+            const px = mouseX !== undefined ? mouseX : viewport.clientWidth / 2;
+            const py = mouseY !== undefined ? mouseY : viewport.clientHeight / 2;
+            const contentX = viewport.scrollLeft + px;
+            const contentY = viewport.scrollTop + py;
+
+            content.style.width = `${currentZoom}%`;
+            void content.offsetHeight;
+
+            viewport.scrollLeft = contentX * ratio - px;
+            viewport.scrollTop = contentY * ratio - py;
+
+            document.getElementById('zoom-level-text').textContent = `${currentZoom}%`;
+        }
+
+        function resetZoom() {
+            const viewport = document.getElementById('map-viewport');
+            const content = document.getElementById('map-content');
+            currentZoom = 100;
+            if (content) content.style.width = '100%';
+            if (viewport) { viewport.scrollLeft = 0; viewport.scrollTop = 0; }
+            document.getElementById('zoom-level-text').textContent = '100%';
+        }
+
+        // ─── MAP PAN & WHEEL ZOOM ───
+        const viewport = document.getElementById('map-viewport');
+        if (viewport) {
+            viewport.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const rect = viewport.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                const delta = e.deltaY * -0.5;
+                zoomMap(delta, mouseX, mouseY);
+            }, { passive: false });
+
+            let isPanning = false, panStartX = 0, panStartY = 0, scrollStartX = 0, scrollStartY = 0;
+
+            viewport.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.device-dot')) return;
+                isPanning = true;
+                panStartX = e.clientX;
+                panStartY = e.clientY;
+                scrollStartX = viewport.scrollLeft;
+                scrollStartY = viewport.scrollTop;
+                viewport.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isPanning) return;
+                const dx = e.clientX - panStartX;
+                const dy = e.clientY - panStartY;
+                viewport.scrollLeft = scrollStartX - dx;
+                viewport.scrollTop = scrollStartY - dy;
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (!isPanning) return;
+                isPanning = false;
+                viewport.style.cursor = 'grab';
+            });
+
+            viewport.style.cursor = 'grab';
+        }
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>
