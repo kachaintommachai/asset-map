@@ -884,11 +884,17 @@
                 body: JSON.stringify({ fields })
             });
             const text = await res.text();
+            let data;
             try {
-                return JSON.parse(text);
+                data = JSON.parse(text);
             } catch (err) {
                 throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP ${res.status}): ${text.slice(0, 150)}`);
             }
+            if (!res.ok || data.error) {
+                const errMsg = typeof data.error === 'string' ? data.error : (data.error && data.error.message ? data.error.message : (data.error && data.error.type ? data.error.type : `HTTP ${res.status}`));
+                throw new Error(errMsg);
+            }
+            return data;
         }
 
         async function apiUpdate(table, id, fields) {
@@ -898,11 +904,17 @@
                 body: JSON.stringify({ fields })
             });
             const text = await res.text();
+            let data;
             try {
-                return JSON.parse(text);
+                data = JSON.parse(text);
             } catch (err) {
                 throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP ${res.status}): ${text.slice(0, 150)}`);
             }
+            if (!res.ok || data.error) {
+                const errMsg = typeof data.error === 'string' ? data.error : (data.error && data.error.message ? data.error.message : (data.error && data.error.type ? data.error.type : `HTTP ${res.status}`));
+                throw new Error(errMsg);
+            }
+            return data;
         }
 
         async function apiDelete(table, id) {
@@ -910,11 +922,17 @@
                 method: 'DELETE'
             });
             const text = await res.text();
+            let data;
             try {
-                return JSON.parse(text);
+                data = JSON.parse(text);
             } catch (err) {
                 throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP ${res.status}): ${text.slice(0, 150)}`);
             }
+            if (!res.ok || data.error) {
+                const errMsg = typeof data.error === 'string' ? data.error : (data.error && data.error.message ? data.error.message : (data.error && data.error.type ? data.error.type : `HTTP ${res.status}`));
+                throw new Error(errMsg);
+            }
+            return data;
         }
 
         // ─── LOGIN ───
@@ -2224,29 +2242,39 @@
             const recordId = document.getElementById('cam-edit-rec-id').value;
             const imageUrl = document.getElementById('cam-image-url').value.trim();
             const assetCode = document.getElementById('cam-id').value.trim();
-            const assetName = document.getElementById('cam-eng-name').value.trim();
+            const assetName = document.getElementById('cam-eng-name').value.trim() || assetCode;
             const holder = document.getElementById('cam-thai-name').value.trim();
+            const devType = document.getElementById('cam-type').value || 'Other';
+            const devDept = document.getElementById('cam-department').value || '';
+            const devMapId = document.getElementById('cam-map-id').value || selectedMapId || '1';
+
             const fields = {
                 asset_code: assetCode,
-                id: assetCode,
-                account_no: assetCode,
                 asset_name: assetName,
-                eng_name: assetName,
-                holder: holder,
-                thai_name: holder,
-                type: document.getElementById('cam-type').value,
-                brand: document.getElementById('cam-brand').value.trim(),
-                model: document.getElementById('cam-model').value.trim(),
-                serial: document.getElementById('cam-serial').value.trim(),
-                status: document.getElementById('cam-status').value,
-                department: document.getElementById('cam-department').value,
-                map_id: document.getElementById('cam-map-id').value,
-                ip: document.getElementById('cam-ip').value.trim(),
-                mac_address: document.getElementById('cam-mac').value.trim(),
-                image_url: imageUrl,
-                image: imageUrl,
-                go2rtc_link: imageUrl
+                type: devType,
+                status: document.getElementById('cam-status').value || 'Active'
             };
+            if (holder) fields.holder = holder;
+            if (devDept) fields.department = devDept;
+            if (devMapId) fields.map_id = devMapId;
+            const brand = document.getElementById('cam-brand').value.trim();
+            if (brand) fields.brand = brand;
+            const model = document.getElementById('cam-model').value.trim();
+            if (model) fields.model = model;
+            const serial = document.getElementById('cam-serial').value.trim();
+            if (serial) fields.serial = serial;
+            const ip = document.getElementById('cam-ip').value.trim();
+            if (ip) fields.ip = ip;
+            const mac = document.getElementById('cam-mac').value.trim();
+            if (mac) fields.mac_address = mac;
+            if (imageUrl) {
+                fields.image_url = imageUrl;
+            }
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn ? submitBtn.textContent : '';
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'กำลังบันทึก...'; }
+
             try {
                 if (recordId) {
                     await apiUpdate('device', recordId, fields);
@@ -2266,7 +2294,11 @@
                 if (document.getElementById('modal-devices') && !document.getElementById('modal-devices').classList.contains('hidden')) {
                     renderDeviceManagerList();
                 }
-            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
+            } finally {
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText; }
+            }
         }
 
         // ─── DELETE ───

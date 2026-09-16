@@ -251,6 +251,7 @@ async function fetchAllRecords(baseId, token, candidateTables, sortField, reques
     } while (offset);
 
     if (success) {
+      cachedWorkingTables[requestedTable.toLowerCase()] = tableName;
       return { ok: true, records, tableName };
     }
   }
@@ -272,6 +273,7 @@ async function fetchAllRecords(baseId, token, candidateTables, sortField, reques
       });
 
       if (matchedTable) {
+        cachedWorkingTables[requestedTable.toLowerCase()] = matchedTable.name;
         return await fetchAllRecords(baseId, token, [matchedTable.name, matchedTable.id], sortField, '');
       }
 
@@ -290,11 +292,60 @@ async function fetchAllRecords(baseId, token, candidateTables, sortField, reques
   return { ok: false, error: finalErr, status: firstAttempt ? firstAttempt.status : 500 };
 }
 
+const cachedWorkingTables = {};
+
+async function resolveWorkingTable(baseId, token, requestedTable) {
+  const reqKey = (requestedTable || '').trim().toLowerCase();
+  if (cachedWorkingTables[reqKey]) {
+    return cachedWorkingTables[reqKey];
+  }
+
+  const candidates = getCandidateTables(requestedTable);
+  for (const t of candidates) {
+    try {
+      const res = await fetch(`${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(t)}?pageSize=1`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        cachedWorkingTables[reqKey] = t;
+        return t;
+      }
+    } catch (_) {}
+  }
+
+  const meta = await inspectBaseTables(baseId, token);
+  if (meta.ok && Array.isArray(meta.tables) && meta.tables.length > 0) {
+    const matched = meta.tables.find(t => {
+      const n = t.name.toLowerCase();
+      const fields = Array.isArray(t.fields) ? t.fields : [];
+      if (reqKey.startsWith('device') || reqKey.startsWith('camera')) return n.includes('device') || n.includes('cam') || n.includes('asset') || fields.some(f => f.name.toLowerCase().includes('asset'));
+      if (reqKey.startsWith('map')) return n.includes('map') || n.includes('ผัง') || n.includes('แปลน') || fields.some(f => f.name.toLowerCase().includes('map'));
+      if (reqKey.startsWith('user')) return n.includes('user') || fields.some(f => f.name.toLowerCase() === 'password');
+      if (reqKey.startsWith('department')) return n.includes('dept') || n.includes('แผนก') || fields.some(f => f.name.toLowerCase().includes('department'));
+      return false;
+    });
+    if (matched) {
+      cachedWorkingTables[reqKey] = matched.name;
+      return matched.name;
+    }
+  }
+
+  return candidates[0] || requestedTable;
+}
+
 // Helper to write to Airtable with unknown field pruning retry
 async function writeAirtableWithRetry(url, method, token, fields) {
   let payloadFields = { ...fields };
 
-  for (let attempt = 0; attempt < 5; attempt++) {
+  if (method === 'POST') {
+    for (const [k, v] of Object.entries(payloadFields)) {
+      if (v === '' || v === null || v === undefined) {
+        delete payloadFields[k];
+      }
+    }
+  }
+
+  for (let attempt = 0; attempt < 30; attempt++) {
     const res = await fetch(url, {
       method,
       headers: {
@@ -309,12 +360,14 @@ async function writeAirtableWithRetry(url, method, token, fields) {
       return { ok: true, data };
     }
 
-    // Auto-remove unknown field if Airtable rejects schema mismatch, with case-fallback for coordinates
-    if (data.error && typeof data.error.message === 'string' && data.error.message.includes('Unknown field name:')) {
-      const match = data.error.message.match(/Unknown field name:\s*["']([^"']+)["']/i);
-      if (match && match[1]) {
-        const rejected = match[1];
-        if (rejected in payloadFields) {
+    if (data.error && typeof data.error.message === 'string') {
+      const msg = data.error.message;
+
+      // 1. Auto-remove unknown field
+      if (msg.includes('Unknown field name:')) {
+        const match = msg.match(/Unknown field name:\s*["']([^"']+)["']/i);
+        if (match && match[1] && match[1] in payloadFields) {
+          const rejected = match[1];
           const val = payloadFields[rejected];
           delete payloadFields[rejected];
           if (rejected === 'x' && !('X' in payloadFields)) payloadFields['X'] = val;
@@ -323,6 +376,32 @@ async function writeAirtableWithRetry(url, method, token, fields) {
           else if (rejected === 'Y' && !('y' in payloadFields)) payloadFields['y'] = val;
           continue;
         }
+      }
+
+      // 2. Field cannot accept value (e.g. Field "xxx" cannot accept...)
+      const fieldMatch = msg.match(/Field\s*["']([^"']+)["']/i) || msg.match(/["']([^"']+)["']\s*cannot accept/i);
+      if (fieldMatch && fieldMatch[1] && (fieldMatch[1] in payloadFields)) {
+        const rejected = fieldMatch[1];
+        if ((rejected === 'map_id' || rejected === 'map' || rejected === 'Map') && typeof payloadFields[rejected] === 'string') {
+          payloadFields[rejected] = [payloadFields[rejected]];
+          continue;
+        }
+        delete payloadFields[rejected];
+        continue;
+      }
+
+      // 3. Attachment decoding error
+      if (msg.toLowerCase().includes('attachment')) {
+        if ('image' in payloadFields) { delete payloadFields['image']; continue; }
+        if ('map_pic' in payloadFields) { delete payloadFields['map_pic']; continue; }
+        if ('image_url' in payloadFields) { delete payloadFields['image_url']; continue; }
+      }
+
+      // 4. Linked record error (e.g. Value is not an array of record IDs)
+      if (msg.toLowerCase().includes('record id') || msg.toLowerCase().includes('linked')) {
+        if ('map_id' in payloadFields) { delete payloadFields['map_id']; continue; }
+        if ('map' in payloadFields) { delete payloadFields['map']; continue; }
+        if ('department' in payloadFields) { delete payloadFields['department']; continue; }
       }
     }
 
@@ -521,7 +600,7 @@ module.exports = async (req, res) => {
 
   // ─── POST (Create Record) ───
   if (req.method === 'POST') {
-    const targetTable = candidateTables[0];
+    const targetTable = await resolveWorkingTable(baseId, token, table);
     
     // Prepare field mappings
     const preparedFields = { ...fields };
@@ -560,7 +639,7 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Missing record id for PATCH' });
     }
 
-    const targetTable = candidateTables[0];
+    const targetTable = await resolveWorkingTable(baseId, token, table);
     const realRecordId = await findAirtableRecordId(baseId, token, targetTable, rawId);
 
     const preparedFields = { ...fields };
@@ -599,7 +678,7 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Missing record id for DELETE' });
     }
 
-    const targetTable = candidateTables[0];
+    const targetTable = await resolveWorkingTable(baseId, token, table);
     const realRecordId = await findAirtableRecordId(baseId, token, targetTable, rawId);
     const deleteUrl = `${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(targetTable)}/${encodeURIComponent(realRecordId)}`;
 
