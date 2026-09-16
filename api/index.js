@@ -67,9 +67,9 @@ function normalizeFields(table, fields) {
   const f = { ...(fields || {}) };
 
   if (t === 'device' || t === 'devices' || t === 'camera' || t === 'cameras') {
-    const code = f.asset_code || f.asset_no || f.account_no || f.cam_id || f.id || '';
-    const name = f.asset_name || f.eng_name || '';
-    const holder = f.holder || f.thai_name || '';
+    const code = f.asset_code || f.Asset_Code || f['Asset Code'] || f.asset_no || f.account_no || f.cam_id || f.id || f.ID || f.Name || f.name || '';
+    const name = f.asset_name || f.Asset_Name || f['Asset Name'] || f.eng_name || f.Name || f.name || code;
+    const holder = f.holder || f.Holder || f.thai_name || f.user || f.User || '';
     let img = '';
     if (Array.isArray(f.image) && f.image.length > 0) {
       img = f.image[0].url || '';
@@ -81,23 +81,50 @@ function normalizeFields(table, fields) {
       img = f.go2rtc_link;
     }
 
+    let rawX = f.x != null && f.x !== '' ? f.x : (f.X != null && f.X !== '' ? f.X : (f.pos_x != null ? f.pos_x : null));
+    let rawY = f.y != null && f.y !== '' ? f.y : (f.Y != null && f.Y !== '' ? f.Y : (f.pos_y != null ? f.pos_y : null));
+    let numX = rawX != null ? parseFloat(rawX) : null;
+    let numY = rawY != null ? parseFloat(rawY) : null;
+    if (numX != null && isNaN(numX)) numX = null;
+    if (numY != null && isNaN(numY)) numY = null;
+    if (numX != null && numY != null && numX > 0 && numX <= 1 && numY > 0 && numY <= 1) {
+      numX = Math.round(numX * 10000) / 100;
+      numY = Math.round(numY * 10000) / 100;
+    }
+
+    let devMapId = '1';
+    if (Array.isArray(f.map_id) && f.map_id.length > 0) devMapId = String(f.map_id[0]);
+    else if (Array.isArray(f.map) && f.map.length > 0) devMapId = String(f.map[0]);
+    else if (Array.isArray(f.Map) && f.Map.length > 0) devMapId = String(f.Map[0]);
+    else if (f.map_id != null && f.map_id !== '') devMapId = String(f.map_id);
+    else if (f.map != null && f.map !== '') devMapId = String(f.map);
+    else if (f.Map != null && f.Map !== '') devMapId = String(f.Map);
+    else if (f['Map ID'] != null && f['Map ID'] !== '') devMapId = String(f['Map ID']);
+    else if (f.map_name != null && f.map_name !== '') devMapId = String(f.map_name);
+
     return {
       ...f,
-      asset_code: code,
-      account_no: code,
-      id: code,
-      asset_name: name,
-      eng_name: name,
-      holder: holder,
-      thai_name: holder,
-      type: f.type || 'Other',
-      status: f.status || 'Active',
+      asset_code: String(code),
+      account_no: String(code),
+      id: String(code),
+      asset_name: String(name),
+      eng_name: String(name),
+      holder: String(holder),
+      thai_name: String(holder),
+      type: f.type || f.Type || 'Other',
+      status: f.status || f.Status || 'Active',
+      brand: f.brand || f.Brand || '',
+      model: f.model || f.Model || '',
+      serial: f.serial || f.Serial || f.serial_number || '',
+      department: f.department || f.Department || f.dept || f.group || '',
+      ip: f.ip || f.IP || f.ip_address || '',
+      mac_address: f.mac_address || f.MAC || f.mac || '',
       image: img,
       image_url: img,
       go2rtc_link: img,
-      map_id: String(f.map_id || '1'),
-      x: f.x !== undefined ? f.x : null,
-      y: f.y !== undefined ? f.y : null
+      map_id: String(devMapId),
+      x: numX,
+      y: numY
     };
   }
 
@@ -110,10 +137,11 @@ function normalizeFields(table, fields) {
     } else if (f.map_url) {
       img = f.map_url;
     }
+    const mapId = f.map_id != null && f.map_id !== '' ? f.map_id : (f['Map ID'] != null ? f['Map ID'] : (f.id != null ? f.id : '1'));
     return {
       ...f,
-      map_id: f.map_id || f.id,
-      map_name: f.map_name || '',
+      map_id: String(mapId),
+      map_name: f.map_name || f['Map Name'] || f.Name || f.name || `แผนผัง ${mapId}`,
       map_url: img,
       map_pic: img
     };
@@ -257,12 +285,20 @@ async function writeAirtableWithRetry(url, method, token, fields) {
       return { ok: true, data };
     }
 
-    // Auto-remove unknown field if Airtable rejects schema mismatch
+    // Auto-remove unknown field if Airtable rejects schema mismatch, with case-fallback for coordinates
     if (data.error && typeof data.error.message === 'string' && data.error.message.includes('Unknown field name:')) {
       const match = data.error.message.match(/Unknown field name:\s*["']([^"']+)["']/i);
-      if (match && match[1] && match[1] in payloadFields) {
-        delete payloadFields[match[1]];
-        continue;
+      if (match && match[1]) {
+        const rejected = match[1];
+        if (rejected in payloadFields) {
+          const val = payloadFields[rejected];
+          delete payloadFields[rejected];
+          if (rejected === 'x' && !('X' in payloadFields)) payloadFields['X'] = val;
+          else if (rejected === 'y' && !('Y' in payloadFields)) payloadFields['Y'] = val;
+          else if (rejected === 'X' && !('x' in payloadFields)) payloadFields['x'] = val;
+          else if (rejected === 'Y' && !('y' in payloadFields)) payloadFields['y'] = val;
+          continue;
+        }
       }
     }
 
