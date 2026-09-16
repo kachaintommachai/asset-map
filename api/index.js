@@ -10,13 +10,21 @@ function getAirtableConfig() {
 }
 
 function getCandidateTables(table) {
-  const t = (table || '').trim().toLowerCase();
-  if (t === 'device' || t === 'devices') return ['device', 'devices', 'camera', 'cameras'];
-  if (t === 'camera' || t === 'cameras') return ['camera', 'cameras', 'device', 'devices'];
-  if (t === 'map' || t === 'maps') return ['map', 'maps'];
-  if (t === 'user' || t === 'users') return ['user', 'users'];
-  if (t === 'department' || t === 'departments') return ['department', 'departments'];
-  return [table];
+  const t = (table || '').trim();
+  const lower = t.toLowerCase();
+  if (lower === 'device' || lower === 'devices' || lower === 'camera' || lower === 'cameras') {
+    return ['device', 'devices', 'Device', 'Devices', 'camera', 'cameras', 'Camera', 'Cameras'];
+  }
+  if (lower === 'map' || lower === 'maps') {
+    return ['map', 'maps', 'Map', 'Maps'];
+  }
+  if (lower === 'user' || lower === 'users') {
+    return ['user', 'users', 'User', 'Users'];
+  }
+  if (lower === 'department' || lower === 'departments') {
+    return ['department', 'departments', 'Department', 'Departments'];
+  }
+  return [t];
 }
 
 function normalizeFields(table, fields) {
@@ -113,7 +121,9 @@ async function fetchAllRecords(baseId, token, candidateTables, sortField) {
           }
         });
 
-        if (res.status === 404) {
+        if (res.status === 404 || res.status === 403) {
+          const errData = await res.json().catch(() => ({}));
+          lastError = errData.error || { message: `Airtable API error ${res.status}` };
           success = false;
           break;
         }
@@ -252,7 +262,12 @@ module.exports = async (req, res) => {
     const result = await fetchAllRecords(baseId, token, candidateTables, sortField);
 
     if (!result.ok) {
-      return res.status(500).json({ error: result.error });
+      const err = result.error || {};
+      let msg = err.message || 'Airtable error';
+      if (err.type === 'INVALID_PERMISSIONS_OR_MODEL_NOT_FOUND' || String(err.message).includes('Invalid permissions')) {
+        msg = `สิทธิ์ไม่ถูกต้อง หรือไม่พบ Base/Table (${candidateTables.join('/')}) กรุณาตรวจสอบ: 1) ใน airtable.com/create/tokens ได้กด '+ Add a base' ให้ Token เข้าถึง Base แล้วหรือยัง 2) ตรวจสอบว่า AIRTABLE_BASE_ID (${baseId.slice(0, 6)}...) ถูกต้องหรือไม่ 3) ตาราง '${candidateTables[0]}' มีอยู่ใน Base หรือไม่`;
+      }
+      return res.status(500).json({ error: msg, raw: err });
     }
 
     let records = result.records.map(r => ({
