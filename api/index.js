@@ -344,6 +344,32 @@ module.exports = async (req, res) => {
     });
   }
 
+  // ─── DEBUG / STATUS CHECK ───
+  if (table === 'debug' || query.action === 'debug') {
+    const meta = await inspectBaseTables(baseId, token);
+    if (meta.ok) {
+      return res.status(200).json({
+        success: true,
+        baseId,
+        tables: meta.tables.map(t => ({
+          id: t.id,
+          name: t.name,
+          fields: (t.fields || []).map(f => f.name)
+        }))
+      });
+    } else {
+      return res.status(200).json({
+        success: false,
+        baseId,
+        status: meta.status,
+        error: meta.error,
+        help: (meta.status === 403 || (meta.error && meta.error.type === 'INVALID_PERMISSIONS_OR_MODEL_NOT_FOUND'))
+          ? `Token ยังไม่ได้รับสิทธิ์เข้าถึง Base '${baseId}' กรุณาไปที่ airtable.com/create/tokens > แก้ไข Token > ในหัวข้อ Access ให้กด '+ Add a base' แล้วเลือก Base '${baseId}'`
+          : (meta.error && meta.error.message ? meta.error.message : 'Unknown error')
+      });
+    }
+  }
+
   const candidateTables = getCandidateTables(table);
 
   // ─── GET ───
