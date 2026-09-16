@@ -34,18 +34,32 @@ function getCandidateTables(table) {
   const t = (table || '').trim();
   const lower = t.toLowerCase();
   if (lower === 'device' || lower === 'devices' || lower === 'camera' || lower === 'cameras') {
-    return ['device', 'devices', 'Device', 'Devices', 'camera', 'cameras', 'Camera', 'Cameras'];
+    return [
+      'device', 'devices', 'Device', 'Devices', 'device.csv', 'Device.csv',
+      'camera', 'cameras', 'Camera', 'Cameras', 'camera.csv', 'Camera.csv',
+      'asset', 'assets', 'Asset', 'Assets', 'it_asset', 'IT Asset',
+      'อุปกรณ์', 'ทรัพย์สิน', 'Table 1'
+    ];
   }
   if (lower === 'map' || lower === 'maps') {
-    return ['map', 'maps', 'Map', 'Maps'];
+    return [
+      'map', 'maps', 'Map', 'Maps', 'map.csv', 'Map.csv',
+      'cctv_map', 'asset_map', 'แผนผัง', 'แปลน', 'แผนที่', 'Table 2', 'Table 1'
+    ];
   }
   if (lower === 'user' || lower === 'users') {
-    return ['user', 'users', 'User', 'Users'];
+    return [
+      'user', 'users', 'User', 'Users', 'user.csv', 'User.csv',
+      'ผู้ใช้', 'ผู้ใช้งาน', 'Table 4', 'Table 1'
+    ];
   }
   if (lower === 'department' || lower === 'departments') {
-    return ['department', 'departments', 'Department', 'Departments'];
+    return [
+      'department', 'departments', 'Department', 'Departments', 'department.csv', 'Department.csv',
+      'dept', 'depts', 'แผนก', 'ฝ่าย', 'Table 3', 'Table 1'
+    ];
   }
-  return [t];
+  return [t, `${t}.csv`];
 }
 
 function normalizeFields(table, fields) {
@@ -119,8 +133,23 @@ function normalizeFields(table, fields) {
   return f;
 }
 
+async function inspectBaseTables(baseId, token) {
+  try {
+    const res = await fetch(`${AIRTABLE_API_ROOT}/meta/bases/${baseId}/tables`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && Array.isArray(data.tables)) {
+      return { ok: true, tables: data.tables };
+    }
+    return { ok: false, status: res.status, error: data.error };
+  } catch (err) {
+    return { ok: false, error: { message: err.message } };
+  }
+}
+
 // Fetch all records with pagination support and fallback across candidate table names
-async function fetchAllRecords(baseId, token, candidateTables, sortField) {
+async function fetchAllRecords(baseId, token, candidateTables, sortField, requestedTable) {
   let lastError = null;
 
   for (const tableName of candidateTables) {
@@ -169,6 +198,46 @@ async function fetchAllRecords(baseId, token, candidateTables, sortField) {
 
     if (success) {
       return { ok: true, records, tableName };
+    }
+  }
+
+  // If candidate tables failed, attempt automatic discovery via Airtable base schema
+  if (requestedTable) {
+    const meta = await inspectBaseTables(baseId, token);
+    if (meta.ok && Array.isArray(meta.tables) && meta.tables.length > 0) {
+      const tableNames = meta.tables.map(t => t.name);
+      const reqLower = requestedTable.toLowerCase();
+      const matchedTable = meta.tables.find(t => {
+        const n = t.name.toLowerCase();
+        const fields = Array.isArray(t.fields) ? t.fields : [];
+        if (reqLower.startsWith('map')) return n.includes('map') || n.includes('ผัง') || n.includes('แปลน') || fields.some(f => f.name.toLowerCase().includes('map'));
+        if (reqLower.startsWith('device') || reqLower.startsWith('camera')) return n.includes('device') || n.includes('cam') || n.includes('asset') || fields.some(f => f.name.toLowerCase().includes('asset'));
+        if (reqLower.startsWith('user')) return n.includes('user') || fields.some(f => f.name.toLowerCase() === 'password');
+        if (reqLower.startsWith('department')) return n.includes('dept') || n.includes('แผนก') || fields.some(f => f.name.toLowerCase().includes('department'));
+        return false;
+      });
+
+      if (matchedTable) {
+        return await fetchAllRecords(baseId, token, [matchedTable.name, matchedTable.id], sortField, '');
+      }
+
+      return {
+        ok: false,
+        error: {
+          type: 'TABLE_NOT_FOUND',
+          message: `ไม่พบตาราง '${requestedTable}' ใน Base '${baseId}' (ตารางที่มีอยู่ใน Base ของคุณคือ: [${tableNames.join(', ')}])`
+        }
+      };
+    }
+
+    if (meta.status === 403 || (meta.error && meta.error.type === 'INVALID_PERMISSIONS_OR_MODEL_NOT_FOUND')) {
+      return {
+        ok: false,
+        error: {
+          type: 'BASE_ACCESS_DENIED',
+          message: `Token ของคุณยังไม่ได้รับสิทธิ์เข้าถึง Base นี้ (${baseId}) กรุณาไปที่ airtable.com/create/tokens > แก้ไข Token > ในหัวข้อ Access ให้กด '+ Add a base' แล้วเลือก Base '${baseId}'`
+        }
+      };
     }
   }
 
@@ -280,7 +349,7 @@ module.exports = async (req, res) => {
   // ─── GET ───
   if (req.method === 'GET') {
     const sortField = query.sort || null;
-    const result = await fetchAllRecords(baseId, token, candidateTables, sortField);
+    const result = await fetchAllRecords(baseId, token, candidateTables, sortField, table);
 
     if (!result.ok) {
       const err = result.error || {};
@@ -303,10 +372,12 @@ module.exports = async (req, res) => {
         });
       }
 
-      if (err.type === 'AUTHENTICATION_REQUIRED' || String(err.message).toLowerCase().includes('authentication required')) {
+      if (err.type === 'BASE_ACCESS_DENIED' || err.type === 'TABLE_NOT_FOUND') {
+        msg = err.message;
+      } else if (err.type === 'AUTHENTICATION_REQUIRED' || String(err.message).toLowerCase().includes('authentication required')) {
         msg = 'Airtable Token ไม่ถูกต้อง หรือหมดอายุ (Authentication required): กรุณาตรวจสอบ AIRTABLE_TOKEN ใน Vercel Environment Variables ว่าคัดลอกมาถูกต้องครบถ้วน และขึ้นต้นด้วย "pat..."';
       } else if (err.type === 'INVALID_PERMISSIONS_OR_MODEL_NOT_FOUND' || String(err.message).includes('Invalid permissions')) {
-        msg = `สิทธิ์ไม่ถูกต้อง หรือไม่พบ Base/Table (${candidateTables.join('/')}) กรุณาตรวจสอบ: 1) ใน airtable.com/create/tokens ได้กด '+ Add a base' ให้ Token เข้าถึง Base แล้วหรือยัง 2) ตรวจสอบว่า AIRTABLE_BASE_ID (${baseId.slice(0, 6)}...) ถูกต้องหรือไม่ 3) ตาราง '${candidateTables[0]}' มีอยู่ใน Base หรือไม่`;
+        msg = `สิทธิ์ไม่ถูกต้อง หรือไม่พบ Base/Table (${candidateTables.slice(0, 4).join('/')}) กรุณาตรวจสอบ: 1) ใน airtable.com/create/tokens > แก้ไข Token > หัวข้อ Access ต้องกด '+ Add a base' ให้ Token เข้าถึง Base '${baseId}' 2) ตรวจสอบว่า AIRTABLE_BASE_ID (${baseId.slice(0, 6)}...) ถูกต้องหรือไม่ 3) ตาราง '${candidateTables[0]}' มีอยู่ใน Base หรือไม่`;
       }
       return res.status(500).json({ error: msg, raw: err });
     }
