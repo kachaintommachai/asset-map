@@ -69,3 +69,25 @@ mysql -u cctv_user -pcctv_pass cctv_monitor < import_data.sql
 ```
 2. ตั้งค่าการเชื่อมต่อใน `db_config.php`
 3. รันผ่านเว็บเซิร์ฟเวอร์ Apache / Nginx / PHP-FPM
+
+---
+
+## ⚡ การ Deploy บน Vercel พร้อมเชื่อมต่อ Airtable
+
+โปรเจกต์นี้รองรับการ Deploy บน **Vercel** โดยทำงานร่วมกับ Airtable ผ่าน Vercel Serverless Function:
+
+### 1. นำเข้าโปรเจกต์เข้า Vercel
+1. ไปที่ [Vercel Dashboard](https://vercel.com/dashboard)
+2. กด **Add New...** > **Project**
+3. เลือกคลัง GitHub `kachaintommachai/asset-map` แล้วกด **Import**
+
+### 2. ตั้งค่า Environment Variables ใน Vercel
+ก่อนกด Deploy (หรือในหน้า **Settings** > **Environment Variables** ของโปรเจกต์บน Vercel):
+- **`AIRTABLE_TOKEN`**: Personal Access Token จาก [Airtable Create Token](https://airtable.com/create/tokens) (สิทธิ์ `data.records:read` และ `data.records:write`)
+- **`AIRTABLE_BASE_ID`**: รหัส Base ID ของคุณ (ขึ้นต้นด้วย `app...` ดูได้จาก URL ของ Airtable)
+
+### 3. Deploy
+- กดปุ่ม **Deploy**
+- เมื่อ Deploy เสร็จสิ้น ระบบจะเชื่อมต่อไปยัง Airtable โดยอัตโนมัติ
+- บัญชี Admin เริ่มต้น (หากยังไม่ได้สร้างใน Airtable): Username `admin` / Password `cmfsupport`
+

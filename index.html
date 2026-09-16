@@ -661,7 +661,7 @@
         console.log('[it-asset-map] build', APP_BUILD);
 
         // ─── API CONFIG ───
-        const API_BASE = 'api.php';
+        const API_BASE = (window.location.protocol === 'file:' || (window.location.hostname === 'localhost' && window.location.port === '8000')) ? 'api.php' : '/api';
 
         // ─── GLOBAL STATE ───
         let cameras = []; // เก็บอุปกรณ์ทั้งหมด (รักษาตัวแปรชื่อเดิม cameras เพื่อ backward compatibility)
@@ -744,6 +744,10 @@
             if (options.password) url += '&password=' + encodeURIComponent(options.password);
             const res = await fetch(url);
             const data = await res.json();
+            if (data.error && !data.records) {
+                const errMsg = typeof data.error === 'string' ? data.error : (data.error.message || JSON.stringify(data.error));
+                throw new Error(errMsg);
+            }
             return data.records || [];
         }
 
@@ -816,7 +820,7 @@
                 }
             } catch (err) {
                 console.error('Login error:', err);
-                errorEl.textContent = 'ไม่สามารถเชื่อมต่อระบบได้';
+                errorEl.textContent = err.message ? `ไม่สามารถเชื่อมต่อ: ${err.message}` : 'ไม่สามารถเชื่อมต่อระบบได้';
                 errorEl.classList.remove('hidden');
             }
             loginBtn.disabled = false;
