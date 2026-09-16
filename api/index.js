@@ -36,8 +36,8 @@ function getCandidateTables(table) {
   if (lower === 'device' || lower === 'devices' || lower === 'camera' || lower === 'cameras') {
     return [
       'device', 'devices', 'Device', 'Devices', 'device.csv', 'Device.csv',
+      'asset_map', 'Asset_Map', 'asset', 'assets', 'Asset', 'Assets', 'it_asset', 'IT Asset',
       'camera', 'cameras', 'Camera', 'Cameras', 'camera.csv', 'Camera.csv',
-      'asset', 'assets', 'Asset', 'Assets', 'it_asset', 'IT Asset',
       'อุปกรณ์', 'ทรัพย์สิน', 'Table 1'
     ];
   }
