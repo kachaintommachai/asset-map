@@ -1082,7 +1082,17 @@
                 const records = await apiGetAll('device');
                 cameras = records.map((rec, idx) => {
                     const f = rec.fields || {};
-                    const assetCode = f.asset_code || f.Asset_Code || f['Asset Code'] || f.asset_no || f.account_no || f.cam_id || f.id || f.ID || f.Name || f.name || `DEV-${idx + 1}`;
+                    let assetCode = f.asset_code || f.Asset_Code || f['Asset Code'] || f['asset code'] || f.asset_no || f.account_no || f.cam_id || f.id || f.ID || f.Name || f.name || f['รหัสทรัพย์สิน'] || f['รหัสอุปกรณ์'] || f['รหัส'] || '';
+                    if (!assetCode && typeof f === 'object') {
+                        for (const [k, v] of Object.entries(f)) {
+                            const kLow = k.toLowerCase();
+                            if (typeof v === 'string' && v.trim() && !kLow.includes('type') && !kLow.includes('status') && !kLow.includes('dept') && !kLow.includes('image') && !kLow.includes('map') && !kLow.includes('ip') && !kLow.includes('mac') && !kLow.includes('brand') && !kLow.includes('model') && !kLow.includes('serial') && !kLow.includes('holder')) {
+                                assetCode = v.trim();
+                                break;
+                            }
+                        }
+                    }
+                    if (!assetCode) assetCode = `DEV-${idx + 1}`;
                     const assetName = f.asset_name || f.Asset_Name || f['Asset Name'] || f.eng_name || f.Name || f.name || assetCode;
                     const holder = f.holder || f.Holder || f.thai_name || f.user || f.User || '';
                     let imgUrl = '';
@@ -2250,6 +2260,11 @@
 
             const fields = {
                 asset_code: assetCode,
+                'Asset Code': assetCode,
+                Asset_Code: assetCode,
+                id: assetCode,
+                account_no: assetCode,
+                Name: assetCode,
                 asset_name: assetName,
                 type: devType,
                 status: document.getElementById('cam-status').value || 'Active'

@@ -67,7 +67,16 @@ function normalizeFields(table, fields) {
   const f = { ...(fields || {}) };
 
   if (t === 'device' || t === 'devices' || t === 'camera' || t === 'cameras') {
-    const code = f.asset_code || f.Asset_Code || f['Asset Code'] || f.asset_no || f.account_no || f.cam_id || f.id || f.ID || f.Name || f.name || '';
+    let code = f.asset_code || f.Asset_Code || f['Asset Code'] || f['asset code'] || f.asset_no || f.account_no || f.cam_id || f.id || f.ID || f.Name || f.name || f['รหัสทรัพย์สิน'] || f['รหัสอุปกรณ์'] || f['รหัส'] || '';
+    if (!code && typeof f === 'object') {
+      for (const [k, v] of Object.entries(f)) {
+        const kLow = k.toLowerCase();
+        if (typeof v === 'string' && v.trim() && !kLow.includes('type') && !kLow.includes('status') && !kLow.includes('dept') && !kLow.includes('image') && !kLow.includes('map') && !kLow.includes('ip') && !kLow.includes('mac') && !kLow.includes('brand') && !kLow.includes('model') && !kLow.includes('serial') && !kLow.includes('holder')) {
+          code = v.trim();
+          break;
+        }
+      }
+    }
     const name = f.asset_name || f.Asset_Name || f['Asset Name'] || f.eng_name || f.Name || f.name || code;
     let img = '';
     if (Array.isArray(f.image) && f.image.length > 0) {
@@ -434,6 +443,110 @@ async function findAirtableRecordId(baseId, token, tableName, searchId) {
   return searchId;
 }
 
+async function prepareFieldsForTable(baseId, token, table, targetTable, fields) {
+  const prepared = { ...fields };
+  const t = (table || '').trim().toLowerCase();
+
+  let availableFields = null;
+  let primaryField = null;
+  try {
+    const meta = await inspectBaseTables(baseId, token);
+    if (meta && meta.ok && Array.isArray(meta.tables)) {
+      const tableObj = meta.tables.find(tbl => tbl.name.toLowerCase() === targetTable.toLowerCase() || tbl.id === targetTable);
+      if (tableObj && Array.isArray(tableObj.fields)) {
+        availableFields = tableObj.fields;
+        primaryField = tableObj.fields[0];
+      }
+    }
+  } catch (_) {}
+
+  if (t.startsWith('device') || t.startsWith('camera')) {
+    const codeVal = prepared.asset_code || prepared['Asset Code'] || prepared.account_no || prepared.id || prepared.Name || '';
+    const nameVal = prepared.asset_name || prepared['Asset Name'] || prepared.eng_name || codeVal;
+    const holderVal = prepared.holder || prepared.Holder || prepared.thai_name || '';
+    const typeVal = prepared.type || prepared.Type || '';
+    const statusVal = prepared.status || prepared.Status || '';
+    const deptVal = prepared.department || prepared.Department || '';
+    const mapVal = prepared.map_id || prepared.map || '';
+
+    if (codeVal) {
+      prepared.asset_code = codeVal;
+      prepared['Asset Code'] = codeVal;
+      prepared.Asset_Code = codeVal;
+      prepared.account_no = codeVal;
+      prepared.id = codeVal;
+      prepared.ID = codeVal;
+    }
+    if (nameVal) {
+      prepared.asset_name = nameVal;
+      prepared['Asset Name'] = nameVal;
+      prepared.eng_name = nameVal;
+    }
+    if (holderVal) {
+      prepared.holder = holderVal;
+      prepared.Holder = holderVal;
+      prepared.thai_name = holderVal;
+    }
+    if (typeVal) {
+      prepared.type = typeVal;
+      prepared.Type = typeVal;
+    }
+    if (statusVal) {
+      prepared.status = statusVal;
+      prepared.Status = statusVal;
+    }
+    if (deptVal) {
+      prepared.department = deptVal;
+      prepared.Department = deptVal;
+    }
+    if (mapVal) {
+      prepared.map_id = mapVal;
+      prepared.map = mapVal;
+    }
+
+    if (primaryField && primaryField.name) {
+      prepared[primaryField.name] = codeVal || nameVal;
+    } else {
+      prepared.Name = codeVal || nameVal;
+    }
+  } else if (t.startsWith('department')) {
+    const deptName = prepared.department || prepared.Department || prepared.Name || prepared.name || '';
+    if (deptName) {
+      prepared.department = deptName;
+      prepared.Department = deptName;
+      prepared.Name = deptName;
+      prepared.name = deptName;
+      if (primaryField && primaryField.name) prepared[primaryField.name] = deptName;
+    }
+  } else if (t.startsWith('map')) {
+    const mapName = prepared.map_name || prepared['Map Name'] || prepared.Name || prepared.name || '';
+    if (mapName) {
+      prepared.map_name = mapName;
+      prepared['Map Name'] = mapName;
+      prepared.Name = mapName;
+      if (primaryField && primaryField.name) prepared[primaryField.name] = mapName;
+    }
+  }
+
+  // If table fields metadata is available, strictly filter to valid fields in Airtable schema
+  if (availableFields && availableFields.length > 0) {
+    const validNames = new Set(availableFields.map(f => f.name));
+    const filtered = {};
+    for (const [k, v] of Object.entries(prepared)) {
+      if (validNames.has(k)) {
+        filtered[k] = v;
+      }
+    }
+    if (primaryField && primaryField.name && !filtered[primaryField.name]) {
+      const fb = prepared.asset_code || prepared.id || prepared.Name || prepared.asset_name || prepared.department || prepared.map_name;
+      if (fb) filtered[primaryField.name] = fb;
+    }
+    return filtered;
+  }
+
+  return prepared;
+}
+
 module.exports = async (req, res) => {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -601,23 +714,7 @@ module.exports = async (req, res) => {
   // ─── POST (Create Record) ───
   if (req.method === 'POST') {
     const targetTable = await resolveWorkingTable(baseId, token, table);
-    
-    // Prepare field mappings
-    const preparedFields = { ...fields };
-    if (table.toLowerCase().startsWith('device') || table.toLowerCase().startsWith('camera')) {
-      if (preparedFields.asset_code) {
-        preparedFields.account_no = preparedFields.asset_code;
-        preparedFields.id = preparedFields.asset_code;
-      }
-      if (preparedFields.asset_name) preparedFields.eng_name = preparedFields.asset_name;
-      if (preparedFields.holder) preparedFields.thai_name = preparedFields.holder;
-    }
-    if (table.toLowerCase().startsWith('department')) {
-      if (preparedFields.department) {
-        preparedFields.Name = preparedFields.department;
-        preparedFields.Department = preparedFields.department;
-      }
-    }
+    const preparedFields = await prepareFieldsForTable(baseId, token, table, targetTable, fields);
 
     const postUrl = `${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(targetTable)}`;
     const writeResult = await writeAirtableWithRetry(postUrl, 'POST', token, preparedFields);
@@ -641,22 +738,7 @@ module.exports = async (req, res) => {
 
     const targetTable = await resolveWorkingTable(baseId, token, table);
     const realRecordId = await findAirtableRecordId(baseId, token, targetTable, rawId);
-
-    const preparedFields = { ...fields };
-    if (table.toLowerCase().startsWith('device') || table.toLowerCase().startsWith('camera')) {
-      if (preparedFields.asset_code) {
-        preparedFields.account_no = preparedFields.asset_code;
-        preparedFields.id = preparedFields.asset_code;
-      }
-      if (preparedFields.asset_name) preparedFields.eng_name = preparedFields.asset_name;
-      if (preparedFields.holder) preparedFields.thai_name = preparedFields.holder;
-    }
-    if (table.toLowerCase().startsWith('department')) {
-      if (preparedFields.department) {
-        preparedFields.Name = preparedFields.department;
-        preparedFields.Department = preparedFields.department;
-      }
-    }
+    const preparedFields = await prepareFieldsForTable(baseId, token, table, targetTable, fields);
 
     const patchUrl = `${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(targetTable)}/${encodeURIComponent(realRecordId)}`;
     const writeResult = await writeAirtableWithRetry(patchUrl, 'PATCH', token, preparedFields);
