@@ -348,6 +348,9 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
+                    <button type="button" onclick="checkAirtableStatus()" class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs px-3 py-2 rounded-xl font-medium transition-all border border-slate-600" title="ตรวจสอบว่าระบบเชื่อมต่อกับ Base และตารางใด">
+                        <i data-lucide="database" class="w-4 h-4 text-cyan-400"></i> ตรวจสอบ Airtable
+                    </button>
                     <button onclick="openAddDevice()" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3.5 py-2 rounded-xl font-semibold transition-all shadow-lg shadow-emerald-900/30">
                         <i data-lucide="plus-circle" class="w-4 h-4"></i> เพิ่มอุปกรณ์ใหม่
                     </button>
@@ -2314,10 +2317,10 @@
                 let saveRes;
                 if (recordId) {
                     saveRes = await apiUpdate('device', recordId, fields);
-                    alert(`อัปเดตข้อมูลอุปกรณ์รหัส "${assetCode}" เรียบร้อยแล้ว`);
+                    alert(`อัปเดตข้อมูลอุปกรณ์รหัส "${assetCode}" สำเร็จ!\n• ตารางใน Airtable: "${saveRes.targetTable || 'device'}"\n• Base ID: "${saveRes.baseId || '-'}"\n• Record ID: "${saveRes.id}"`);
                 } else {
                     saveRes = await apiCreate('device', fields);
-                    alert(`เพิ่มอุปกรณ์ไอทีรหัส "${assetCode}" เรียบร้อยแล้ว`);
+                    alert(`เพิ่มอุปกรณ์ไอทีรหัส "${assetCode}" สำเร็จ!\n• ตารางใน Airtable: "${saveRes.targetTable || 'device'}"\n• Base ID: "${saveRes.baseId || '-'}"\n• Record ID: "${saveRes.id}"`);
                 }
                 console.log('[saveCamera] Response:', saveRes);
                 await fetchDevices();
@@ -2335,6 +2338,33 @@
                 alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
             } finally {
                 if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText; }
+            }
+        }
+
+        async function checkAirtableStatus() {
+            try {
+                const res = await fetch(`${API_BASE}?table=debug`);
+                const data = await res.json();
+                let msg = `=== ข้อมูลการเชื่อมต่อ AIRTABLE ===\n`;
+                msg += `• Base ID ที่ใช้งาน: ${data.baseId || '-'}\n`;
+                msg += `• ตารางที่บันทึกอุปกรณ์ (Active Device Table): "${data.activeDeviceTable || '-'}"\n`;
+                msg += `• ตารางที่บันทึกแผนผัง (Active Map Table): "${data.activeMapTable || '-'}"\n\n`;
+                if (data.baseSchemaTables && data.baseSchemaTables.length > 0) {
+                    msg += `ตารางทั้งหมดใน Base: [${data.baseSchemaTables.join(', ')}]\n\n`;
+                }
+                msg += `สถานะแต่ละตาราง:\n`;
+                for (const [t, info] of Object.entries(data.tables || {})) {
+                    if (info.ok) {
+                        msg += `✓ ตาราง "${t}": พบ (HTTP 200), ข้อมูล: ${info.hasRecords ? 'มีแถวข้อมูล' : 'ว่างเปล่า'}\n`;
+                    } else if (info.status === 404) {
+                        msg += `✗ ตาราง "${t}": ไม่พบ (404 Not Found)\n`;
+                    } else if (info.status === 403) {
+                        msg += `! ตาราง "${t}": ไม่มีสิทธิ์ (403 Forbidden)\n`;
+                    }
+                }
+                alert(msg);
+            } catch (err) {
+                alert('ไม่สามารถตรวจสอบสถานะ Airtable: ' + err.message);
             }
         }
 

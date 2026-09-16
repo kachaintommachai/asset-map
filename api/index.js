@@ -33,12 +33,22 @@ function getAirtableConfig() {
 function getCandidateTables(table) {
   const t = (table || '').trim();
   const lower = t.toLowerCase();
-  if (lower === 'device' || lower === 'devices' || lower === 'camera' || lower === 'cameras') {
+  if (lower === 'device' || lower === 'devices') {
     return [
       'device', 'devices', 'Device', 'Devices', 'device.csv', 'Device.csv',
-      'asset_map', 'Asset_Map', 'asset', 'assets', 'Asset', 'Assets', 'it_asset', 'IT Asset',
+      'it_asset', 'it_assets', 'IT_Asset', 'IT_Assets', 'IT Asset', 'IT Assets',
       'camera', 'cameras', 'Camera', 'Cameras', 'camera.csv', 'Camera.csv',
-      'อุปกรณ์', 'ทรัพย์สิน', 'Table 1'
+      'asset', 'assets', 'Asset', 'Assets', 'asset.csv', 'Asset.csv',
+      'อุปกรณ์', 'ทรัพย์สิน'
+    ];
+  }
+  if (lower === 'camera' || lower === 'cameras') {
+    return [
+      'camera', 'cameras', 'Camera', 'Cameras', 'camera.csv', 'Camera.csv',
+      'device', 'devices', 'Device', 'Devices', 'device.csv', 'Device.csv',
+      'it_asset', 'it_assets', 'IT_Asset', 'IT_Assets',
+      'asset', 'assets', 'Asset', 'Assets', 'asset.csv', 'Asset.csv',
+      'กล้อง', 'อุปกรณ์'
     ];
   }
   if (lower === 'map' || lower === 'maps') {
@@ -314,7 +324,10 @@ async function fetchAllRecords(baseId, token, candidateTables, sortField, reques
         const n = t.name.toLowerCase();
         const fields = Array.isArray(t.fields) ? t.fields : [];
         if (reqLower.startsWith('map')) return n.includes('map') || n.includes('ผัง') || n.includes('แปลน') || fields.some(f => f.name.toLowerCase().includes('map'));
-        if (reqLower.startsWith('device') || reqLower.startsWith('camera')) return n.includes('device') || n.includes('cam') || n.includes('asset') || fields.some(f => f.name.toLowerCase().includes('asset'));
+        if (reqLower.startsWith('device') || reqLower.startsWith('camera')) {
+          if (n.includes('map') || n.includes('ผัง') || n.includes('แปลน')) return false;
+          return n.includes('device') || n.includes('cam') || (n.includes('asset') && !n.includes('map')) || fields.some(f => f.name.toLowerCase().includes('asset') || f.name.toLowerCase().includes('serial') || f.name.toLowerCase().includes('ip'));
+        }
         if (reqLower.startsWith('user')) return n.includes('user') || fields.some(f => f.name.toLowerCase() === 'password');
         if (reqLower.startsWith('department')) return n.includes('dept') || n.includes('แผนก') || fields.some(f => f.name.toLowerCase().includes('department'));
         return false;
@@ -366,8 +379,11 @@ async function resolveWorkingTable(baseId, token, requestedTable) {
     const matched = meta.tables.find(t => {
       const n = t.name.toLowerCase();
       const fields = Array.isArray(t.fields) ? t.fields : [];
-      if (reqKey.startsWith('device') || reqKey.startsWith('camera')) return n.includes('device') || n.includes('cam') || n.includes('asset') || fields.some(f => f.name.toLowerCase().includes('asset'));
       if (reqKey.startsWith('map')) return n.includes('map') || n.includes('ผัง') || n.includes('แปลน') || fields.some(f => f.name.toLowerCase().includes('map'));
+      if (reqKey.startsWith('device') || reqKey.startsWith('camera')) {
+        if (n.includes('map') || n.includes('ผัง') || n.includes('แปลน')) return false;
+        return n.includes('device') || n.includes('cam') || (n.includes('asset') && !n.includes('map')) || fields.some(f => f.name.toLowerCase().includes('asset') || f.name.toLowerCase().includes('serial') || f.name.toLowerCase().includes('ip'));
+      }
       if (reqKey.startsWith('user')) return n.includes('user') || fields.some(f => f.name.toLowerCase() === 'password');
       if (reqKey.startsWith('department')) return n.includes('dept') || n.includes('แผนก') || fields.some(f => f.name.toLowerCase().includes('department'));
       return false;
@@ -611,8 +627,26 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     const xVal = raw.x != null && raw.x !== '' ? (parseFloat(raw.x) || 0) : null;
     const yVal = raw.y != null && raw.y !== '' ? (parseFloat(raw.y) || 0) : null;
 
+    const result = {
+      asset_code: codeVal,
+      Name: codeVal || nameVal,
+      asset_name: nameVal,
+      holder: holderVal,
+      type: typeVal,
+      status: statusVal
+    };
+    if (deptVal) result.department = deptVal;
+    if (mapVal) result.map_id = mapVal;
+    if (brandVal) result.brand = brandVal;
+    if (modelVal) result.model = modelVal;
+    if (serialVal) result.serial = serialVal;
+    if (ipVal) result.ip = ipVal;
+    if (macVal) result.mac_address = macVal;
+    if (imgVal) result.image_url = imgVal;
+    if (xVal != null) result.x = xVal;
+    if (yVal != null) result.y = yVal;
+
     if (availableNames && availableNames.length > 0) {
-      const result = {};
       const codeCol = findMatchingAirtableFieldName(availableNames, ['asset_code', 'asset code', 'Asset Code', 'Asset_Code', 'asset_no', 'account_no', 'id', 'cam_id', 'code', 'Name', 'name', 'รหัสทรัพย์สิน', 'รหัสอุปกรณ์', 'รหัส']);
       const nameCol = findMatchingAirtableFieldName(availableNames, ['asset_name', 'asset name', 'Asset Name', 'Asset_Name', 'eng_name', 'thai_name', 'Name', 'name', 'ชื่ออุปกรณ์', 'ชื่อ']);
       const holderCol = findMatchingAirtableFieldName(availableNames, ['holder', 'Holder', 'thai_name', 'user', 'ผู้ถือครอง', 'ชื่อผู้ใช้']);
@@ -629,21 +663,21 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
       const xCol = findMatchingAirtableFieldName(availableNames, ['x', 'X', 'pos_x']);
       const yCol = findMatchingAirtableFieldName(availableNames, ['y', 'Y', 'pos_y']);
 
-      if (codeCol && codeVal) result[codeCol] = codeVal;
-      if (nameCol && nameCol !== codeCol && nameVal) result[nameCol] = nameVal;
-      if (holderCol && holderVal) result[holderCol] = holderVal;
-      if (typeCol && typeVal) result[typeCol] = typeVal;
-      if (statusCol && statusVal) result[statusCol] = statusVal;
-      if (deptCol && deptVal) result[deptCol] = deptVal;
-      if (mapCol && mapVal) result[mapCol] = mapVal;
-      if (brandCol && brandVal) result[brandCol] = brandVal;
-      if (modelCol && modelVal) result[modelCol] = modelVal;
-      if (serialCol && serialVal) result[serialCol] = serialVal;
-      if (ipCol && ipVal) result[ipCol] = ipVal;
-      if (macCol && macVal) result[macCol] = macVal;
-      if (imgCol && imgVal) result[imgCol] = imgVal;
-      if (xCol && xVal != null) result[xCol] = xVal;
-      if (yCol && yVal != null) result[yCol] = yVal;
+      if (codeCol && codeCol !== 'asset_code' && codeVal) result[codeCol] = codeVal;
+      if (nameCol && nameCol !== 'asset_name' && nameVal) result[nameCol] = nameVal;
+      if (holderCol && holderCol !== 'holder' && holderVal) result[holderCol] = holderVal;
+      if (typeCol && typeCol !== 'type' && typeVal) result[typeCol] = typeVal;
+      if (statusCol && statusCol !== 'status' && statusVal) result[statusCol] = statusVal;
+      if (deptCol && deptCol !== 'department' && deptVal) result[deptCol] = deptVal;
+      if (mapCol && mapCol !== 'map_id' && mapVal) result[mapCol] = mapVal;
+      if (brandCol && brandCol !== 'brand' && brandVal) result[brandCol] = brandVal;
+      if (modelCol && modelCol !== 'model' && modelVal) result[modelCol] = modelVal;
+      if (serialCol && serialCol !== 'serial' && serialVal) result[serialCol] = serialVal;
+      if (ipCol && ipCol !== 'ip' && ipVal) result[ipCol] = ipVal;
+      if (macCol && macCol !== 'mac_address' && macVal) result[macCol] = macVal;
+      if (imgCol && imgCol !== 'image_url' && imgVal) result[imgCol] = imgVal;
+      if (xCol && xCol !== 'x' && xVal != null) result[xCol] = xVal;
+      if (yCol && yCol !== 'y' && yVal != null) result[yCol] = yVal;
 
       // Always populate Name column if present in table
       const nameColExplicit = availableNames.find(n => n.trim().toLowerCase() === 'name');
@@ -653,32 +687,9 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
       if (primaryField && primaryField.name && !result[primaryField.name]) {
         result[primaryField.name] = codeVal || nameVal;
       }
-
-      return result;
     }
 
-    // Fallback if no column names could be discovered
-    const fallback = { ...raw };
-    if (codeVal) {
-      fallback.asset_code = codeVal;
-      fallback['Asset Code'] = codeVal;
-      fallback.Name = codeVal;
-    }
-    if (nameVal) fallback.asset_name = nameVal;
-    if (holderVal) fallback.holder = holderVal;
-    if (typeVal) fallback.type = typeVal;
-    if (statusVal) fallback.status = statusVal;
-    if (deptVal) fallback.department = deptVal;
-    if (mapVal) fallback.map_id = mapVal;
-    if (brandVal) fallback.brand = brandVal;
-    if (modelVal) fallback.model = modelVal;
-    if (serialVal) fallback.serial = serialVal;
-    if (ipVal) fallback.ip = ipVal;
-    if (macVal) fallback.mac_address = macVal;
-    if (imgVal) fallback.image_url = imgVal;
-    if (xVal != null) fallback.x = xVal;
-    if (yVal != null) fallback.y = yVal;
-    return fallback;
+    return result;
   }
 
   if (t.startsWith('department')) {
@@ -777,7 +788,7 @@ module.exports = async (req, res) => {
 
   // ─── DEBUG / STATUS CHECK ───
   if (table === 'debug' || query.action === 'debug') {
-    const testTables = ['department', 'map', 'user', 'device'];
+    const testTables = ['device', 'devices', 'camera', 'cameras', 'map', 'maps', 'asset_map', 'cctv_map', 'department', 'departments', 'user', 'users'];
     const tableResults = {};
 
     for (const t of testTables) {
@@ -802,9 +813,27 @@ module.exports = async (req, res) => {
     const all403 = Object.values(tableResults).every(r => r.status === 403);
     const any404 = Object.values(tableResults).some(r => r.status === 404);
 
+    let activeDeviceTable = 'unknown';
+    let activeMapTable = 'unknown';
+    try {
+      activeDeviceTable = await resolveWorkingTable(baseId, token, 'device');
+      activeMapTable = await resolveWorkingTable(baseId, token, 'map');
+    } catch (_) {}
+
+    let baseSchemaTables = [];
+    try {
+      const meta = await inspectBaseTables(baseId, token);
+      if (meta && meta.ok && Array.isArray(meta.tables)) {
+        baseSchemaTables = meta.tables.map(tbl => tbl.name);
+      }
+    } catch (_) {}
+
     return res.status(200).json({
       success: anyOk,
       baseId,
+      activeDeviceTable,
+      activeMapTable,
+      baseSchemaTables,
       all403,
       any404,
       tables: tableResults
@@ -910,7 +939,9 @@ module.exports = async (req, res) => {
 
     return res.status(200).json({
       id: writeResult.data.id,
-      fields: normalizeFields(table, writeResult.data.fields)
+      fields: normalizeFields(table, { ...(fields || {}), ...(writeResult.data.fields || {}) }),
+      targetTable: targetTable,
+      baseId: baseId
     });
   }
 
@@ -934,7 +965,9 @@ module.exports = async (req, res) => {
 
     return res.status(200).json({
       id: writeResult.data.id,
-      fields: normalizeFields(table, writeResult.data.fields)
+      fields: normalizeFields(table, { ...(fields || {}), ...(writeResult.data.fields || {}) }),
+      targetTable: targetTable,
+      baseId: baseId
     });
   }
 
