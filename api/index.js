@@ -62,12 +62,37 @@ function getCandidateTables(table) {
   return [t, `${t}.csv`];
 }
 
+function extractFieldValue(fields, candidates) {
+  if (!fields || typeof fields !== 'object') return '';
+  // 1. Direct key match
+  for (const c of candidates) {
+    if (fields[c] != null && String(fields[c]).trim() !== '') {
+      return String(fields[c]).trim();
+    }
+  }
+  // 2. Normalized key match (case-insensitive, ignores spaces, underscores, dashes)
+  const norm = str => String(str).trim().toLowerCase().replace(/[\s_\-]+/g, '');
+  const normCandidates = new Set(candidates.map(norm));
+  for (const [k, v] of Object.entries(fields)) {
+    if (v == null || String(v).trim() === '') continue;
+    if (normCandidates.has(norm(k))) {
+      return String(v).trim();
+    }
+  }
+  return '';
+}
+
 function normalizeFields(table, fields) {
   const t = (table || '').trim().toLowerCase();
   const f = { ...(fields || {}) };
 
   if (t === 'device' || t === 'devices' || t === 'camera' || t === 'cameras') {
-    let code = f.asset_code || f.Asset_Code || f['Asset Code'] || f['asset code'] || f.asset_no || f.account_no || f.cam_id || f.id || f.ID || f.Name || f.name || f['รหัสทรัพย์สิน'] || f['รหัสอุปกรณ์'] || f['รหัส'] || '';
+    let code = extractFieldValue(f, [
+      'asset_code', 'asset code', 'Asset Code', 'Asset_Code', 'Asset_code', 'asset-code',
+      'asset_no', 'account_no', 'cam_id', 'id', 'ID', 'Name', 'name', 'code',
+      'รหัสทรัพย์สิน', 'รหัสอุปกรณ์', 'รหัส'
+    ]);
+
     if (!code && typeof f === 'object') {
       for (const [k, v] of Object.entries(f)) {
         const kLow = k.toLowerCase();
@@ -77,7 +102,12 @@ function normalizeFields(table, fields) {
         }
       }
     }
-    const name = f.asset_name || f.Asset_Name || f['Asset Name'] || f.eng_name || f.Name || f.name || code;
+
+    const name = extractFieldValue(f, [
+      'asset_name', 'asset name', 'Asset Name', 'Asset_Name', 'Asset_name', 'asset-name',
+      'eng_name', 'thai_name', 'Name', 'name', 'ชื่ออุปกรณ์', 'ชื่อ'
+    ]) || code;
+
     let img = '';
     if (Array.isArray(f.image) && f.image.length > 0) {
       img = f.image[0].url || '';
@@ -110,35 +140,44 @@ function normalizeFields(table, fields) {
     else if (f['Map ID'] != null && f['Map ID'] !== '') devMapId = String(f['Map ID']);
     else if (f.map_name != null && f.map_name !== '') devMapId = String(f.map_name);
 
-    let rawHolder = f.holder || f.Holder || f.thai_name || f.user || f.User || f['ผู้ถือครอง'] || f['ชื่อผู้ใช้'] || '';
-    if (Array.isArray(rawHolder)) {
-      rawHolder = rawHolder.length > 0 ? (typeof rawHolder[0] === 'object' && rawHolder[0].name ? rawHolder[0].name : String(rawHolder[0])) : '';
+    let rawHolder = extractFieldValue(f, ['holder', 'Holder', 'thai_name', 'user', 'User', 'ผู้ถือครอง', 'ชื่อผู้ใช้']);
+    if (Array.isArray(f.holder)) {
+      rawHolder = f.holder.length > 0 ? (typeof f.holder[0] === 'object' && f.holder[0].name ? f.holder[0].name : String(f.holder[0])) : '';
     }
     const holder = String(rawHolder || '').trim();
 
-    let rawDept = f.department || f.Department || f.dept || f.Dept || f.group || f['แผนก'] || f['ชื่อแผนก'] || '';
-    if (Array.isArray(rawDept)) {
-      rawDept = rawDept.length > 0 ? (typeof rawDept[0] === 'object' && rawDept[0].name ? rawDept[0].name : String(rawDept[0])) : '';
+    let rawDept = extractFieldValue(f, ['department', 'Department', 'dept', 'Dept', 'group', 'แผนก', 'ชื่อแผนก']);
+    if (Array.isArray(f.department)) {
+      rawDept = f.department.length > 0 ? (typeof f.department[0] === 'object' && f.department[0].name ? f.department[0].name : String(f.department[0])) : '';
     }
     const devDept = String(rawDept || '').trim();
+
+    const devType = extractFieldValue(f, ['type', 'Type', 'ประเภท']) || 'Other';
+    const devStatus = extractFieldValue(f, ['status', 'Status', 'สถานะ']) || 'Active';
+    const devBrand = extractFieldValue(f, ['brand', 'Brand', 'ยี่ห้อ']);
+    const devModel = extractFieldValue(f, ['model', 'Model', 'รุ่น']);
+    const devSerial = extractFieldValue(f, ['serial', 'Serial', 'serial_number', 'Serial Number']);
+    const devIp = extractFieldValue(f, ['ip', 'IP', 'ip_address']);
+    const devMac = extractFieldValue(f, ['mac_address', 'MAC', 'mac']);
 
     return {
       ...f,
       asset_code: String(code),
       account_no: String(code),
       id: String(code),
+      Name: String(code || name),
       asset_name: String(name),
       eng_name: String(name),
       holder: holder,
       thai_name: holder,
-      type: f.type || f.Type || 'Other',
-      status: f.status || f.Status || 'Active',
-      brand: f.brand || f.Brand || '',
-      model: f.model || f.Model || '',
-      serial: f.serial || f.Serial || f.serial_number || '',
+      type: devType,
+      status: devStatus,
+      brand: devBrand,
+      model: devModel,
+      serial: devSerial,
       department: devDept,
-      ip: f.ip || f.IP || f.ip_address || '',
-      mac_address: f.mac_address || f.MAC || f.mac || '',
+      ip: devIp,
+      mac_address: devMac,
       image: img,
       image_url: img,
       go2rtc_link: img,
@@ -342,6 +381,82 @@ async function resolveWorkingTable(baseId, token, requestedTable) {
   return candidates[0] || requestedTable;
 }
 
+const cachedTableSchemas = {};
+
+async function discoverTableSchema(baseId, token, targetTable) {
+  const key = targetTable.toLowerCase();
+  if (cachedTableSchemas[key]) {
+    return cachedTableSchemas[key];
+  }
+
+  // 1. Try meta inspectBaseTables if token has schema.bases:read scope
+  try {
+    const meta = await inspectBaseTables(baseId, token);
+    if (meta && meta.ok && Array.isArray(meta.tables)) {
+      const tableObj = meta.tables.find(tbl => tbl.name.toLowerCase() === key || tbl.id === targetTable);
+      if (tableObj && Array.isArray(tableObj.fields) && tableObj.fields.length > 0) {
+        const schema = {
+          fields: tableObj.fields,
+          primaryField: tableObj.fields[0] || null,
+          fieldNames: tableObj.fields.map(f => f.name)
+        };
+        cachedTableSchemas[key] = schema;
+        return schema;
+      }
+    }
+  } catch (_) {}
+
+  // 2. Query table directly for existing records to discover actual column names
+  try {
+    const res = await fetch(`${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(targetTable)}?pageSize=10`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.records) && data.records.length > 0) {
+        const names = new Set();
+        data.records.forEach(r => {
+          if (r.fields && typeof r.fields === 'object') {
+            Object.keys(r.fields).forEach(k => names.add(k));
+          }
+        });
+        const fieldList = Array.from(names);
+        if (fieldList.length > 0) {
+          const schema = {
+            fields: fieldList.map(name => ({ name, type: 'unknown' })),
+            primaryField: { name: fieldList[0], type: 'unknown' },
+            fieldNames: fieldList
+          };
+          cachedTableSchemas[key] = schema;
+          return schema;
+        }
+      }
+    }
+  } catch (_) {}
+
+  return null;
+}
+
+function findMatchingAirtableFieldName(availableFieldNames, candidateAliases) {
+  if (!availableFieldNames || availableFieldNames.length === 0) return null;
+  // 1. Exact match
+  for (const cand of candidateAliases) {
+    if (availableFieldNames.includes(cand)) return cand;
+  }
+  // 2. Normalized match (ignore spaces, underscores, dashes, lowercase)
+  const norm = str => String(str).trim().toLowerCase().replace(/[\s_\-]+/g, '');
+  const candidateNormMap = new Map();
+  candidateAliases.forEach(c => candidateNormMap.set(norm(c), c));
+
+  for (const realName of availableFieldNames) {
+    const realNorm = norm(realName);
+    if (candidateNormMap.has(realNorm)) {
+      return realName;
+    }
+  }
+  return null;
+}
+
 // Helper to write to Airtable with unknown field pruning retry
 async function writeAirtableWithRetry(url, method, token, fields) {
   let payloadFields = { ...fields };
@@ -379,10 +494,17 @@ async function writeAirtableWithRetry(url, method, token, fields) {
           const rejected = match[1];
           const val = payloadFields[rejected];
           delete payloadFields[rejected];
+
+          // If coordinates casing issue
           if (rejected === 'x' && !('X' in payloadFields)) payloadFields['X'] = val;
           else if (rejected === 'y' && !('Y' in payloadFields)) payloadFields['Y'] = val;
           else if (rejected === 'X' && !('x' in payloadFields)) payloadFields['x'] = val;
           else if (rejected === 'Y' && !('y' in payloadFields)) payloadFields['y'] = val;
+
+          // If asset_code was rejected because table uses Name as primary
+          if ((rejected === 'asset_code' || rejected === 'Asset Code' || rejected === 'Asset_Code') && val && !payloadFields['Name']) {
+            payloadFields['Name'] = val;
+          }
           continue;
         }
       }
@@ -391,10 +513,31 @@ async function writeAirtableWithRetry(url, method, token, fields) {
       const fieldMatch = msg.match(/Field\s*["']([^"']+)["']/i) || msg.match(/["']([^"']+)["']\s*cannot accept/i);
       if (fieldMatch && fieldMatch[1] && (fieldMatch[1] in payloadFields)) {
         const rejected = fieldMatch[1];
-        if ((rejected === 'map_id' || rejected === 'map' || rejected === 'Map') && typeof payloadFields[rejected] === 'string') {
-          payloadFields[rejected] = [payloadFields[rejected]];
+        const val = payloadFields[rejected];
+
+        // Linked record array conversion
+        if ((rejected.toLowerCase().includes('map') || rejected.toLowerCase().includes('dept')) && typeof val === 'string') {
+          payloadFields[rejected] = [val];
           continue;
         }
+
+        // If asset_code was rejected (e.g. user defined column as Number or Formula in Airtable)
+        const rejNorm = rejected.trim().toLowerCase().replace(/[\s_\-]+/g, '');
+        if (rejNorm === 'assetcode' || rejNorm === 'name') {
+          if (rejNorm === 'assetcode' && !payloadFields['Name']) {
+            delete payloadFields[rejected];
+            payloadFields['Name'] = val;
+            continue;
+          }
+          return {
+            ok: false,
+            status: 422,
+            data: {
+              error: `คอลัมน์ "${rejected}" ใน Airtable ไม่ยอมรับค่า "${val}" (${msg}) กรุณาตรวจสอบใน Airtable ว่าประเภทของคอลัมน์ "${rejected}" ถูกตั้งเป็น "Single line text" (ข้อความบรรทัดเดียว) หรือไม่ (หากตั้งเป็น Number หรือ Formula จะไม่สามารถบันทึกรหัสที่มีตัวอักษรได้)`
+            }
+          };
+        }
+
         delete payloadFields[rejected];
         continue;
       }
@@ -427,7 +570,7 @@ async function findAirtableRecordId(baseId, token, tableName, searchId) {
   }
 
   try {
-    const formula = `OR(RECORD_ID()='${searchId}',{asset_code}='${searchId}',{account_no}='${searchId}',{cam_id}='${searchId}',{id}='${searchId}',{map_id}='${searchId}')`;
+    const formula = `RECORD_ID()='${searchId}'`;
     const url = `${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(tableName)}?maxRecords=1&filterByFormula=${encodeURIComponent(formula)}`;
     const res = await fetch(url, {
       headers: { 'Authorization': `Bearer ${token}` }
@@ -444,107 +587,149 @@ async function findAirtableRecordId(baseId, token, tableName, searchId) {
 }
 
 async function prepareFieldsForTable(baseId, token, table, targetTable, fields) {
-  const prepared = { ...fields };
   const t = (table || '').trim().toLowerCase();
+  const raw = { ...(fields || {}) };
 
-  let availableFields = null;
-  let primaryField = null;
-  try {
-    const meta = await inspectBaseTables(baseId, token);
-    if (meta && meta.ok && Array.isArray(meta.tables)) {
-      const tableObj = meta.tables.find(tbl => tbl.name.toLowerCase() === targetTable.toLowerCase() || tbl.id === targetTable);
-      if (tableObj && Array.isArray(tableObj.fields)) {
-        availableFields = tableObj.fields;
-        primaryField = tableObj.fields[0];
-      }
-    }
-  } catch (_) {}
+  const schema = await discoverTableSchema(baseId, token, targetTable);
+  const availableNames = schema ? schema.fieldNames : null;
+  const primaryField = schema ? schema.primaryField : null;
 
   if (t.startsWith('device') || t.startsWith('camera')) {
-    const codeVal = prepared.asset_code || prepared['Asset Code'] || prepared.account_no || prepared.id || prepared.Name || '';
-    const nameVal = prepared.asset_name || prepared['Asset Name'] || prepared.eng_name || codeVal;
-    const holderVal = prepared.holder || prepared.Holder || prepared.thai_name || '';
-    const typeVal = prepared.type || prepared.Type || '';
-    const statusVal = prepared.status || prepared.Status || '';
-    const deptVal = prepared.department || prepared.Department || '';
-    const mapVal = prepared.map_id || prepared.map || '';
+    const codeVal = raw.asset_code || raw['Asset Code'] || raw.Asset_Code || raw.account_no || raw.id || raw.ID || raw.Name || raw.name || raw['รหัสทรัพย์สิน'] || raw['รหัสอุปกรณ์'] || '';
+    const nameVal = raw.asset_name || raw['Asset Name'] || raw.eng_name || codeVal;
+    const holderVal = raw.holder || raw.Holder || raw.thai_name || '';
+    const typeVal = raw.type || raw.Type || 'Other';
+    const statusVal = raw.status || raw.Status || 'Active';
+    const deptVal = raw.department || raw.Department || '';
+    const mapVal = raw.map_id || raw['Map ID'] || raw.map || '';
+    const brandVal = raw.brand || raw.Brand || '';
+    const modelVal = raw.model || raw.Model || '';
+    const serialVal = raw.serial || raw.Serial || raw.serial_number || '';
+    const ipVal = raw.ip || raw.IP || '';
+    const macVal = raw.mac_address || raw.MAC || raw.mac || '';
+    const imgVal = raw.image_url || raw.image || raw.go2rtc_link || '';
+    const xVal = raw.x != null && raw.x !== '' ? (parseFloat(raw.x) || 0) : null;
+    const yVal = raw.y != null && raw.y !== '' ? (parseFloat(raw.y) || 0) : null;
 
-    if (codeVal) {
-      prepared.asset_code = codeVal;
-      prepared['Asset Code'] = codeVal;
-      prepared.Asset_Code = codeVal;
-      prepared.account_no = codeVal;
-      prepared.id = codeVal;
-      prepared.ID = codeVal;
-    }
-    if (nameVal) {
-      prepared.asset_name = nameVal;
-      prepared['Asset Name'] = nameVal;
-      prepared.eng_name = nameVal;
-    }
-    if (holderVal) {
-      prepared.holder = holderVal;
-      prepared.Holder = holderVal;
-      prepared.thai_name = holderVal;
-    }
-    if (typeVal) {
-      prepared.type = typeVal;
-      prepared.Type = typeVal;
-    }
-    if (statusVal) {
-      prepared.status = statusVal;
-      prepared.Status = statusVal;
-    }
-    if (deptVal) {
-      prepared.department = deptVal;
-      prepared.Department = deptVal;
-    }
-    if (mapVal) {
-      prepared.map_id = mapVal;
-      prepared.map = mapVal;
-    }
+    if (availableNames && availableNames.length > 0) {
+      const result = {};
+      const codeCol = findMatchingAirtableFieldName(availableNames, ['asset_code', 'asset code', 'Asset Code', 'Asset_Code', 'asset_no', 'account_no', 'id', 'cam_id', 'code', 'Name', 'name', 'รหัสทรัพย์สิน', 'รหัสอุปกรณ์', 'รหัส']);
+      const nameCol = findMatchingAirtableFieldName(availableNames, ['asset_name', 'asset name', 'Asset Name', 'Asset_Name', 'eng_name', 'thai_name', 'Name', 'name', 'ชื่ออุปกรณ์', 'ชื่อ']);
+      const holderCol = findMatchingAirtableFieldName(availableNames, ['holder', 'Holder', 'thai_name', 'user', 'ผู้ถือครอง', 'ชื่อผู้ใช้']);
+      const typeCol = findMatchingAirtableFieldName(availableNames, ['type', 'Type', 'ประเภท']);
+      const statusCol = findMatchingAirtableFieldName(availableNames, ['status', 'Status', 'สถานะ']);
+      const deptCol = findMatchingAirtableFieldName(availableNames, ['department', 'Department', 'dept', 'Dept', 'แผนก']);
+      const mapCol = findMatchingAirtableFieldName(availableNames, ['map_id', 'Map ID', 'map', 'Map', 'ผัง']);
+      const brandCol = findMatchingAirtableFieldName(availableNames, ['brand', 'Brand', 'ยี่ห้อ']);
+      const modelCol = findMatchingAirtableFieldName(availableNames, ['model', 'Model', 'รุ่น']);
+      const serialCol = findMatchingAirtableFieldName(availableNames, ['serial', 'Serial', 'serial_number', 'Serial Number']);
+      const ipCol = findMatchingAirtableFieldName(availableNames, ['ip', 'IP', 'ip_address']);
+      const macCol = findMatchingAirtableFieldName(availableNames, ['mac_address', 'mac', 'MAC']);
+      const imgCol = findMatchingAirtableFieldName(availableNames, ['image_url', 'image', 'go2rtc_link', 'map_pic']);
+      const xCol = findMatchingAirtableFieldName(availableNames, ['x', 'X', 'pos_x']);
+      const yCol = findMatchingAirtableFieldName(availableNames, ['y', 'Y', 'pos_y']);
 
-    if (primaryField && primaryField.name) {
-      prepared[primaryField.name] = codeVal || nameVal;
-    } else {
-      prepared.Name = codeVal || nameVal;
-    }
-  } else if (t.startsWith('department')) {
-    const deptName = prepared.department || prepared.Department || prepared.Name || prepared.name || '';
-    if (deptName) {
-      prepared.department = deptName;
-      prepared.Department = deptName;
-      prepared.Name = deptName;
-      prepared.name = deptName;
-      if (primaryField && primaryField.name) prepared[primaryField.name] = deptName;
-    }
-  } else if (t.startsWith('map')) {
-    const mapName = prepared.map_name || prepared['Map Name'] || prepared.Name || prepared.name || '';
-    if (mapName) {
-      prepared.map_name = mapName;
-      prepared['Map Name'] = mapName;
-      prepared.Name = mapName;
-      if (primaryField && primaryField.name) prepared[primaryField.name] = mapName;
-    }
-  }
+      if (codeCol && codeVal) result[codeCol] = codeVal;
+      if (nameCol && nameCol !== codeCol && nameVal) result[nameCol] = nameVal;
+      if (holderCol && holderVal) result[holderCol] = holderVal;
+      if (typeCol && typeVal) result[typeCol] = typeVal;
+      if (statusCol && statusVal) result[statusCol] = statusVal;
+      if (deptCol && deptVal) result[deptCol] = deptVal;
+      if (mapCol && mapVal) result[mapCol] = mapVal;
+      if (brandCol && brandVal) result[brandCol] = brandVal;
+      if (modelCol && modelVal) result[modelCol] = modelVal;
+      if (serialCol && serialVal) result[serialCol] = serialVal;
+      if (ipCol && ipVal) result[ipCol] = ipVal;
+      if (macCol && macVal) result[macCol] = macVal;
+      if (imgCol && imgVal) result[imgCol] = imgVal;
+      if (xCol && xVal != null) result[xCol] = xVal;
+      if (yCol && yVal != null) result[yCol] = yVal;
 
-  // If table fields metadata is available, strictly filter to valid fields in Airtable schema
-  if (availableFields && availableFields.length > 0) {
-    const validNames = new Set(availableFields.map(f => f.name));
-    const filtered = {};
-    for (const [k, v] of Object.entries(prepared)) {
-      if (validNames.has(k)) {
-        filtered[k] = v;
+      // Always populate Name column if present in table
+      const nameColExplicit = availableNames.find(n => n.trim().toLowerCase() === 'name');
+      if (nameColExplicit && !result[nameColExplicit]) {
+        result[nameColExplicit] = codeVal || nameVal;
       }
+      if (primaryField && primaryField.name && !result[primaryField.name]) {
+        result[primaryField.name] = codeVal || nameVal;
+      }
+
+      return result;
     }
-    if (primaryField && primaryField.name && !filtered[primaryField.name]) {
-      const fb = prepared.asset_code || prepared.id || prepared.Name || prepared.asset_name || prepared.department || prepared.map_name;
-      if (fb) filtered[primaryField.name] = fb;
+
+    // Fallback if no column names could be discovered
+    const fallback = { ...raw };
+    if (codeVal) {
+      fallback.asset_code = codeVal;
+      fallback['Asset Code'] = codeVal;
+      fallback.Name = codeVal;
     }
-    return filtered;
+    if (nameVal) fallback.asset_name = nameVal;
+    if (holderVal) fallback.holder = holderVal;
+    if (typeVal) fallback.type = typeVal;
+    if (statusVal) fallback.status = statusVal;
+    if (deptVal) fallback.department = deptVal;
+    if (mapVal) fallback.map_id = mapVal;
+    if (brandVal) fallback.brand = brandVal;
+    if (modelVal) fallback.model = modelVal;
+    if (serialVal) fallback.serial = serialVal;
+    if (ipVal) fallback.ip = ipVal;
+    if (macVal) fallback.mac_address = macVal;
+    if (imgVal) fallback.image_url = imgVal;
+    if (xVal != null) fallback.x = xVal;
+    if (yVal != null) fallback.y = yVal;
+    return fallback;
   }
 
-  return prepared;
+  if (t.startsWith('department')) {
+    const deptName = raw.department || raw.Department || raw.Name || raw.name || '';
+    if (availableNames && availableNames.length > 0) {
+      const result = {};
+      const deptCol = findMatchingAirtableFieldName(availableNames, ['department', 'Department', 'dept', 'Dept', 'Name', 'name', 'แผนก']);
+      if (deptCol && deptName) result[deptCol] = deptName;
+      if (primaryField && primaryField.name && !result[primaryField.name] && deptName) {
+        result[primaryField.name] = deptName;
+      }
+      return result;
+    }
+    const fallback = { ...raw };
+    if (deptName) {
+      fallback.department = deptName;
+      fallback.Department = deptName;
+      fallback.Name = deptName;
+      fallback.name = deptName;
+    }
+    return fallback;
+  }
+
+  if (t.startsWith('map')) {
+    const mapName = raw.map_name || raw['Map Name'] || raw.Name || raw.name || '';
+    const mapId = raw.map_id || raw['Map ID'] || raw.id || '';
+    const mapPic = raw.map_pic || raw.map_url || raw.image || '';
+
+    if (availableNames && availableNames.length > 0) {
+      const result = {};
+      const nameCol = findMatchingAirtableFieldName(availableNames, ['map_name', 'Map Name', 'Name', 'name', 'ชื่อแผนผัง']);
+      const idCol = findMatchingAirtableFieldName(availableNames, ['map_id', 'Map ID', 'id', 'ID']);
+      const picCol = findMatchingAirtableFieldName(availableNames, ['map_pic', 'map_url', 'image', 'ภาพ']);
+      if (nameCol && mapName) result[nameCol] = mapName;
+      if (idCol && mapId) result[idCol] = mapId;
+      if (picCol && mapPic) result[picCol] = mapPic;
+      if (primaryField && primaryField.name && !result[primaryField.name] && mapName) {
+        result[primaryField.name] = mapName;
+      }
+      return result;
+    }
+
+    const fallback = { ...raw };
+    if (mapName) {
+      fallback.map_name = mapName;
+      fallback.Name = mapName;
+    }
+    return fallback;
+  }
+
+  return raw;
 }
 
 module.exports = async (req, res) => {

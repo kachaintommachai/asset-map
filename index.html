@@ -1077,22 +1077,37 @@
         }
 
         // ─── FETCH DATA ───
+        function extractDeviceCode(f, idx) {
+            if (!f || typeof f !== 'object') return `DEV-${idx + 1}`;
+            const candidates = [
+                'asset_code', 'asset code', 'Asset Code', 'Asset_Code', 'Asset_code', 'asset-code',
+                'asset_no', 'account_no', 'cam_id', 'id', 'ID', 'Name', 'name', 'code',
+                'รหัสทรัพย์สิน', 'รหัสอุปกรณ์', 'รหัส'
+            ];
+            for (const c of candidates) {
+                if (f[c] != null && String(f[c]).trim() !== '') return String(f[c]).trim();
+            }
+            const norm = str => String(str).trim().toLowerCase().replace(/[\s_\-]+/g, '');
+            const normCandidates = new Set(candidates.map(norm));
+            for (const [k, v] of Object.entries(f)) {
+                if (v == null || String(v).trim() === '') continue;
+                if (normCandidates.has(norm(k))) return String(v).trim();
+            }
+            for (const [k, v] of Object.entries(f)) {
+                const kLow = k.toLowerCase();
+                if (typeof v === 'string' && v.trim() && !kLow.includes('type') && !kLow.includes('status') && !kLow.includes('dept') && !kLow.includes('image') && !kLow.includes('map') && !kLow.includes('ip') && !kLow.includes('mac') && !kLow.includes('brand') && !kLow.includes('model') && !kLow.includes('serial') && !kLow.includes('holder')) {
+                    return v.trim();
+                }
+            }
+            return `DEV-${idx + 1}`;
+        }
+
         async function fetchDevices() {
             try {
                 const records = await apiGetAll('device');
                 cameras = records.map((rec, idx) => {
                     const f = rec.fields || {};
-                    let assetCode = f.asset_code || f.Asset_Code || f['Asset Code'] || f['asset code'] || f.asset_no || f.account_no || f.cam_id || f.id || f.ID || f.Name || f.name || f['รหัสทรัพย์สิน'] || f['รหัสอุปกรณ์'] || f['รหัส'] || '';
-                    if (!assetCode && typeof f === 'object') {
-                        for (const [k, v] of Object.entries(f)) {
-                            const kLow = k.toLowerCase();
-                            if (typeof v === 'string' && v.trim() && !kLow.includes('type') && !kLow.includes('status') && !kLow.includes('dept') && !kLow.includes('image') && !kLow.includes('map') && !kLow.includes('ip') && !kLow.includes('mac') && !kLow.includes('brand') && !kLow.includes('model') && !kLow.includes('serial') && !kLow.includes('holder')) {
-                                assetCode = v.trim();
-                                break;
-                            }
-                        }
-                    }
-                    if (!assetCode) assetCode = `DEV-${idx + 1}`;
+                    let assetCode = extractDeviceCode(f, idx);
                     const assetName = f.asset_name || f.Asset_Name || f['Asset Name'] || f.eng_name || f.Name || f.name || assetCode;
                     const holder = f.holder || f.Holder || f.thai_name || f.user || f.User || '';
                     let imgUrl = '';
@@ -2252,6 +2267,11 @@
             const recordId = document.getElementById('cam-edit-rec-id').value;
             const imageUrl = document.getElementById('cam-image-url').value.trim();
             const assetCode = document.getElementById('cam-id').value.trim();
+            if (!assetCode) {
+                alert('กรุณาระบุรหัสทรัพย์สิน / รหัสอุปกรณ์ (Asset Code)');
+                document.getElementById('cam-id').focus();
+                return;
+            }
             const assetName = document.getElementById('cam-eng-name').value.trim() || assetCode;
             const holder = document.getElementById('cam-thai-name').value.trim();
             const devType = document.getElementById('cam-type').value || 'Other';
@@ -2291,13 +2311,15 @@
             if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'กำลังบันทึก...'; }
 
             try {
+                let saveRes;
                 if (recordId) {
-                    await apiUpdate('device', recordId, fields);
-                    alert('อัปเดตข้อมูลอุปกรณ์เรียบร้อยแล้ว');
+                    saveRes = await apiUpdate('device', recordId, fields);
+                    alert(`อัปเดตข้อมูลอุปกรณ์รหัส "${assetCode}" เรียบร้อยแล้ว`);
                 } else {
-                    await apiCreate('device', fields);
-                    alert('เพิ่มอุปกรณ์ไอทีเรียบร้อยแล้ว');
+                    saveRes = await apiCreate('device', fields);
+                    alert(`เพิ่มอุปกรณ์ไอทีรหัส "${assetCode}" เรียบร้อยแล้ว`);
                 }
+                console.log('[saveCamera] Response:', saveRes);
                 await fetchDevices();
                 closeModal('modal-camera');
                 renderMapSelector();
