@@ -183,10 +183,13 @@
                         <i data-lucide="settings" class="w-4 h-4 text-amber-400"></i> Admin
                         <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
                     </button>
-                    <div id="admin-menu" class="hidden absolute right-0 mt-1 w-56 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+                    <div id="admin-menu" class="hidden absolute right-0 mt-1 w-64 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
                         <div class="px-3 py-2 text-[11px] text-slate-500 uppercase tracking-wider border-b border-slate-700 font-semibold">ตั้งค่าระบบ</div>
+                        <button onclick="runAdminAction(openDeviceManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-emerald-400 font-semibold hover:bg-slate-700 transition-all text-left">
+                            <i data-lucide="monitor" class="w-4 h-4 text-emerald-400 shrink-0"></i> จัดการอุปกรณ์ (เพิ่ม/แก้ไข/ลบ)
+                        </button>
                         <button onclick="runAdminAction(openAddDevice)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-all text-left">
-                            <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i> เพิ่มอุปกรณ์ไอที
+                            <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i> เพิ่มอุปกรณ์ใหม่
                         </button>
                         <button onclick="runAdminAction(openGroupManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-all text-left">
                             <i data-lucide="layers" class="w-4 h-4 text-slate-400 shrink-0"></i> จัดการแผนก / กลุ่ม
@@ -266,11 +269,14 @@
                 </div>
 
                 <!-- Search Box -->
-                <div class="p-2 border-b border-slate-700 bg-slate-800/60">
-                    <div class="relative">
+                <div class="p-2 border-b border-slate-700 bg-slate-800/60 flex items-center gap-1.5">
+                    <div class="relative flex-1">
                         <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
                         <input type="text" id="device-search" oninput="renderDeviceList()" placeholder="ค้นหารหัส, ชื่อ, IP, ยี่ห้อ..." class="w-full pl-8 pr-3 py-1.5 bg-slate-700/80 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
                     </div>
+                    <button onclick="openDeviceManager()" id="sidebar-admin-dev-btn" class="hidden shrink-0 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/40 p-1.5 rounded-lg text-xs transition-all" title="จัดการอุปกรณ์ทั้งหมด (เพิ่ม/แก้ไข/ลบ)">
+                        <i data-lucide="settings-2" class="w-4 h-4"></i>
+                    </button>
                 </div>
 
                 <!-- Device List -->
@@ -324,8 +330,100 @@
         </div>
     </div>
 
+    <!-- Device Manager Modal (Admin: Manage All Devices) -->
+    <div id="modal-devices" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
+        <div class="bg-slate-800 rounded-2xl w-full max-w-6xl mx-4 border border-slate-700 shadow-2xl flex flex-col" style="max-height: 90vh;">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0 bg-slate-850">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                        <i data-lucide="monitor" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            จัดการข้อมูลอุปกรณ์ไอที (Device Management)
+                            <span id="dev-mgr-total-badge" class="text-xs bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 px-2.5 py-0.5 rounded-full font-mono font-medium"></span>
+                        </h3>
+                        <p class="text-xs text-slate-400">เพิ่ม, แก้ไข, ลบ และตรวจสอบสถานะหรือพิกัดของอุปกรณ์ทั้งหมด</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="openAddDevice()" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3.5 py-2 rounded-xl font-semibold transition-all shadow-lg shadow-emerald-900/30">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i> เพิ่มอุปกรณ์ใหม่
+                    </button>
+                    <button onclick="closeModal('modal-devices')" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-700 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search & Filters Toolbar -->
+            <div class="p-4 bg-slate-800/90 border-b border-slate-700 shrink-0 flex flex-wrap items-center gap-2.5">
+                <div class="relative flex-1 min-w-[240px]">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                    <input type="text" id="dev-mgr-search" oninput="renderDeviceManagerList()" placeholder="ค้นหารหัส, ชื่ออุปกรณ์, ผู้ถือครอง, IP, Serial..." class="w-full pl-9 pr-3 py-2 bg-slate-700/90 border border-slate-600 rounded-xl text-white text-xs placeholder-slate-400 focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <select id="dev-mgr-filter-dept" onchange="renderDeviceManagerList()" class="bg-slate-700 border border-slate-600 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        <option value="">ทุกแผนก</option>
+                    </select>
+                    <select id="dev-mgr-filter-type" onchange="renderDeviceManagerList()" class="bg-slate-700 border border-slate-600 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        <option value="">ทุกชนิดอุปกรณ์</option>
+                    </select>
+                    <select id="dev-mgr-filter-map" onchange="renderDeviceManagerList()" class="bg-slate-700 border border-slate-600 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        <option value="">ทุกแผนผัง</option>
+                    </select>
+                    <select id="dev-mgr-filter-status" onchange="renderDeviceManagerList()" class="bg-slate-700 border border-slate-600 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        <option value="">ทุกสถานะ</option>
+                        <option value="Active">ใช้งานอยู่ (Active)</option>
+                        <option value="Spare">สำรอง (Spare)</option>
+                        <option value="Repair">ส่งซ่อม (Repair)</option>
+                        <option value="Inactive">ปลดประจำการ (Inactive)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Table Area -->
+            <div class="flex-1 overflow-auto p-4">
+                <div class="rounded-xl border border-slate-700 overflow-hidden shadow-sm">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-900/90 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-700 sticky top-0 backdrop-blur-sm z-10">
+                            <tr>
+                                <th class="py-3 px-3 w-12 text-center">รูป</th>
+                                <th class="py-3 px-3">รหัสทรัพย์สิน</th>
+                                <th class="py-3 px-3">ชื่ออุปกรณ์ / ผู้ถือครอง</th>
+                                <th class="py-3 px-3">ชนิด & ยี่ห้อ</th>
+                                <th class="py-3 px-3">แผนก</th>
+                                <th class="py-3 px-3">IP / MAC</th>
+                                <th class="py-3 px-3">แผนผัง / พิกัด</th>
+                                <th class="py-3 px-3 text-center">สถานะ</th>
+                                <th class="py-3 px-3 text-center w-24">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dev-mgr-tbody" class="divide-y divide-slate-700/60 bg-slate-800/50">
+                            <!-- Populated via renderDeviceManagerList() -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-3 border-t border-slate-700 flex items-center justify-between bg-slate-850 shrink-0">
+                <span id="dev-mgr-footer-count" class="text-xs text-slate-400"></span>
+                <div class="flex items-center gap-2">
+                    <button onclick="openAddDevice()" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition-all">
+                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> เพิ่มอุปกรณ์
+                    </button>
+                    <button onclick="closeModal('modal-devices')" class="bg-slate-600 hover:bg-slate-500 text-white text-xs px-4 py-1.5 rounded-lg font-medium transition-all">
+                        ปิด
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Add/Edit Device Modal -->
-    <div id="modal-camera" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
+    <div id="modal-camera" class="fixed inset-0 z-[60] hidden items-center justify-center modal-overlay">
         <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-lg mx-4 border border-slate-700 shadow-2xl max-h-[92vh] overflow-y-auto">
             <h3 id="modal-camera-title" class="text-lg font-bold text-white mb-4 flex items-center gap-2">
                 <i data-lucide="plus-circle" class="w-5 h-5 text-emerald-400"></i>
@@ -585,7 +683,7 @@
     </div>
 
     <!-- Device Detail Modal (เปลี่ยน Live View เป็นภาพอุปกรณ์ไอที) -->
-    <div id="modal-detail" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
+    <div id="modal-detail" class="fixed inset-0 z-[60] hidden items-center justify-center modal-overlay">
         <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-md mx-4 border border-slate-700 shadow-2xl max-h-[92vh] overflow-y-auto">
             <div id="detail-content"></div>
             <button onclick="closeModal('modal-detail')" class="w-full mt-4 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium transition-all">ปิดหน้าต่าง</button>
@@ -593,7 +691,7 @@
     </div>
 
     <!-- Full Image Viewer Modal -->
-    <div id="modal-image-viewer" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/90 p-4" onclick="closeModal('modal-image-viewer')">
+    <div id="modal-image-viewer" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/90 p-4" onclick="closeModal('modal-image-viewer')">
         <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center" onclick="event.stopPropagation()">
             <img id="image-viewer-src" src="" alt="Device Photo" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl">
             <button onclick="closeModal('modal-image-viewer')" class="absolute -top-10 right-0 text-white hover:text-red-400 p-2 text-sm flex items-center gap-1 font-medium">
@@ -603,7 +701,7 @@
     </div>
 
     <!-- Delete Confirmation -->
-    <div id="modal-delete" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
+    <div id="modal-delete" class="fixed inset-0 z-[70] hidden items-center justify-center modal-overlay">
         <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-sm mx-4 border border-slate-700 shadow-2xl text-center">
             <i data-lucide="alert-triangle" class="w-12 h-12 text-amber-400 mx-auto mb-3"></i>
             <h3 class="text-lg font-semibold mb-2">ยืนยันการลบ</h3>
@@ -827,12 +925,15 @@
                         : `(${currentUser.departments.join(', ')}${currentUser.extraCameras.length ? ` +${currentUser.extraCameras.length} อุปกรณ์นอกแผนก` : ''})`;
                     
                     const adminBtn = document.getElementById('admin-menu-btn');
+                    const sideAdminBtn = document.getElementById('sidebar-admin-dev-btn');
                     if (currentUser.isAdmin) {
                         adminBtn.classList.remove('hidden');
                         adminBtn.classList.add('flex');
+                        if (sideAdminBtn) sideAdminBtn.classList.remove('hidden');
                     } else {
                         adminBtn.classList.add('hidden');
                         adminBtn.classList.remove('flex');
+                        if (sideAdminBtn) sideAdminBtn.classList.add('hidden');
                     }
                     await initializeApp();
                 } else {
@@ -861,6 +962,8 @@
             const adminBtn = document.getElementById('admin-menu-btn');
             adminBtn.classList.add('hidden');
             adminBtn.classList.remove('flex');
+            const sideAdminBtn = document.getElementById('sidebar-admin-dev-btn');
+            if (sideAdminBtn) sideAdminBtn.classList.add('hidden');
             document.getElementById('admin-menu').classList.add('hidden');
             document.getElementById('login-username').value = '';
             document.getElementById('login-password').value = '';
@@ -1798,6 +1901,9 @@
                 renderTypeFilter();
                 renderGroupFilter();
                 renderBookmarks();
+                if (document.getElementById('modal-devices') && !document.getElementById('modal-devices').classList.contains('hidden')) {
+                    renderDeviceManagerList();
+                }
                 alert('บันทึกการเปลี่ยนแปลงเรียบร้อยแล้ว');
             } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
         }
@@ -2040,6 +2146,9 @@
                 renderTypeFilter();
                 renderGroupFilter();
                 renderBookmarks();
+                if (document.getElementById('modal-devices') && !document.getElementById('modal-devices').classList.contains('hidden')) {
+                    renderDeviceManagerList();
+                }
             } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
         }
 
@@ -2068,7 +2177,7 @@
         async function confirmDelete() {
             if (!deleteTargetId) { closeModal('modal-delete'); return; }
             try {
-                const actualTable = deleteTargetType === 'device' ? 'camera' : deleteTargetType;
+                const actualTable = (deleteTargetType === 'device' || deleteTargetType === 'camera') ? 'device' : deleteTargetType;
                 await apiDelete(actualTable, deleteTargetId);
                 if (deleteTargetType === 'device' || deleteTargetType === 'camera') {
                     await fetchDevices();
@@ -2078,6 +2187,9 @@
                     renderTypeFilter();
                     renderGroupFilter();
                     renderBookmarks();
+                    if (document.getElementById('modal-devices') && !document.getElementById('modal-devices').classList.contains('hidden')) {
+                        renderDeviceManagerList();
+                    }
                 } else if (deleteTargetType === 'user') {
                     await fetchAllUsers();
                     renderUsersList();
@@ -2247,6 +2359,192 @@
                 closeModal('modal-change-pass');
                 alert('เปลี่ยนรหัสผ่านเรียบร้อย');
             } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+        }
+
+        // ─── DEVICE MANAGER (ADMIN) ───
+        function openDeviceManager() {
+            populateDeviceManagerFilters();
+            renderDeviceManagerList();
+            openModal('modal-devices');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function populateDeviceManagerFilters() {
+            const deptSel = document.getElementById('dev-mgr-filter-dept');
+            if (deptSel) {
+                const cur = deptSel.value;
+                deptSel.innerHTML = '<option value="">ทุกแผนก</option>';
+                departments.forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d;
+                    opt.textContent = d;
+                    deptSel.appendChild(opt);
+                });
+                deptSel.value = cur;
+            }
+
+            const typeSel = document.getElementById('dev-mgr-filter-type');
+            if (typeSel) {
+                const cur = typeSel.value;
+                typeSel.innerHTML = '<option value="">ทุกชนิดอุปกรณ์</option>';
+                DEVICE_TYPES.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t;
+                    opt.textContent = t;
+                    typeSel.appendChild(opt);
+                });
+                typeSel.value = cur;
+            }
+
+            const mapSel = document.getElementById('dev-mgr-filter-map');
+            if (mapSel) {
+                const cur = mapSel.value;
+                mapSel.innerHTML = '<option value="">ทุกแผนผัง</option>';
+                maps.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.map_id;
+                    opt.textContent = m.map_name || `แผนผัง ${m.map_id}`;
+                    mapSel.appendChild(opt);
+                });
+                mapSel.value = cur;
+            }
+        }
+
+        function renderDeviceManagerList() {
+            const tbody = document.getElementById('dev-mgr-tbody');
+            if (!tbody) return;
+
+            const searchTerm = (document.getElementById('dev-mgr-search')?.value || '').trim().toLowerCase();
+            const filterDept = document.getElementById('dev-mgr-filter-dept')?.value || '';
+            const filterType = document.getElementById('dev-mgr-filter-type')?.value || '';
+            const filterMap = document.getElementById('dev-mgr-filter-map')?.value || '';
+            const filterStatus = document.getElementById('dev-mgr-filter-status')?.value || '';
+
+            let list = cameras.slice();
+
+            if (searchTerm) {
+                list = list.filter(c => 
+                    (c.id || '').toLowerCase().includes(searchTerm) ||
+                    (c.asset_code || '').toLowerCase().includes(searchTerm) ||
+                    (c.asset_name || '').toLowerCase().includes(searchTerm) ||
+                    (c.eng_name || '').toLowerCase().includes(searchTerm) ||
+                    (c.holder || '').toLowerCase().includes(searchTerm) ||
+                    (c.thai_name || '').toLowerCase().includes(searchTerm) ||
+                    (c.department || '').toLowerCase().includes(searchTerm) ||
+                    (c.ip || '').toLowerCase().includes(searchTerm) ||
+                    (c.mac_address || '').toLowerCase().includes(searchTerm) ||
+                    (c.brand || '').toLowerCase().includes(searchTerm) ||
+                    (c.model || '').toLowerCase().includes(searchTerm) ||
+                    (c.serial || '').toLowerCase().includes(searchTerm)
+                );
+            }
+
+            if (filterDept) {
+                list = list.filter(c => c.department === filterDept || c.group === filterDept);
+            }
+
+            if (filterType) {
+                list = list.filter(c => getDeviceType(c.type) === filterType);
+            }
+
+            if (filterMap) {
+                list = list.filter(c => isCameraOnMap(c, filterMap));
+            }
+
+            if (filterStatus) {
+                list = list.filter(c => (c.status || 'Active').toLowerCase() === filterStatus.toLowerCase());
+            }
+
+            // Update badge & footer count
+            const totalBadge = document.getElementById('dev-mgr-total-badge');
+            if (totalBadge) totalBadge.textContent = `${cameras.length} อุปกรณ์`;
+            const footerCount = document.getElementById('dev-mgr-footer-count');
+            if (footerCount) footerCount.textContent = `แสดง ${list.length} จากทั้งหมด ${cameras.length} อุปกรณ์`;
+
+            if (list.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="text-center py-12 text-slate-500">
+                            <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+                            <p class="text-sm">ไม่พบข้อมูลอุปกรณ์ตามเงื่อนไขที่ระบุ</p>
+                        </td>
+                    </tr>
+                `;
+                if (window.lucide) lucide.createIcons();
+                return;
+            }
+
+            tbody.innerHTML = list.map(c => {
+                const devType = getDeviceType(c.type);
+                const iconName = getDeviceIconName(c.type);
+                const gColor = getGroupColor(c.group);
+                const curMap = maps.find(m => String(m.map_id) === String(c.map_id) || String(m._recordId) === String(c.map_id));
+                const mapLabel = curMap ? (curMap.map_name || `ผัง ${curMap.map_id}`) : (c.map_id ? `ผัง ${c.map_id}` : '-');
+                const hasPos = c.x != null && c.y != null;
+
+                let statusBadge = '<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full text-[10px] font-medium">Active</span>';
+                const st = (c.status || '').toLowerCase();
+                if (st === 'spare') {
+                    statusBadge = '<span class="bg-amber-950 text-amber-400 border border-amber-800 px-2 py-0.5 rounded-full text-[10px] font-medium">Spare</span>';
+                } else if (st === 'repair') {
+                    statusBadge = '<span class="bg-blue-950 text-blue-400 border border-blue-800 px-2 py-0.5 rounded-full text-[10px] font-medium">Repair</span>';
+                } else if (st === 'inactive') {
+                    statusBadge = '<span class="bg-red-950 text-red-400 border border-red-800 px-2 py-0.5 rounded-full text-[10px] font-medium">Inactive</span>';
+                }
+
+                const brandModel = [c.brand, c.model].filter(Boolean).join(' ') || '-';
+                const subName = (c.holder || c.thai_name) ? `<span class="text-emerald-300 font-normal">👤 ${c.holder || c.thai_name}</span>` : '';
+                const mainName = c.asset_name || c.eng_name || '-';
+
+                return `
+                    <tr class="hover:bg-slate-750/70 transition-colors">
+                        <td class="py-2.5 px-3 text-center">
+                            ${c.image_url ? `
+                                <img src="${c.image_url}" class="w-8 h-8 rounded-lg object-cover border border-slate-600 cursor-pointer hover:scale-110 transition-transform mx-auto" onclick="openImageViewer('${c.image_url}')" onerror="this.style.display='none'">
+                            ` : `
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white mx-auto shadow-sm" style="background:${gColor}">
+                                    <i data-lucide="${iconName}" class="w-4 h-4"></i>
+                                </div>
+                            `}
+                        </td>
+                        <td class="py-2.5 px-3 font-mono font-bold text-slate-100">${c.asset_code || c.id || '-'}</td>
+                        <td class="py-2.5 px-3">
+                            <div class="font-semibold text-slate-100">${mainName}</div>
+                            ${subName ? `<div class="text-[11px] mt-0.5">${subName}</div>` : ''}
+                        </td>
+                        <td class="py-2.5 px-3">
+                            <span class="inline-block bg-slate-700/80 px-1.5 py-0.5 rounded text-[10px] text-slate-300 font-medium">${devType}</span>
+                            <div class="text-[11px] text-slate-400 truncate max-w-[150px] mt-0.5">${brandModel}</div>
+                        </td>
+                        <td class="py-2.5 px-3 text-slate-300 font-medium">${c.department || '-'}</td>
+                        <td class="py-2.5 px-3 font-mono text-[11px] text-slate-300">
+                            <div>${c.ip || '-'}</div>
+                            ${c.mac_address ? `<div class="text-[10px] text-slate-500">${c.mac_address}</div>` : ''}
+                        </td>
+                        <td class="py-2.5 px-3">
+                            <div class="text-slate-200 font-medium">${mapLabel}</div>
+                            ${hasPos ? `
+                                <span class="text-[10px] text-emerald-400 font-mono">📍 X:${c.x}% Y:${c.y}%</span>
+                            ` : `
+                                <span class="text-[10px] text-amber-400 font-medium">⚠️ ยังไม่วาง</span>
+                            `}
+                        </td>
+                        <td class="py-2.5 px-3 text-center">${statusBadge}</td>
+                        <td class="py-2.5 px-3 text-center">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button onclick="openEditDevice('${c._recordId}')" class="p-1.5 rounded-lg bg-slate-700 hover:bg-emerald-600 text-slate-300 hover:text-white transition-all" title="แก้ไข">
+                                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button onclick="requestDelete('${c._recordId}', 'device')" class="p-1.5 rounded-lg bg-slate-700 hover:bg-red-600 text-slate-300 hover:text-white transition-all" title="ลบ">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            if (window.lucide) lucide.createIcons();
         }
 
         // ─── MAP MANAGER ───
