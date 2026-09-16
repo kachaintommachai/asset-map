@@ -3,9 +3,30 @@
 
 const AIRTABLE_API_ROOT = 'https://api.airtable.com/v0';
 
+function cleanToken(token) {
+  let t = (token || '').trim();
+  if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
+    t = t.slice(1, -1).trim();
+  }
+  if (t.toLowerCase().startsWith('bearer ')) {
+    t = t.slice(7).trim();
+  }
+  return t;
+}
+
+function cleanBaseId(baseId) {
+  let b = (baseId || '').trim();
+  if ((b.startsWith('"') && b.endsWith('"')) || (b.startsWith("'") && b.endsWith("'"))) {
+    b = b.slice(1, -1).trim();
+  }
+  return b;
+}
+
 function getAirtableConfig() {
-  const token = (process.env.AIRTABLE_TOKEN || process.env.AIRTABLE_API_KEY || process.env.AIRTABLE_PAT || '').trim();
-  const baseId = (process.env.AIRTABLE_BASE_ID || process.env.AIRTABLE_BASE || '').trim();
+  const rawToken = process.env.AIRTABLE_TOKEN || process.env.AIRTABLE_API_KEY || process.env.AIRTABLE_PAT || '';
+  const rawBaseId = process.env.AIRTABLE_BASE_ID || process.env.AIRTABLE_BASE || '';
+  const token = cleanToken(rawToken);
+  const baseId = cleanBaseId(rawBaseId);
   return { token, baseId };
 }
 
