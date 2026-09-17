@@ -1,5 +1,10 @@
 {
   "version": 2,
+  "functions": {
+    "api/*.js": {
+      "includeFiles": "*.csv"
+    }
+  },
   "rewrites": [
     { "source": "/api/upload", "destination": "/api/upload.js" },
     { "source": "/api/upload.js", "destination": "/api/upload.js" },

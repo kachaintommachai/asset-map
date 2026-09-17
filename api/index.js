@@ -97,6 +97,11 @@ function deleteLocalMaintenance(id) {
 }
 
 // ─── CSV File Fallback & Synchronization ───
+let bundledCsvData = null;
+try {
+  bundledCsvData = require('./csv_data.js');
+} catch (_) {}
+
 function getCsvFilePath(tableName) {
   const t = (tableName || '').toLowerCase().replace(/\.csv$/, '');
   const fileMap = {
@@ -151,6 +156,26 @@ function parseCsvLine(line) {
 }
 
 function loadCsvRecords(tableName) {
+  const t = (tableName || '').toLowerCase().replace(/\.csv$/, '');
+  const keyMap = {
+    device: 'device',
+    devices: 'device',
+    camera: 'device',
+    cameras: 'device',
+    asset: 'device',
+    assets: 'device',
+    map: 'map',
+    maps: 'map',
+    department: 'department',
+    departments: 'department',
+    user: 'user',
+    users: 'user'
+  };
+  const targetKey = keyMap[t] || t;
+  if (bundledCsvData && Array.isArray(bundledCsvData[targetKey]) && bundledCsvData[targetKey].length > 0) {
+    return bundledCsvData[targetKey];
+  }
+
   const filePath = getCsvFilePath(tableName);
   if (!filePath) return [];
   try {
