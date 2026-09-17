@@ -535,6 +535,7 @@ function findMatchingAirtableFieldName(availableFieldNames, candidateAliases) {
 // Helper to write to Airtable with unknown field pruning retry
 async function writeAirtableWithRetry(url, method, token, fields) {
   let payloadFields = { ...fields };
+  const debugLog = [];
 
   if (method === 'POST') {
     for (const [k, v] of Object.entries(payloadFields)) {
@@ -543,6 +544,8 @@ async function writeAirtableWithRetry(url, method, token, fields) {
       }
     }
   }
+
+  debugLog.push({ attempt: 'initial', fields: Object.keys(payloadFields) });
 
   for (let attempt = 0; attempt < 30; attempt++) {
     const res = await fetch(url, {
@@ -556,15 +559,16 @@ async function writeAirtableWithRetry(url, method, token, fields) {
 
     const data = await res.json();
     if (res.ok) {
-      return { ok: true, data };
+      return { ok: true, data, _debug: debugLog };
     }
 
-    if (data.error && typeof data.error.message === 'string') {
-      const msg = data.error.message;
+    const errMsg = (data.error && typeof data.error.message === 'string') ? data.error.message : '';
+    debugLog.push({ attempt, status: res.status, error: errMsg, fieldsAttempted: Object.keys(payloadFields) });
 
+    if (errMsg) {
       // 1. Auto-remove unknown field
-      if (msg.includes('Unknown field name:')) {
-        const match = msg.match(/Unknown field name:\s*["']([^"']+)["']/i);
+      if (errMsg.includes('Unknown field name:')) {
+        const match = errMsg.match(/Unknown field name:\s*["']([^"']+)["']/i);
         if (match && match[1] && match[1] in payloadFields) {
           const rejected = match[1];
           const val = payloadFields[rejected];
@@ -576,16 +580,19 @@ async function writeAirtableWithRetry(url, method, token, fields) {
           else if (rejected === 'X' && !('x' in payloadFields)) payloadFields['x'] = val;
           else if (rejected === 'Y' && !('y' in payloadFields)) payloadFields['y'] = val;
 
-          // If asset_code was rejected because table uses Name as primary
-          if ((rejected === 'asset_code' || rejected === 'Asset Code' || rejected === 'Asset_Code') && val && !payloadFields['Name']) {
-            payloadFields['Name'] = val;
+          // If asset_code / code field was rejected because table uses Name as primary field
+          // ALWAYS override Name with the code value (even if Name already exists)
+          const rejNorm2 = rejected.trim().toLowerCase().replace(/[\s_\-]+/g, '');
+          if ((rejNorm2 === 'assetcode' || rejected === 'รหัสทรัพย์สิน' || rejected === 'รหัสอุปกรณ์') && val) {
+            payloadFields['Name'] = val;  // Override Name with asset code value
+            debugLog.push({ action: 'overrideNameWithCode', rejected, val });
           }
           continue;
         }
       }
 
       // 2. Field cannot accept value (e.g. Field "xxx" cannot accept...)
-      const fieldMatch = msg.match(/Field\s*["']([^"']+)["']/i) || msg.match(/["']([^"']+)["']\s*cannot accept/i);
+      const fieldMatch = errMsg.match(/Field\s*["']([^"']+)["']/i) || errMsg.match(/["']([^"']+)["']\s*cannot accept/i);
       if (fieldMatch && fieldMatch[1] && (fieldMatch[1] in payloadFields)) {
         const rejected = fieldMatch[1];
         const val = payloadFields[rejected];
@@ -598,17 +605,20 @@ async function writeAirtableWithRetry(url, method, token, fields) {
 
         // If asset_code was rejected (e.g. user defined column as Number or Formula in Airtable)
         const rejNorm = rejected.trim().toLowerCase().replace(/[\s_\-]+/g, '');
-        if (rejNorm === 'assetcode' || rejNorm === 'name') {
-          if (rejNorm === 'assetcode' && !payloadFields['Name']) {
-            delete payloadFields[rejected];
-            payloadFields['Name'] = val;
-            continue;
-          }
+        if (rejNorm === 'assetcode') {
+          delete payloadFields[rejected];
+          // Always set Name = code value
+          payloadFields['Name'] = val;
+          debugLog.push({ action: 'assetcodeCannotAccept_overrideName', rejected, val });
+          continue;
+        }
+        if (rejNorm === 'name') {
           return {
             ok: false,
             status: 422,
             data: {
-              error: `คอลัมน์ "${rejected}" ใน Airtable ไม่ยอมรับค่า "${val}" (${msg}) กรุณาตรวจสอบใน Airtable ว่าประเภทของคอลัมน์ "${rejected}" ถูกตั้งเป็น "Single line text" (ข้อความบรรทัดเดียว) หรือไม่ (หากตั้งเป็น Number หรือ Formula จะไม่สามารถบันทึกรหัสที่มีตัวอักษรได้)`
+              error: `คอลัมน์ "Name" ใน Airtable ไม่ยอมรับค่า "${val}" (${errMsg}) กรุณาตรวจสอบประเภทคอลัมน์ใน Airtable`,
+              _debug: debugLog
             }
           };
         }
@@ -618,24 +628,24 @@ async function writeAirtableWithRetry(url, method, token, fields) {
       }
 
       // 3. Attachment decoding error
-      if (msg.toLowerCase().includes('attachment')) {
+      if (errMsg.toLowerCase().includes('attachment')) {
         if ('image' in payloadFields) { delete payloadFields['image']; continue; }
         if ('map_pic' in payloadFields) { delete payloadFields['map_pic']; continue; }
         if ('image_url' in payloadFields) { delete payloadFields['image_url']; continue; }
       }
 
       // 4. Linked record error (e.g. Value is not an array of record IDs)
-      if (msg.toLowerCase().includes('record id') || msg.toLowerCase().includes('linked')) {
+      if (errMsg.toLowerCase().includes('record id') || errMsg.toLowerCase().includes('linked')) {
         if ('map_id' in payloadFields) { delete payloadFields['map_id']; continue; }
         if ('map' in payloadFields) { delete payloadFields['map']; continue; }
         if ('department' in payloadFields) { delete payloadFields['department']; continue; }
       }
     }
 
-    return { ok: false, status: res.status, data };
+    return { ok: false, status: res.status, data: { ...data, _debug: debugLog } };
   }
 
-  return { ok: false, data: { error: 'Exceeded retry attempts for Airtable write' } };
+  return { ok: false, data: { error: 'Exceeded retry attempts for Airtable write', _debug: debugLog } };
 }
 
 // Helper to find record ID in Airtable if passed ID is not an Airtable rec ID
@@ -984,6 +994,20 @@ module.exports = async (req, res) => {
   body = body || {};
   let fields = body.fields || body;
 
+  // ─── DRYRUN (Preview fields without writing to Airtable) ───
+  if (query.action === 'dryrun') {
+    const targetTable = await resolveWorkingTable(baseId, token, table);
+    const dryFields = body.fields || body || {};
+    const preparedFields = await prepareFieldsForTable(baseId, token, table, targetTable, dryFields);
+    return res.status(200).json({
+      dryrun: true,
+      targetTable,
+      baseId,
+      preparedFields,
+      rawInput: dryFields
+    });
+  }
+
   // ─── POST (Create Record) ───
   if (req.method === 'POST') {
     const targetTable = await resolveWorkingTable(baseId, token, table);
@@ -1000,7 +1024,8 @@ module.exports = async (req, res) => {
       id: writeResult.data.id,
       fields: normalizeFields(table, { ...(fields || {}), ...(writeResult.data.fields || {}) }),
       targetTable: targetTable,
-      baseId: baseId
+      baseId: baseId,
+      _debug: writeResult._debug
     });
   }
 
@@ -1026,7 +1051,8 @@ module.exports = async (req, res) => {
       id: writeResult.data.id,
       fields: normalizeFields(table, { ...(fields || {}), ...(writeResult.data.fields || {}) }),
       targetTable: targetTable,
-      baseId: baseId
+      baseId: baseId,
+      _debug: writeResult._debug
     });
   }
 

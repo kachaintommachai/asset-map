@@ -2396,12 +2396,15 @@
                 let saveRes;
                 if (recordId) {
                     saveRes = await apiUpdate('device', recordId, fields);
-                    alert(`อัปเดตข้อมูลอุปกรณ์รหัส "${assetCode}" สำเร็จ!\n• ตารางใน Airtable: "${saveRes.targetTable || 'device'}"\n• Base ID: "${saveRes.baseId || '-'}"\n• Record ID: "${saveRes.id}"`);
+                    const debugInfo = saveRes._debug ? `\n\n[DEBUG] Fields ส่งไป: ${JSON.stringify(saveRes._debug[0]?.fields||[])}\nAirtable ตอบ: ${JSON.stringify(saveRes._debug.slice(1))}` : '';
+                    alert(`อัปเดตข้อมูลอุปกรณ์รหัส "${assetCode}" สำเร็จ!\n• ตารางใน Airtable: "${saveRes.targetTable || 'device'}"\n• Base ID: "${saveRes.baseId || '-'}"\n• Record ID: "${saveRes.id}"${debugInfo}`);
                 } else {
                     saveRes = await apiCreate('device', fields);
-                    alert(`เพิ่มอุปกรณ์ไอทีรหัส "${assetCode}" สำเร็จ!\n• ตารางใน Airtable: "${saveRes.targetTable || 'device'}"\n• Base ID: "${saveRes.baseId || '-'}"\n• Record ID: "${saveRes.id}"`);
+                    const debugInfo = saveRes._debug ? `\n\n[DEBUG] Fields ส่งไป: ${JSON.stringify(saveRes._debug[0]?.fields||[])}\nAirtable ตอบ: ${JSON.stringify(saveRes._debug.slice(1))}` : '';
+                    alert(`เพิ่มอุปกรณ์ไอทีรหัส "${assetCode}" สำเร็จ!\n• ตารางใน Airtable: "${saveRes.targetTable || 'device'}"\n• Base ID: "${saveRes.baseId || '-'}"\n• Record ID: "${saveRes.id}"${debugInfo}`);
                 }
                 console.log('[saveCamera] Response:', saveRes);
+                if (saveRes._debug) console.log('[saveCamera] Debug Log:', JSON.stringify(saveRes._debug, null, 2));
                 await fetchDevices();
                 closeModal('modal-camera');
                 renderMapSelector();
