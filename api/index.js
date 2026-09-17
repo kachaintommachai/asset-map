@@ -92,25 +92,90 @@ function extractFieldValue(fields, candidates) {
   return '';
 }
 
+function isLikelyDepartment(str) {
+  if (!str || typeof str !== 'string') return false;
+  const s = str.trim().toLowerCase();
+  if (s.includes('ผลิต') || s.includes('แพคกิ้ง') || s.includes('สโตร์') || s.includes('บุคคล') || 
+      s.includes('เครื่องกล') || s.includes('วัตถุดิบ') || s.includes('ห้องปฏิบัติการ') || s.includes('สารสนเทศ') ||
+      s.includes('สิ่งแวดล้อม') || s.includes('ไอที') || s.includes('บัญชี') || s.includes('การเงิน') ||
+      s.includes('จัดซื้อ') || s.includes('การตลาด') || s.includes('ขาย') || s.includes('คลัง') ||
+      s.startsWith('แผนก') || s.startsWith('ฝ่าย') || s.startsWith('ส่วน')) {
+    return true;
+  }
+  return false;
+}
+
 function normalizeFields(table, fields) {
   const t = (table || '').trim().toLowerCase();
   const f = { ...(fields || {}) };
 
   if (t === 'device' || t === 'devices' || t === 'camera' || t === 'cameras') {
+    // 1. Extract department first so we can protect asset code from department contamination
+    let rawDept = extractFieldValue(f, ['department', 'Department', 'dept', 'Dept', 'group', 'แผนก', 'ชื่อแผนก', 'ฝ่าย', 'หน่วยงาน']);
+    if (Array.isArray(f.department)) {
+      rawDept = f.department.length > 0 ? (typeof f.department[0] === 'object' && f.department[0].name ? f.department[0].name : String(f.department[0])) : '';
+    }
+    const devDept = String(rawDept || '').trim();
+
+    // 2. Extract asset code strictly from code fields
     let code = extractFieldValue(f, [
       'asset_code', 'asset code', 'Asset Code', 'Asset_Code', 'Asset_code', 'asset-code',
-      'asset_no', 'account_no', 'cam_id', 'id', 'ID', 'Name', 'name', 'code',
-      'รหัสทรัพย์สิน', 'รหัสอุปกรณ์', 'รหัส'
+      'รหัสทรัพย์สิน', 'รหัสอุปกรณ์', 'รหัสเครื่อง', 'รหัส', 'code', 'Code',
+      'asset_no', 'account_no', 'cam_id'
     ]);
 
+    // If code field matched but value is actually identical to department or is a department name, ignore it
+    if (code && ((devDept && code.toLowerCase() === devDept.toLowerCase()) || isLikelyDepartment(code))) {
+      code = '';
+    }
+
+    // Check id / ID if not an Airtable rec ID and not department
+    if (!code) {
+      const idVal = extractFieldValue(f, ['id', 'ID']);
+      if (idVal && !idVal.startsWith('rec') && (!devDept || idVal.toLowerCase() !== devDept.toLowerCase()) && !isLikelyDepartment(idVal)) {
+        code = idVal;
+      }
+    }
+
+    // Check Name / name ONLY as last resort and only if it is NOT department
+    if (!code) {
+      const nameVal = extractFieldValue(f, ['Name', 'name']);
+      if (nameVal && (!devDept || nameVal.toLowerCase() !== devDept.toLowerCase()) && !isLikelyDepartment(nameVal)) {
+        code = nameVal;
+      }
+    }
+
+    // Fallback search across fields: skip all non-code fields (including Thai department/name labels)
     if (!code && typeof f === 'object') {
       for (const [k, v] of Object.entries(f)) {
         const kLow = k.toLowerCase();
-        if (typeof v === 'string' && v.trim() && !kLow.includes('type') && !kLow.includes('status') && !kLow.includes('dept') && !kLow.includes('image') && !kLow.includes('map') && !kLow.includes('ip') && !kLow.includes('mac') && !kLow.includes('brand') && !kLow.includes('model') && !kLow.includes('serial') && !kLow.includes('holder')) {
-          code = v.trim();
-          break;
+        const valStr = typeof v === 'string' ? v.trim() : '';
+        if (!valStr) continue;
+        if (kLow.includes('type') || kLow.includes('ประเภท') ||
+            kLow.includes('status') || kLow.includes('สถานะ') ||
+            kLow.includes('dept') || kLow.includes('แผนก') || kLow.includes('ฝ่าย') || kLow.includes('หน่วยงาน') || kLow.includes('กลุ่ม') || kLow.includes('group') ||
+            kLow.includes('image') || kLow.includes('pic') || kLow.includes('รูป') || kLow.includes('ภาพ') ||
+            kLow.includes('map') || kLow.includes('ผัง') || kLow.includes('แปลน') ||
+            kLow.includes('ip') || kLow.includes('mac') ||
+            kLow.includes('brand') || kLow.includes('ยี่ห้อ') ||
+            kLow.includes('model') || kLow.includes('รุ่น') ||
+            kLow.includes('serial') ||
+            kLow.includes('holder') || kLow.includes('user') || kLow.includes('ผู้ใช้') || kLow.includes('ผู้ถือครอง') ||
+            kLow.includes('name') || kLow.includes('ชื่อ') ||
+            kLow.includes('note') || kLow.includes('หมายเหตุ')) {
+          continue;
         }
+        if (devDept && valStr.toLowerCase() === devDept.toLowerCase()) continue;
+        if (isLikelyDepartment(valStr)) continue;
+
+        code = valStr;
+        break;
       }
+    }
+
+    // Final safety check
+    if (code && ((devDept && code.toLowerCase() === devDept.toLowerCase()) || isLikelyDepartment(code))) {
+      code = '';
     }
 
     const name = extractFieldValue(f, [
@@ -155,12 +220,6 @@ function normalizeFields(table, fields) {
       rawHolder = f.holder.length > 0 ? (typeof f.holder[0] === 'object' && f.holder[0].name ? f.holder[0].name : String(f.holder[0])) : '';
     }
     const holder = String(rawHolder || '').trim();
-
-    let rawDept = extractFieldValue(f, ['department', 'Department', 'dept', 'Dept', 'group', 'แผนก', 'ชื่อแผนก']);
-    if (Array.isArray(f.department)) {
-      rawDept = f.department.length > 0 ? (typeof f.department[0] === 'object' && f.department[0].name ? f.department[0].name : String(f.department[0])) : '';
-    }
-    const devDept = String(rawDept || '').trim();
 
     const devType = extractFieldValue(f, ['type', 'Type', 'ประเภท']) || 'Other';
     const devStatus = extractFieldValue(f, ['status', 'Status', 'สถานะ']) || 'Active';
@@ -611,7 +670,7 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
   const primaryField = schema ? schema.primaryField : null;
 
   if (t.startsWith('device') || t.startsWith('camera')) {
-    const codeVal = raw.asset_code || raw['Asset Code'] || raw.Asset_Code || raw.account_no || raw.id || raw.ID || raw.Name || raw.name || raw['รหัสทรัพย์สิน'] || raw['รหัสอุปกรณ์'] || '';
+    const codeVal = raw.asset_code || raw['Asset Code'] || raw.Asset_Code || raw['รหัสทรัพย์สิน'] || raw['รหัสอุปกรณ์'] || raw['รหัส'] || raw.account_no || raw.cam_id || raw.code || (raw.id && !raw.id.startsWith('rec') ? raw.id : '') || (raw.Name && !isLikelyDepartment(raw.Name) ? raw.Name : '') || '';
     const nameVal = raw.asset_name || raw['Asset Name'] || raw.eng_name || codeVal;
     const holderVal = raw.holder || raw.Holder || raw.thai_name || '';
     const typeVal = raw.type || raw.Type || 'Other';
@@ -647,12 +706,12 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     if (yVal != null) result.y = yVal;
 
     if (availableNames && availableNames.length > 0) {
-      const codeCol = findMatchingAirtableFieldName(availableNames, ['asset_code', 'asset code', 'Asset Code', 'Asset_Code', 'asset_no', 'account_no', 'id', 'cam_id', 'code', 'Name', 'name', 'รหัสทรัพย์สิน', 'รหัสอุปกรณ์', 'รหัส']);
+      const codeCol = findMatchingAirtableFieldName(availableNames, ['asset_code', 'asset code', 'Asset Code', 'Asset_Code', 'รหัสทรัพย์สิน', 'รหัสอุปกรณ์', 'รหัสเครื่อง', 'รหัส', 'code', 'account_no', 'cam_id', 'id', 'Name']);
       const nameCol = findMatchingAirtableFieldName(availableNames, ['asset_name', 'asset name', 'Asset Name', 'Asset_Name', 'eng_name', 'thai_name', 'Name', 'name', 'ชื่ออุปกรณ์', 'ชื่อ']);
       const holderCol = findMatchingAirtableFieldName(availableNames, ['holder', 'Holder', 'thai_name', 'user', 'ผู้ถือครอง', 'ชื่อผู้ใช้']);
       const typeCol = findMatchingAirtableFieldName(availableNames, ['type', 'Type', 'ประเภท']);
       const statusCol = findMatchingAirtableFieldName(availableNames, ['status', 'Status', 'สถานะ']);
-      const deptCol = findMatchingAirtableFieldName(availableNames, ['department', 'Department', 'dept', 'Dept', 'แผนก']);
+      const deptCol = findMatchingAirtableFieldName(availableNames, ['department', 'Department', 'dept', 'Dept', 'แผนก', 'ชื่อแผนก', 'ฝ่าย']);
       const mapCol = findMatchingAirtableFieldName(availableNames, ['map_id', 'Map ID', 'map', 'Map', 'ผัง']);
       const brandCol = findMatchingAirtableFieldName(availableNames, ['brand', 'Brand', 'ยี่ห้อ']);
       const modelCol = findMatchingAirtableFieldName(availableNames, ['model', 'Model', 'รุ่น']);

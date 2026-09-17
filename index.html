@@ -1080,28 +1080,99 @@
         }
 
         // ─── FETCH DATA ───
-        function extractDeviceCode(f, idx) {
+        function isLikelyDepartment(str) {
+            if (!str || typeof str !== 'string') return false;
+            const s = str.trim().toLowerCase();
+            if (s.includes('ผลิต') || s.includes('แพคกิ้ง') || s.includes('สโตร์') || s.includes('บุคคล') || 
+                s.includes('เครื่องกล') || s.includes('วัตถุดิบ') || s.includes('ห้องปฏิบัติการ') || s.includes('สารสนเทศ') ||
+                s.includes('สิ่งแวดล้อม') || s.includes('ไอที') || s.includes('บัญชี') || s.includes('การเงิน') ||
+                s.includes('จัดซื้อ') || s.includes('การตลาด') || s.includes('ขาย') || s.includes('คลัง') ||
+                s.startsWith('แผนก') || s.startsWith('ฝ่าย') || s.startsWith('ส่วน')) {
+                return true;
+            }
+            return false;
+        }
+
+        function extractDeviceCode(f, idx, dept) {
             if (!f || typeof f !== 'object') return `DEV-${idx + 1}`;
+            const deptClean = String(dept || '').trim().toLowerCase();
+
+            // 1. High-priority actual asset code fields
             const candidates = [
                 'asset_code', 'asset code', 'Asset Code', 'Asset_Code', 'Asset_code', 'asset-code',
-                'asset_no', 'account_no', 'cam_id', 'id', 'ID', 'Name', 'name', 'code',
-                'รหัสทรัพย์สิน', 'รหัสอุปกรณ์', 'รหัส'
+                'รหัสทรัพย์สิน', 'รหัสอุปกรณ์', 'รหัสเครื่อง', 'รหัส', 'code', 'Code',
+                'asset_no', 'account_no', 'cam_id'
             ];
             for (const c of candidates) {
-                if (f[c] != null && String(f[c]).trim() !== '') return String(f[c]).trim();
+                if (f[c] != null && String(f[c]).trim() !== '') {
+                    const val = String(f[c]).trim();
+                    if ((!deptClean || val.toLowerCase() !== deptClean) && !isLikelyDepartment(val)) {
+                        return val;
+                    }
+                }
             }
+
+            // 2. Normalized key match
             const norm = str => String(str).trim().toLowerCase().replace(/[\s_\-]+/g, '');
             const normCandidates = new Set(candidates.map(norm));
             for (const [k, v] of Object.entries(f)) {
                 if (v == null || String(v).trim() === '') continue;
-                if (normCandidates.has(norm(k))) return String(v).trim();
-            }
-            for (const [k, v] of Object.entries(f)) {
-                const kLow = k.toLowerCase();
-                if (typeof v === 'string' && v.trim() && !kLow.includes('type') && !kLow.includes('status') && !kLow.includes('dept') && !kLow.includes('image') && !kLow.includes('map') && !kLow.includes('ip') && !kLow.includes('mac') && !kLow.includes('brand') && !kLow.includes('model') && !kLow.includes('serial') && !kLow.includes('holder')) {
-                    return v.trim();
+                if (normCandidates.has(norm(k))) {
+                    const val = String(v).trim();
+                    if ((!deptClean || val.toLowerCase() !== deptClean) && !isLikelyDepartment(val)) {
+                        return val;
+                    }
                 }
             }
+
+            // 3. ID candidate (if not Airtable rec ID and not department)
+            if (f.id != null && String(f.id).trim() !== '') {
+                const idVal = String(f.id).trim();
+                if (!idVal.startsWith('rec') && (!deptClean || idVal.toLowerCase() !== deptClean) && !isLikelyDepartment(idVal)) {
+                    return idVal;
+                }
+            }
+            if (f.ID != null && String(f.ID).trim() !== '') {
+                const idVal = String(f.ID).trim();
+                if (!idVal.startsWith('rec') && (!deptClean || idVal.toLowerCase() !== deptClean) && !isLikelyDepartment(idVal)) {
+                    return idVal;
+                }
+            }
+
+            // 4. Name candidate (ONLY if not department and not asset_name)
+            const nameVal = f.Name || f.name;
+            if (nameVal != null && String(nameVal).trim() !== '') {
+                const nv = String(nameVal).trim();
+                if ((!deptClean || nv.toLowerCase() !== deptClean) && !isLikelyDepartment(nv) && nv !== f.asset_name && nv !== f.eng_name) {
+                    return nv;
+                }
+            }
+
+            // 5. Fallback loop across fields (excluding non-code fields and Thai keywords)
+            for (const [k, v] of Object.entries(f)) {
+                const kLow = k.toLowerCase();
+                const valStr = typeof v === 'string' ? v.trim() : '';
+                if (!valStr) continue;
+                if (kLow.includes('type') || kLow.includes('ประเภท') ||
+                    kLow.includes('status') || kLow.includes('สถานะ') ||
+                    kLow.includes('dept') || kLow.includes('แผนก') || kLow.includes('ฝ่าย') || kLow.includes('หน่วยงาน') || kLow.includes('กลุ่ม') || kLow.includes('group') ||
+                    kLow.includes('image') || kLow.includes('pic') || kLow.includes('รูป') || kLow.includes('ภาพ') ||
+                    kLow.includes('map') || kLow.includes('ผัง') || kLow.includes('แปลน') ||
+                    kLow.includes('ip') || kLow.includes('mac') ||
+                    kLow.includes('brand') || kLow.includes('ยี่ห้อ') ||
+                    kLow.includes('model') || kLow.includes('รุ่น') ||
+                    kLow.includes('serial') ||
+                    kLow.includes('holder') || kLow.includes('user') || kLow.includes('ผู้ใช้') || kLow.includes('ผู้ถือครอง') ||
+                    kLow.includes('name') || kLow.includes('ชื่อ') ||
+                    kLow.includes('note') || kLow.includes('หมายเหตุ')) {
+                    continue;
+                }
+                if (deptClean && valStr.toLowerCase() === deptClean) continue;
+                if (isLikelyDepartment(valStr)) continue;
+
+                return valStr;
+            }
+
             return `DEV-${idx + 1}`;
         }
 
@@ -1110,8 +1181,14 @@
                 const records = await apiGetAll('device');
                 cameras = records.map((rec, idx) => {
                     const f = rec.fields || {};
-                    let assetCode = extractDeviceCode(f, idx);
-                    const assetName = f.asset_name || f.Asset_Name || f['Asset Name'] || f.eng_name || f.Name || f.name || assetCode;
+                    let rawDept = f.department || f.Department || f.dept || f.Dept || f.group || f['แผนก'] || f['ชื่อแผนก'] || f['ฝ่าย'] || '';
+                    if (Array.isArray(rawDept)) {
+                        rawDept = rawDept.length > 0 ? (typeof rawDept[0] === 'object' && rawDept[0].name ? rawDept[0].name : String(rawDept[0])) : '';
+                    }
+                    const dept = String(rawDept || '').trim();
+
+                    let assetCode = extractDeviceCode(f, idx, dept);
+                    const assetName = f.asset_name || f.Asset_Name || f['Asset Name'] || f.eng_name || (f.Name && !isLikelyDepartment(f.Name) ? f.Name : '') || (f.name && !isLikelyDepartment(f.name) ? f.name : '') || assetCode;
                     const holder = f.holder || f.Holder || f.thai_name || f.user || f.User || '';
                     let imgUrl = '';
                     if (Array.isArray(f.image) && f.image.length > 0) {
@@ -1148,11 +1225,6 @@
                         numY = Math.round(numY * 10000) / 100;
                     }
 
-                    let rawDept = f.department || f.Department || f.dept || f.Dept || f.group || f['แผนก'] || f['ชื่อแผนก'] || '';
-                    if (Array.isArray(rawDept)) {
-                        rawDept = rawDept.length > 0 ? (typeof rawDept[0] === 'object' && rawDept[0].name ? rawDept[0].name : String(rawDept[0])) : '';
-                    }
-                    const dept = String(rawDept || '').trim();
                     const devType = f.type || f.Type || 'Other';
                     const devStatus = f.status || f.Status || 'Active';
                     const devBrand = f.brand || f.Brand || '';
@@ -1996,8 +2068,13 @@
             const holder = document.getElementById('detail-thai-name').value.trim();
             const fields = {
                 asset_code: assetCode,
+                'Asset Code': assetCode,
+                Asset_Code: assetCode,
+                'รหัสทรัพย์สิน': assetCode,
+                'รหัสอุปกรณ์': assetCode,
                 id: assetCode,
                 account_no: assetCode,
+                Name: assetCode,
                 asset_name: assetName,
                 eng_name: assetName,
                 holder: holder,
@@ -2285,6 +2362,8 @@
                 asset_code: assetCode,
                 'Asset Code': assetCode,
                 Asset_Code: assetCode,
+                'รหัสทรัพย์สิน': assetCode,
+                'รหัสอุปกรณ์': assetCode,
                 id: assetCode,
                 account_no: assetCode,
                 Name: assetCode,
