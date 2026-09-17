@@ -1345,14 +1345,15 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
 }
 
 module.exports = async (req, res) => {
-  // CORS Headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  try {
+    // CORS Headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
 
   const { token, baseId } = getAirtableConfig();
   const query = req.query || {};
@@ -1878,5 +1879,33 @@ module.exports = async (req, res) => {
     return res.status(200).json({ deleted: true, id: rawId });
   }
 
-  return res.status(405).json({ error: `Method ${req.method} not allowed` });
+    return res.status(405).json({ error: `Method ${req.method} not allowed` });
+  } catch (fatalError) {
+    console.error('Unhandled API Serverless Error:', fatalError);
+    try {
+      const qTable = (req && req.query && req.query.table) || '';
+      const tLow = qTable.toLowerCase();
+      const csvType = tLow.startsWith('dev') || tLow.startsWith('cam') ? 'device' : (tLow.startsWith('map') ? 'map' : (tLow.startsWith('dept') ? 'department' : (tLow.startsWith('user') ? 'user' : (tLow.startsWith('maint') ? 'maintenance' : ''))));
+      if (req && req.method === 'GET' && csvType) {
+        if (csvType === 'maintenance') {
+          return res.status(200).json({ records: loadMaintenanceStore(), warning: 'Emergency local store mode: ' + fatalError.message });
+        }
+        const csvRecs = loadCsvRecords(csvType);
+        if (csvRecs && csvRecs.length > 0) {
+          const fallbackRecords = csvRecs.map((r, idx) => ({
+            id: r.id || `${csvType}_${idx + 1}`,
+            fields: normalizeFields(csvType, r, r.id || `${csvType}_${idx + 1}`)
+          }));
+          return res.status(200).json({
+            records: fallbackRecords,
+            warning: `Emergency fallback mode: ${fatalError.message}`
+          });
+        }
+      }
+    } catch (_) {}
+    return res.status(500).json({
+      error: `เซิร์ฟเวอร์เกิดข้อผิดพลาด: ${fatalError.message || fatalError}`,
+      stack: fatalError.stack || null
+    });
+  }
 };
