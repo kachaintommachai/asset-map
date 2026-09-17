@@ -121,6 +121,40 @@
         body { box-sizing: border-box; }
         .map-radio:checked + label { background: #10b981; color: white; border-color: #10b981; }
         .map-radio + label { cursor: pointer; transition: all 0.15s; }
+
+        /* ─── Mobile Responsive Enhancements ─── */
+        @media (max-width: 1023px) {
+            #sidebar {
+                position: fixed !important;
+                top: 0;
+                bottom: 0;
+                left: 0;
+                z-index: 50;
+                width: 320px;
+                max-width: 86vw;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            }
+            .device-dot {
+                --dot: 25px; /* ขนาดเหมาะสำหรับการแตะบนหน้าจอมือถือ */
+            }
+            .device-dot svg {
+                width: 14px;
+                height: 14px;
+            }
+        }
+        .sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(2px);
+            z-index: 45;
+            transition: opacity 0.25s ease-in-out;
+        }
+        #map-viewport {
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-x pan-y pinch-zoom;
+        }
     </style>
 </head>
 
@@ -160,28 +194,32 @@
     <!-- Main Application -->
     <div id="app" class="h-full w-full flex flex-col hidden">
         <!-- Top Bar -->
-        <header class="no-print bg-slate-800 border-b border-slate-700 px-4 py-2 flex items-center justify-between shrink-0">
-            <div class="flex items-center gap-3">
-                <div class="bg-emerald-600/20 p-1.5 rounded-lg border border-emerald-500/30">
-                    <i data-lucide="network" class="w-5 h-5 text-emerald-400"></i>
+        <header class="no-print bg-slate-800 border-b border-slate-700 px-2 sm:px-4 py-2 flex items-center justify-between shrink-0 gap-2">
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                <!-- Mobile Sidebar Toggle Button -->
+                <button type="button" onclick="toggleMobileSidebar()" class="lg:hidden p-1.5 sm:p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-emerald-400 focus:outline-none flex items-center justify-center shrink-0" title="เปิด/ปิดรายการอุปกรณ์">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+                <div class="bg-emerald-600/20 p-1.5 rounded-lg border border-emerald-500/30 shrink-0 hidden xs:flex">
+                    <i data-lucide="network" class="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400"></i>
                 </div>
-                <div>
-                    <h1 id="app-title" class="text-base font-bold text-white tracking-wide flex items-center gap-2">
-                        IT Asset Map
-                        <span class="text-[11px] bg-slate-700 text-emerald-400 px-2 py-0.5 rounded font-normal">Port 3003</span>
+                <div class="min-w-0">
+                    <h1 id="app-title" class="text-sm sm:text-base font-bold text-white tracking-wide flex items-center gap-1.5 truncate">
+                        <span class="truncate">IT Asset Map</span>
+                        <span class="text-[10px] sm:text-[11px] bg-slate-700 text-emerald-400 px-1.5 py-0.2 rounded font-normal shrink-0 hidden sm:inline">Port 3003</span>
                     </h1>
                 </div>
             </div>
-            <div class="flex items-center gap-2 sm:gap-3">
-                <div id="user-info" class="flex items-center gap-2 bg-slate-700 rounded-lg px-3 py-1.5">
-                    <i data-lucide="user" class="w-4 h-4 text-emerald-400"></i>
-                    <span id="user-display" class="text-sm text-slate-200"></span>
-                    <span id="dept-display" class="text-xs text-slate-400"></span>
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <div id="user-info" class="flex items-center gap-1.5 bg-slate-700 rounded-lg px-2 sm:px-3 py-1.5 text-xs sm:text-sm max-w-[130px] sm:max-w-none truncate">
+                    <i data-lucide="user" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0"></i>
+                    <span id="user-display" class="text-slate-200 truncate font-medium"></span>
+                    <span id="dept-display" class="text-[11px] text-slate-400 hidden md:inline"></span>
                 </div>
                 <div class="relative" id="admin-menu-wrap">
-                    <button onclick="toggleAdminMenu(event)" id="admin-menu-btn" class="hidden items-center gap-1 bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium transition-all" title="เมนูผู้ดูแลระบบ">
-                        <i data-lucide="settings" class="w-4 h-4 text-amber-400"></i> Admin
-                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+                    <button onclick="toggleAdminMenu(event)" id="admin-menu-btn" class="hidden items-center gap-1 bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all" title="เมนูผู้ดูแลระบบ">
+                        <i data-lucide="settings" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400"></i> <span class="hidden sm:inline">Admin</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400"></i>
                     </button>
                     <div id="admin-menu" class="hidden absolute right-0 mt-1 w-64 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
                         <div class="px-3 py-2 text-[11px] text-slate-500 uppercase tracking-wider border-b border-slate-700 font-semibold">ตั้งค่าระบบ</div>
@@ -205,10 +243,10 @@
                         </button>
                     </div>
                 </div>
-                <button onclick="openHelp()" class="flex items-center gap-1 bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium transition-all" title="คู่มือการใช้งาน">
-                    <i data-lucide="help-circle" class="w-4 h-4 text-emerald-400"></i> คู่มือ
+                <button onclick="openHelp()" class="flex items-center gap-1 bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all" title="คู่มือการใช้งาน">
+                    <i data-lucide="help-circle" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400"></i> <span class="hidden md:inline">คู่มือ</span>
                 </button>
-                <div class="flex items-center gap-1 bg-slate-700 rounded-lg pl-2">
+                <div class="hidden md:flex items-center gap-1 bg-slate-700 rounded-lg pl-2">
                     <select id="paper-size" onchange="setPaperSize(this.value)" class="bg-slate-700 text-slate-200 text-sm py-1.5 pr-1 focus:outline-none cursor-pointer">
                         <option value="A4-landscape">A4 แนวนอน</option>
                         <option value="A4-portrait">A4 แนวตั้ง</option>
@@ -219,8 +257,8 @@
                         <i data-lucide="printer" class="w-4 h-4"></i> พิมพ์
                     </button>
                 </div>
-                <button id="btn-logout" onclick="logout()" class="flex items-center gap-1 bg-red-600/90 hover:bg-red-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all">
-                    <i data-lucide="log-out" class="w-4 h-4"></i> ออกจากระบบ
+                <button id="btn-logout" onclick="logout()" class="flex items-center gap-1 bg-red-600/90 hover:bg-red-500 text-white px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all" title="ออกจากระบบ">
+                    <i data-lucide="log-out" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i> <span class="hidden sm:inline">ออก</span>
                 </button>
             </div>
         </header>
@@ -244,32 +282,45 @@
             </div>
         </div>
 
-        <div class="flex flex-1 overflow-hidden">
-            <!-- Sidebar -->
-            <aside id="sidebar" class="no-print w-80 bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden shrink-0">
+        <div class="flex flex-1 overflow-hidden relative">
+            <!-- Sidebar Mobile Backdrop Overlay -->
+            <div id="sidebar-backdrop" class="sidebar-backdrop hidden lg:hidden" onclick="toggleMobileSidebar(false)"></div>
+
+            <!-- Sidebar (Drawer on mobile, fixed side panel on desktop) -->
+            <aside id="sidebar" class="no-print bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden shrink-0 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+                <!-- Mobile Header inside Sidebar with Close Button -->
+                <div class="lg:hidden flex items-center justify-between p-3 border-b border-slate-700 bg-slate-850 shrink-0">
+                    <span class="font-bold text-sm text-emerald-400 flex items-center gap-2">
+                        <i data-lucide="layers" class="w-4 h-4"></i> เมนู & รายการอุปกรณ์
+                    </span>
+                    <button type="button" onclick="toggleMobileSidebar(false)" class="p-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white" title="ปิดเมนู">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
                 <!-- Map Selector -->
-                <div class="p-3 border-b border-slate-700">
+                <div class="p-3 border-b border-slate-700 shrink-0">
                     <label class="text-xs text-slate-400 font-medium uppercase tracking-wider flex items-center justify-between">
                         <span>เลือกแผนผัง</span>
                         <span id="map-device-count" class="text-[11px] text-emerald-400 font-normal"></span>
                     </label>
-                    <div id="map-selector" class="mt-2 flex flex-wrap gap-1.5 max-h-24 overflow-y-auto"></div>
+                    <div id="map-selector" class="mt-2 flex flex-wrap gap-1.5 max-h-28 overflow-y-auto"></div>
                 </div>
 
                 <!-- Device Type Filter -->
-                <div class="p-3 border-b border-slate-700">
+                <div class="p-3 border-b border-slate-700 shrink-0">
                     <label class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-2 block">ชนิดอุปกรณ์ (Type)</label>
                     <div id="type-filter" class="flex flex-wrap gap-1"></div>
                 </div>
 
                 <!-- Department / Group Filter -->
-                <div class="p-3 border-b border-slate-700">
+                <div class="p-3 border-b border-slate-700 shrink-0">
                     <label class="text-xs text-slate-400 font-medium uppercase tracking-wider mb-2 block">แผนก / กลุ่มอุปกรณ์</label>
                     <div id="group-filter" class="flex flex-wrap gap-1 max-h-24 overflow-y-auto"></div>
                 </div>
 
                 <!-- Search Box -->
-                <div class="p-2 border-b border-slate-700 bg-slate-800/60 flex items-center gap-1.5">
+                <div class="p-2 border-b border-slate-700 bg-slate-800/60 flex items-center gap-1.5 shrink-0">
                     <div class="relative flex-1">
                         <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
                         <input type="text" id="device-search" oninput="renderDeviceList()" placeholder="ค้นหารหัส, ชื่อ, IP, ยี่ห้อ..." class="w-full pl-8 pr-3 py-1.5 bg-slate-700/80 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
@@ -284,26 +335,26 @@
             </aside>
 
             <!-- Main Map Area + Bookmarks -->
-            <main class="flex-1 overflow-hidden flex flex-row">
+            <main class="flex-1 overflow-hidden flex flex-row relative">
                 <!-- Map View Area -->
-                <div class="flex-1 overflow-auto p-4">
+                <div class="flex-1 overflow-auto p-2 sm:p-4">
                     <div id="print-area" class="print-area h-full w-full relative">
                         <div id="print-header" class="print-only">
                             <div class="print-title">IT Asset Map - แผนผังอุปกรณ์ไอที</div>
                             <div class="print-sub" id="print-subtitle"></div>
                             <div class="print-summary" id="print-summary"></div>
                         </div>
-                        <div class="absolute bottom-4 right-4 z-40 flex flex-col gap-2 bg-slate-800/90 p-2 rounded-xl border border-slate-700 shadow-xl backdrop-blur-sm no-print items-center">
-                            <button onclick="zoomMap(50)" class="p-2 hover:bg-slate-600 rounded-lg text-slate-200 transition-colors" title="ซูมเข้า (Zoom In)"><i data-lucide="zoom-in" class="w-5 h-5"></i></button>
-                            <span id="zoom-level-text" class="text-xs font-mono font-bold text-slate-300">100%</span>
-                            <button onclick="resetZoom()" class="p-2 hover:bg-slate-600 rounded-lg text-slate-200 transition-colors" title="รีเซ็ตขนาด (Reset Zoom)"><i data-lucide="maximize" class="w-5 h-5"></i></button>
-                            <button onclick="zoomMap(-50)" class="p-2 hover:bg-slate-600 rounded-lg text-slate-200 transition-colors" title="ซูมออก (Zoom Out)"><i data-lucide="zoom-out" class="w-5 h-5"></i></button>
+                        <div class="absolute bottom-16 sm:bottom-4 right-3 sm:right-4 z-40 flex flex-col gap-1.5 sm:gap-2 bg-slate-800/90 p-1.5 sm:p-2 rounded-xl border border-slate-700 shadow-xl backdrop-blur-sm no-print items-center">
+                            <button onclick="zoomMap(50)" class="p-1.5 sm:p-2 hover:bg-slate-600 rounded-lg text-slate-200 transition-colors" title="ซูมเข้า (Zoom In)"><i data-lucide="zoom-in" class="w-4 h-4 sm:w-5 sm:h-5"></i></button>
+                            <span id="zoom-level-text" class="text-[11px] sm:text-xs font-mono font-bold text-slate-300">100%</span>
+                            <button onclick="resetZoom()" class="p-1.5 sm:p-2 hover:bg-slate-600 rounded-lg text-slate-200 transition-colors" title="รีเซ็ตขนาด (Reset Zoom)"><i data-lucide="maximize" class="w-4 h-4 sm:w-5 sm:h-5"></i></button>
+                            <button onclick="zoomMap(-50)" class="p-1.5 sm:p-2 hover:bg-slate-600 rounded-lg text-slate-200 transition-colors" title="ซูมออก (Zoom Out)"><i data-lucide="zoom-out" class="w-4 h-4 sm:w-5 sm:h-5"></i></button>
                         </div>
                         <div id="map-viewport" class="floor-plan-container rounded-xl w-full h-full overflow-auto bg-slate-900 block relative">
-                            <div id="floor-plan-placeholder" class="flex flex-col items-center justify-center h-full w-full text-slate-400 absolute inset-0 z-0 pointer-events-none">
-                                <i data-lucide="map" class="w-16 h-16 mb-3 opacity-50"></i>
-                                <p class="text-lg">ยังไม่มีแผนผัง</p>
-                                <p class="text-sm mt-1">เลือกแผนผังจากเมนูด้านซ้าย หรืออัปโหลดแผนผังใหม่</p>
+                            <div id="floor-plan-placeholder" class="flex flex-col items-center justify-center h-full w-full text-slate-400 absolute inset-0 z-0 pointer-events-none p-4 text-center">
+                                <i data-lucide="map" class="w-12 h-12 sm:w-16 sm:h-16 mb-3 opacity-50"></i>
+                                <p class="text-base sm:text-lg">ยังไม่มีแผนผัง</p>
+                                <p class="text-xs sm:text-sm mt-1">เลือกแผนผังจากเมนูด้านซ้าย หรืออัปโหลดแผนผังใหม่</p>
                             </div>
                             <div id="map-content" class="relative z-10" style="width: 100%;">
                                 <img id="floor-plan-img" class="w-full h-auto block hidden shadow-2xl" alt="Floor Plan">
@@ -314,17 +365,32 @@
                 </div>
 
                 <!-- Bookmarks Panel (Right Side: Device Photo Gallery) -->
-                <div id="bookmarks-panel" class="no-print shrink-0 bg-slate-800 border-l border-slate-700 hidden flex-col" style="width: 360px;">
-                    <div class="flex items-center justify-between px-3 py-2.5 border-b border-slate-700 bg-slate-800/80">
+                <div id="bookmarks-panel" class="no-print shrink-0 bg-slate-800 border-l border-slate-700 hidden flex-col fixed inset-y-0 right-0 z-40 lg:static w-full max-w-sm lg:w-[360px] shadow-2xl lg:shadow-none">
+                    <div class="flex items-center justify-between px-3 py-2.5 border-b border-slate-700 bg-slate-800/90">
                         <span class="text-xs text-slate-300 font-semibold uppercase tracking-wider flex items-center gap-1.5">
                             <i data-lucide="bookmark" class="w-4 h-4 text-amber-400"></i> อุปกรณ์ที่ปักหมุด
                         </span>
                         <div class="flex items-center gap-1">
                             <button onclick="clearAllBookmarks()" class="text-[11px] text-slate-400 hover:text-red-400 px-1.5 py-0.5 rounded transition-colors" title="ล้างหมุดทั้งหมด">ล้างทั้งหมด</button>
-                            <button onclick="toggleBookmarksPanel()" class="text-slate-400 hover:text-slate-200 p-1"><i data-lucide="chevron-right" class="w-4 h-4" id="bookmarks-toggle-icon"></i></button>
+                            <button onclick="toggleBookmarksPanel()" class="text-slate-400 hover:text-slate-200 p-1"><i data-lucide="x" class="w-4 h-4 lg:hidden" id="bookmarks-close-icon"></i><i data-lucide="chevron-right" class="w-4 h-4 hidden lg:inline" id="bookmarks-toggle-icon"></i></button>
                         </div>
                     </div>
                     <div id="bookmarks-streams" class="flex flex-col gap-3 p-3 overflow-y-auto flex-1"></div>
+                </div>
+
+                <!-- Mobile Floating Quick-Action Bar at Bottom -->
+                <div class="lg:hidden no-print fixed bottom-3 left-1/2 -translate-x-1/2 z-30 bg-slate-800/95 border border-slate-700 rounded-full px-4 py-2 shadow-2xl backdrop-blur-md flex items-center gap-3 text-xs font-medium text-slate-200">
+                    <button type="button" onclick="toggleMobileSidebar(true)" class="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300">
+                        <i data-lucide="layers" class="w-4 h-4"></i> เมนู/อุปกรณ์
+                    </button>
+                    <div class="h-4 w-[1px] bg-slate-700"></div>
+                    <button type="button" onclick="focusMobileSearch()" class="flex items-center gap-1.5 text-slate-300 hover:text-white">
+                        <i data-lucide="search" class="w-4 h-4 text-cyan-400"></i> ค้นหา
+                    </button>
+                    <div class="h-4 w-[1px] bg-slate-700"></div>
+                    <button type="button" onclick="toggleBookmarksPanel()" class="flex items-center gap-1.5 text-amber-400 hover:text-amber-300">
+                        <i data-lucide="bookmark" class="w-4 h-4"></i> หมุด (<span id="mobile-bookmark-count">0</span>)
+                    </button>
                 </div>
             </main>
         </div>
@@ -332,29 +398,29 @@
 
     <!-- Device Manager Modal (Admin: Manage All Devices) -->
     <div id="modal-devices" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
-        <div class="bg-slate-800 rounded-2xl w-full max-w-6xl mx-4 border border-slate-700 shadow-2xl flex flex-col" style="max-height: 90vh;">
+        <div class="bg-slate-800 rounded-2xl w-full max-w-6xl mx-2 sm:mx-4 border border-slate-700 shadow-2xl flex flex-col" style="max-height: 94vh;">
             <!-- Modal Header -->
-            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0 bg-slate-850">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                        <i data-lucide="monitor" class="w-5 h-5"></i>
+            <div class="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b border-slate-700 shrink-0 bg-slate-850 gap-2">
+                <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                        <i data-lucide="monitor" class="w-4 h-4 sm:w-5 sm:h-5"></i>
                     </div>
-                    <div>
-                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                            จัดการข้อมูลอุปกรณ์ไอที (Device Management)
-                            <span id="dev-mgr-total-badge" class="text-xs bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 px-2.5 py-0.5 rounded-full font-mono font-medium"></span>
+                    <div class="min-w-0">
+                        <h3 class="text-sm sm:text-lg font-bold text-white flex items-center gap-1.5 sm:gap-2 truncate">
+                            <span class="truncate">จัดการข้อมูลอุปกรณ์ไอที</span>
+                            <span id="dev-mgr-total-badge" class="text-[10px] sm:text-xs bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 px-2 py-0.2 rounded-full font-mono font-medium shrink-0"></span>
                         </h3>
-                        <p class="text-xs text-slate-400">เพิ่ม, แก้ไข, ลบ และตรวจสอบสถานะหรือพิกัดของอุปกรณ์ทั้งหมด</p>
+                        <p class="text-[11px] sm:text-xs text-slate-400 truncate hidden xs:block">เพิ่ม, แก้ไข, ลบ และตรวจสอบสถานะหรือพิกัดของอุปกรณ์ทั้งหมด</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" onclick="checkAirtableStatus()" class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs px-3 py-2 rounded-xl font-medium transition-all border border-slate-600" title="ตรวจสอบว่าระบบเชื่อมต่อกับ Base และตารางใด">
-                        <i data-lucide="database" class="w-4 h-4 text-cyan-400"></i> ตรวจสอบ Airtable
+                <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    <button type="button" onclick="checkAirtableStatus()" class="hidden md:flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl font-medium transition-all border border-slate-600" title="ตรวจสอบ Airtable">
+                        <i data-lucide="database" class="w-3.5 h-3.5 text-cyan-400"></i> ตรวจสอบ Airtable
                     </button>
-                    <button onclick="openAddDevice()" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3.5 py-2 rounded-xl font-semibold transition-all shadow-lg shadow-emerald-900/30">
-                        <i data-lucide="plus-circle" class="w-4 h-4"></i> เพิ่มอุปกรณ์ใหม่
+                    <button onclick="openAddDevice()" class="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-semibold transition-all shadow-lg shadow-emerald-900/30">
+                        <i data-lucide="plus-circle" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i> <span class="hidden sm:inline">เพิ่มอุปกรณ์ใหม่</span><span class="sm:hidden">เพิ่ม</span>
                     </button>
-                    <button onclick="closeModal('modal-devices')" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-700 transition-colors">
+                    <button onclick="closeModal('modal-devices')" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-700 transition-colors">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
@@ -427,15 +493,15 @@
 
     <!-- Add/Edit Device Modal -->
     <div id="modal-camera" class="fixed inset-0 z-[60] hidden items-center justify-center modal-overlay">
-        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-lg mx-4 border border-slate-700 shadow-2xl max-h-[92vh] overflow-y-auto">
-            <h3 id="modal-camera-title" class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+        <div class="bg-slate-800 rounded-2xl p-4 sm:p-6 w-full max-w-lg mx-2 sm:mx-4 border border-slate-700 shadow-2xl max-h-[92vh] overflow-y-auto">
+            <h3 id="modal-camera-title" class="text-base sm:text-lg font-bold text-white mb-4 flex items-center gap-2">
                 <i data-lucide="plus-circle" class="w-5 h-5 text-emerald-400"></i>
                 <span>เพิ่มอุปกรณ์ไอที</span>
             </h3>
             <form id="camera-form" class="space-y-3" onsubmit="saveCamera(event)">
                 <input type="hidden" id="cam-edit-rec-id">
                 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="cam-id" class="text-xs text-slate-400 font-medium">รหัสทรัพย์สิน / รหัสอุปกรณ์ (Asset Code) *</label>
                         <input id="cam-id" type="text" required placeholder="เช่น PC-001, NB-IT-01, ACC-2024-001" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500">
@@ -457,7 +523,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="cam-brand" class="text-xs text-slate-400">ยี่ห้อ (Brand)</label>
                         <input id="cam-brand" type="text" placeholder="เช่น Dell, HP, Cisco, Canon" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
@@ -468,7 +534,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="cam-serial" class="text-xs text-slate-400">หมายเลขเครื่อง (Serial Number)</label>
                         <input id="cam-serial" type="text" placeholder="S/N" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500">
@@ -489,7 +555,7 @@
                     <select id="cam-department" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="cam-eng-name" class="text-xs text-slate-400">ชื่อทรัพย์สิน / อุปกรณ์ (Asset Name)</label>
                         <input id="cam-eng-name" type="text" placeholder="เช่น Computer Dell OptiPlex, Core Switch" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
@@ -505,7 +571,7 @@
                     <select id="cam-map-id" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="cam-ip" class="text-xs text-slate-400">IP Address</label>
                         <input id="cam-ip" type="text" placeholder="เช่น 192.168.1.50" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500">
@@ -1480,6 +1546,9 @@
             renderCameras();
             renderCameraList();
             renderGroupFilter();
+            if (window.innerWidth < 1024) {
+                toggleMobileSidebar(false);
+            }
         }
 
         // ─── DEVICE FILTERING ───
@@ -1755,6 +1824,7 @@
 
                 div.onclick = (e) => {
                     if (e.target.closest('button')) return;
+                    if (window.innerWidth < 1024) toggleMobileSidebar(false);
                     showCameraDetail(cam);
                 };
 
@@ -1949,17 +2019,17 @@
                     </div>
                     
                     <form id="detail-form" class="space-y-3" onsubmit="saveDetailEdit(event, '${cam._recordId}')">
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div><label class="text-xs text-slate-400">รหัสทรัพย์สิน (Asset Code)</label><input type="text" id="detail-id" value="${cam.asset_code || cam.account_no || cam.id || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono font-semibold focus:outline-none focus:border-emerald-500"></div>
                             <div><label class="text-xs text-slate-400">ชนิดอุปกรณ์ (Type)</label><select id="detail-type" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">${typeOpts}</select></div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div><label class="text-xs text-slate-400">ยี่ห้อ (Brand)</label><input type="text" id="detail-brand" value="${cam.brand || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
                             <div><label class="text-xs text-slate-400">รุ่น (Model)</label><input type="text" id="detail-model" value="${cam.model || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div><label class="text-xs text-slate-400">Serial Number</label><input type="text" id="detail-serial" value="${cam.serial || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
                             <div><label class="text-xs text-slate-400">สถานะ</label>
                                 <select id="detail-status" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
@@ -1971,17 +2041,17 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div><label class="text-xs text-slate-400">แผนก / หน่วยงาน</label><select id="detail-department" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"><option value="">--</option>${deptOpts}</select></div>
                             <div><label class="text-xs text-slate-400">แผนผัง</label><select id="detail-map-id" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">${mapOpts}</select></div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div><label class="text-xs text-slate-400">ชื่อทรัพย์สิน / อุปกรณ์ (Asset Name)</label><input type="text" id="detail-eng-name" value="${cam.asset_name || cam.eng_name || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
                             <div><label class="text-xs text-slate-400">ผู้ถือครอง / ผู้ใช้งาน (Holder)</label><input type="text" id="detail-thai-name" value="${cam.holder || cam.thai_name || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div><label class="text-xs text-slate-400">IP Address</label><input type="text" id="detail-ip" value="${cam.ip || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
                             <div><label class="text-xs text-slate-400">MAC Address</label><input type="text" id="detail-mac" value="${cam.mac_address || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
                         </div>
@@ -2152,6 +2222,8 @@
         function renderBookmarks() {
             const panel = document.getElementById('bookmarks-panel');
             const container = document.getElementById('bookmarks-streams');
+            const mobileCount = document.getElementById('mobile-bookmark-count');
+            if (mobileCount) mobileCount.textContent = bookmarks.length;
             if (bookmarks.length === 0) { panel.classList.add('hidden'); panel.classList.remove('flex'); return; }
             panel.classList.remove('hidden');
             panel.classList.add('flex');
@@ -3177,9 +3249,41 @@
             document.getElementById('zoom-level-text').textContent = '100%';
         }
 
-        // ─── MAP PAN & WHEEL ZOOM ───
+        // ─── MOBILE SIDEBAR TOGGLE ───
+        let isMobileSidebarOpen = false;
+        function toggleMobileSidebar(show) {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            if (!sidebar || !backdrop) return;
+            if (typeof show === 'boolean') {
+                isMobileSidebarOpen = show;
+            } else {
+                isMobileSidebarOpen = !isMobileSidebarOpen;
+            }
+
+            if (isMobileSidebarOpen) {
+                sidebar.classList.remove('-translate-x-full');
+                backdrop.classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                backdrop.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            }
+        }
+
+        function focusMobileSearch() {
+            toggleMobileSidebar(true);
+            setTimeout(() => {
+                const searchInput = document.getElementById('device-search');
+                if (searchInput) searchInput.focus();
+            }, 300);
+        }
+
+        // ─── MAP PAN & WHEEL / TOUCH ZOOM ───
         const viewport = document.getElementById('map-viewport');
         if (viewport) {
+            // Mouse Wheel Zoom
             viewport.addEventListener('wheel', (e) => {
                 e.preventDefault();
                 const rect = viewport.getBoundingClientRect();
@@ -3189,6 +3293,7 @@
                 zoomMap(delta, mouseX, mouseY);
             }, { passive: false });
 
+            // Mouse Drag Pan
             let isPanning = false, panStartX = 0, panStartY = 0, scrollStartX = 0, scrollStartY = 0;
 
             viewport.addEventListener('mousedown', (e) => {
@@ -3217,6 +3322,67 @@
             });
 
             viewport.style.cursor = 'grab';
+
+            // ─── TOUCH GESTURES FOR MOBILE (Pan & Pinch-to-Zoom) ───
+            let touchStartX = 0, touchStartY = 0, touchScrollX = 0, touchScrollY = 0;
+            let initialPinchDistance = 0, initialPinchZoom = 100, isTouching = false;
+
+            viewport.addEventListener('touchstart', (e) => {
+                if (e.target.closest('.device-dot') || e.target.closest('button')) return;
+                if (e.touches.length === 1) {
+                    isTouching = true;
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                    touchScrollX = viewport.scrollLeft;
+                    touchScrollY = viewport.scrollTop;
+                } else if (e.touches.length === 2) {
+                    isTouching = true;
+                    initialPinchDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    initialPinchZoom = currentZoom;
+                }
+            }, { passive: true });
+
+            viewport.addEventListener('touchmove', (e) => {
+                if (!isTouching) return;
+                if (e.touches.length === 1) {
+                    const dx = e.touches[0].clientX - touchStartX;
+                    const dy = e.touches[0].clientY - touchStartY;
+                    viewport.scrollLeft = touchScrollX - dx;
+                    viewport.scrollTop = touchScrollY - dy;
+                } else if (e.touches.length === 2 && initialPinchDistance > 0) {
+                    e.preventDefault();
+                    const currentDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    const scale = currentDistance / initialPinchDistance;
+                    const targetZoom = Math.max(20, Math.min(1000, Math.round(initialPinchZoom * scale)));
+                    if (targetZoom !== currentZoom) {
+                        const content = document.getElementById('map-content');
+                        if (content) {
+                            currentZoom = targetZoom;
+                            content.style.width = `${currentZoom}%`;
+                            const zoomEl = document.getElementById('zoom-level-text');
+                            if (zoomEl) zoomEl.textContent = `${currentZoom}%`;
+                        }
+                    }
+                }
+            }, { passive: false });
+
+            viewport.addEventListener('touchend', (e) => {
+                if (e.touches.length === 0) {
+                    isTouching = false;
+                    initialPinchDistance = 0;
+                } else if (e.touches.length === 1) {
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                    touchScrollX = viewport.scrollLeft;
+                    touchScrollY = viewport.scrollTop;
+                }
+            }, { passive: true });
         }
 
         lucide.createIcons();
