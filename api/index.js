@@ -96,6 +96,104 @@ function deleteLocalMaintenance(id) {
   return store.length < initialLen;
 }
 
+// ─── CSV File Fallback & Synchronization ───
+function getCsvFilePath(tableName) {
+  const t = (tableName || '').toLowerCase().replace(/\.csv$/, '');
+  const fileMap = {
+    device: 'device.csv',
+    devices: 'device.csv',
+    camera: 'device.csv',
+    cameras: 'device.csv',
+    asset: 'device.csv',
+    assets: 'device.csv',
+    map: 'map.csv',
+    maps: 'map.csv',
+    department: 'department.csv',
+    departments: 'department.csv',
+    user: 'user.csv',
+    users: 'user.csv'
+  };
+  const filename = fileMap[t] || `${t}.csv`;
+  const candidates = [
+    path.join(process.cwd(), filename),
+    path.join(__dirname, '..', filename),
+    path.join(__dirname, filename),
+    path.join('/home/itcm/Downloads/Project1/asset/asset_map', filename)
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return null;
+}
+
+function parseCsvLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+function loadCsvRecords(tableName) {
+  const filePath = getCsvFilePath(tableName);
+  if (!filePath) return [];
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const lines = content.split(/\r?\n/).filter(l => l.trim().length > 0);
+    if (lines.length < 2) return [];
+
+    const headers = parseCsvLine(lines[0]);
+    const records = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = parseCsvLine(lines[i]);
+      if (values.length === 0) continue;
+      const row = {};
+      for (let j = 0; j < headers.length; j++) {
+        row[headers[j]] = values[j] !== undefined ? values[j] : '';
+      }
+      records.push(row);
+    }
+    return records;
+  } catch (_) {
+    return [];
+  }
+}
+
+let cachedDeviceCsvLookup = null;
+function getDeviceCsvLookup() {
+  if (cachedDeviceCsvLookup) return cachedDeviceCsvLookup;
+  const list = loadCsvRecords('device');
+  const codeMap = new Map();
+  const ipMap = new Map();
+  const nameMap = new Map();
+  for (const r of list) {
+    const code = (r.asset_code || r.id || r.code || '').trim();
+    const ip = (r.ip || '').trim();
+    const name = (r.asset_name || r.eng_name || '').trim();
+    if (code) codeMap.set(code.toLowerCase(), r);
+    if (ip) ipMap.set(ip.toLowerCase(), r);
+    if (name) nameMap.set(name.toLowerCase(), r);
+  }
+  cachedDeviceCsvLookup = { list, codeMap, ipMap, nameMap };
+  return cachedDeviceCsvLookup;
+}
+
 function cleanToken(token) {
   let t = (token || '').trim();
   if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
@@ -355,15 +453,41 @@ function normalizeFields(table, fields, recordId = '') {
     if (Array.isArray(f.holder)) {
       rawHolder = f.holder.length > 0 ? (typeof f.holder[0] === 'object' && f.holder[0].name ? f.holder[0].name : String(f.holder[0])) : '';
     }
-    const holder = String(rawHolder || '').trim();
+    let devType = extractFieldValue(f, ['type', 'Type', 'ประเภท']) || 'Other';
+    let devStatus = extractFieldValue(f, ['status', 'Status', 'สถานะ']) || 'Active';
+    let devBrand = extractFieldValue(f, ['brand', 'Brand', 'ยี่ห้อ']);
+    let devModel = extractFieldValue(f, ['model', 'Model', 'รุ่น']);
+    let devSerial = extractFieldValue(f, ['serial', 'Serial', 'serial_number', 'Serial Number']);
+    let devIp = extractFieldValue(f, ['ip', 'IP', 'ip_address']);
+    let devMac = extractFieldValue(f, ['mac_address', 'MAC', 'mac']);
 
-    const devType = extractFieldValue(f, ['type', 'Type', 'ประเภท']) || 'Other';
-    const devStatus = extractFieldValue(f, ['status', 'Status', 'สถานะ']) || 'Active';
-    const devBrand = extractFieldValue(f, ['brand', 'Brand', 'ยี่ห้อ']);
-    const devModel = extractFieldValue(f, ['model', 'Model', 'รุ่น']);
-    const devSerial = extractFieldValue(f, ['serial', 'Serial', 'serial_number', 'Serial Number']);
-    const devIp = extractFieldValue(f, ['ip', 'IP', 'ip_address']);
-    const devMac = extractFieldValue(f, ['mac_address', 'MAC', 'mac']);
+    // Enrich missing fields from device.csv
+    try {
+      const lookup = getDeviceCsvLookup();
+      let csvMatch = null;
+      if (code && lookup.codeMap.has(code.toLowerCase())) {
+        csvMatch = lookup.codeMap.get(code.toLowerCase());
+      } else if (devIp && lookup.ipMap.has(devIp.toLowerCase())) {
+        csvMatch = lookup.ipMap.get(devIp.toLowerCase());
+      } else if (devSerial && lookup.list.some(r => r.serial && r.serial.toLowerCase() === devSerial.toLowerCase())) {
+        csvMatch = lookup.list.find(r => r.serial && r.serial.toLowerCase() === devSerial.toLowerCase());
+      } else if (name && lookup.nameMap.has(name.toLowerCase())) {
+        csvMatch = lookup.nameMap.get(name.toLowerCase());
+      }
+
+      if (csvMatch) {
+        if (!code || code === 'Other') code = csvMatch.asset_code || code;
+        if (!name || name === code) name = csvMatch.asset_name || csvMatch.eng_name || code;
+        if (!holder) holder = csvMatch.holder || csvMatch.thai_name || '';
+        if (!devSerial) devSerial = csvMatch.serial || '';
+        if (!devBrand) devBrand = csvMatch.brand || '';
+        if (!devModel) devModel = csvMatch.model || '';
+        if (!devDept) devDept = csvMatch.department || '';
+        if (!devType || devType === 'Other') devType = csvMatch.type || 'Camera';
+        if (!devIp) devIp = csvMatch.ip || '';
+        if (!devMac) devMac = csvMatch.mac_address || '';
+      }
+    } catch (_) {}
 
     return {
       ...f,
@@ -969,42 +1093,59 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
   const primaryField = schema ? schema.primaryField : null;
 
   if (t.startsWith('device') || t.startsWith('camera')) {
-    const codeVal = raw.asset_code || raw['Asset Code'] || raw.Asset_Code || raw['รหัสทรัพย์สิน'] || raw['รหัสอุปกรณ์'] || raw['รหัส'] || raw.account_no || raw.cam_id || raw.code || (raw.id && !raw.id.startsWith('rec') ? raw.id : '') || (raw.Name && !isLikelyDepartment(raw.Name) ? raw.Name : '') || '';
-    const nameVal = raw.asset_name || raw['Asset Name'] || raw.eng_name || codeVal;
-    const holderVal = raw.holder || raw.Holder || raw.thai_name || '';
-    const typeVal = raw.type || raw.Type || 'Other';
-    const statusVal = raw.status || raw.Status || 'Active';
-    const deptVal = raw.department || raw.Department || '';
-    const mapVal = raw.map_id || raw['Map ID'] || raw.map || '';
-    const brandVal = raw.brand || raw.Brand || '';
-    const modelVal = raw.model || raw.Model || '';
-    const serialVal = raw.serial || raw.Serial || raw.serial_number || '';
-    const ipVal = raw.ip || raw.IP || '';
-    const macVal = raw.mac_address || raw.MAC || raw.mac || '';
-    const imgVal = raw.image_url || raw.image || raw.Image || raw.photo || raw.picture || raw.go2rtc_link || raw['รูปภาพ'] || raw['ภาพ'] || '';
-    const xVal = raw.x != null && raw.x !== '' ? (parseFloat(raw.x) || 0) : null;
-    const yVal = raw.y != null && raw.y !== '' ? (parseFloat(raw.y) || 0) : null;
+    const hasField = (keys) => keys.some(k => raw[k] !== undefined && raw[k] !== null);
 
-    const result = {
-      asset_code: codeVal,
-      Name: codeVal || nameVal,
-      asset_name: nameVal,
-      holder: holderVal,
-      type: typeVal,
-      status: statusVal
-    };
-    if (deptVal) result.department = deptVal;
-    if (mapVal) result.map_id = mapVal;
-    if (brandVal) result.brand = brandVal;
-    if (modelVal) result.model = modelVal;
-    if (serialVal) result.serial = serialVal;
-    if (ipVal) result.ip = ipVal;
-    if (macVal) result.mac_address = macVal;
-    if (imgVal) result.image_url = imgVal;
-    if (xVal != null) result.x = xVal;
-    if (yVal != null) result.y = yVal;
+    const isCodeProvided = hasField(['asset_code', 'asset code', 'Asset Code', 'Asset_Code', 'Asset_code', 'asset-code', 'รหัสทรัพย์สิน', 'รหัสอุปกรณ์', 'รหัสเครื่อง', 'รหัส', 'code', 'Code', 'account_no', 'cam_id']);
+    const isNameProvided = hasField(['asset_name', 'asset name', 'Asset Name', 'Asset_Name', 'Asset_name', 'asset-name', 'eng_name', 'Name', 'name', 'ชื่ออุปกรณ์', 'ชื่อ']);
+    const isHolderProvided = hasField(['holder', 'Holder', 'thai_name', 'user', 'User', 'ผู้ถือครอง', 'ชื่อผู้ใช้']);
+    const isTypeProvided = hasField(['type', 'Type', 'ประเภท']);
+    const isStatusProvided = hasField(['status', 'Status', 'สถานะ']);
+    const isDeptProvided = hasField(['department', 'Department', 'dept', 'Dept', 'group', 'แผนก', 'ชื่อแผนก', 'ฝ่าย', 'หน่วยงาน']);
+    const isMapProvided = hasField(['map_id', 'Map ID', 'map', 'Map', 'ผัง']);
+    const isBrandProvided = hasField(['brand', 'Brand', 'ยี่ห้อ']);
+    const isModelProvided = hasField(['model', 'Model', 'รุ่น']);
+    const isSerialProvided = hasField(['serial', 'Serial', 'serial_number', 'Serial Number']);
+    const isIpProvided = hasField(['ip', 'IP', 'ip_address']);
+    const isMacProvided = hasField(['mac_address', 'mac', 'MAC']);
+    const isImgProvided = hasField(['image_url', 'image', 'Image', 'photo', 'picture', 'go2rtc_link', 'รูปภาพ', 'ภาพ']);
+    const isXProvided = raw.x !== undefined && raw.x !== null && raw.x !== '';
+    const isYProvided = raw.y !== undefined && raw.y !== null && raw.y !== '';
+
+    const codeVal = isCodeProvided ? (raw.asset_code || raw['Asset Code'] || raw.Asset_Code || raw['รหัสทรัพย์สิน'] || raw['รหัสอุปกรณ์'] || raw['รหัส'] || raw.account_no || raw.cam_id || raw.code || (raw.id && !raw.id.startsWith('rec') ? raw.id : '') || '') : '';
+    const nameVal = isNameProvided ? (raw.asset_name || raw['Asset Name'] || raw.eng_name || raw.Name || raw.name || raw['ชื่ออุปกรณ์'] || raw['ชื่อ'] || codeVal) : '';
+    const holderVal = isHolderProvided ? (raw.holder || raw.Holder || raw.thai_name || raw.user || raw['ผู้ถือครอง'] || raw['ชื่อผู้ใช้'] || '') : '';
+    const typeVal = isTypeProvided ? (raw.type || raw.Type || raw['ประเภท'] || 'Camera') : '';
+    const statusVal = isStatusProvided ? (raw.status || raw.Status || raw['สถานะ'] || 'Active') : '';
+    const deptVal = isDeptProvided ? (raw.department || raw.Department || raw.dept || raw['แผนก'] || '') : '';
+    const mapVal = isMapProvided ? String(raw.map_id || raw['Map ID'] || raw.map || '1') : '';
+    const brandVal = isBrandProvided ? (raw.brand || raw.Brand || raw['ยี่ห้อ'] || '') : '';
+    const modelVal = isModelProvided ? (raw.model || raw.Model || raw['รุ่น'] || '') : '';
+    const serialVal = isSerialProvided ? (raw.serial || raw.Serial || raw.serial_number || raw['Serial Number'] || '') : '';
+    const ipVal = isIpProvided ? (raw.ip || raw.IP || raw.ip_address || '') : '';
+    const macVal = isMacProvided ? (raw.mac_address || raw.MAC || raw.mac || '') : '';
+    const imgVal = isImgProvided ? (raw.image_url || raw.image || raw.Image || raw.photo || raw.picture || raw.go2rtc_link || raw['รูปภาพ'] || raw['ภาพ'] || '') : '';
+    const xVal = isXProvided ? (parseFloat(raw.x) || 0) : null;
+    const yVal = isYProvided ? (parseFloat(raw.y) || 0) : null;
+
+    const result = {};
+    if (isCodeProvided && codeVal) { result.asset_code = codeVal; result.Name = codeVal; }
+    if (isNameProvided && nameVal) { result.asset_name = nameVal; if (!result.Name) result.Name = nameVal; }
+    if (isHolderProvided) result.holder = holderVal;
+    if (isTypeProvided) result.type = typeVal;
+    if (isStatusProvided) result.status = statusVal;
+    if (isDeptProvided) result.department = deptVal;
+    if (isMapProvided) result.map_id = mapVal;
+    if (isBrandProvided) result.brand = brandVal;
+    if (isModelProvided) result.model = modelVal;
+    if (isSerialProvided) result.serial = serialVal;
+    if (isIpProvided) result.ip = ipVal;
+    if (isMacProvided) result.mac_address = macVal;
+    if (isImgProvided) result.image_url = imgVal;
+    if (isXProvided && xVal != null) result.x = xVal;
+    if (isYProvided && yVal != null) result.y = yVal;
 
     if (availableNames && availableNames.length > 0) {
+      const mapped = {};
       const codeCol = findMatchingAirtableFieldName(availableNames, ['asset_code', 'asset code', 'Asset Code', 'Asset_Code', 'รหัสทรัพย์สิน', 'รหัสอุปกรณ์', 'รหัสเครื่อง', 'รหัส', 'code', 'account_no', 'cam_id', 'id', 'Name']);
       const nameCol = findMatchingAirtableFieldName(availableNames, ['asset_name', 'asset name', 'Asset Name', 'Asset_Name', 'eng_name', 'thai_name', 'Name', 'name', 'ชื่ออุปกรณ์', 'ชื่อ']);
       const holderCol = findMatchingAirtableFieldName(availableNames, ['holder', 'Holder', 'thai_name', 'user', 'ผู้ถือครอง', 'ชื่อผู้ใช้']);
@@ -1026,30 +1167,26 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
       const xCol = findMatchingAirtableFieldName(availableNames, ['x', 'X', 'pos_x']);
       const yCol = findMatchingAirtableFieldName(availableNames, ['y', 'Y', 'pos_y']);
 
-      if (codeCol && codeCol !== 'asset_code' && codeVal) result[codeCol] = codeVal;
-      if (nameCol && nameCol !== 'asset_name' && nameVal) result[nameCol] = nameVal;
-      if (holderCol && holderCol !== 'holder' && holderVal) result[holderCol] = holderVal;
-      if (typeCol && typeCol !== 'type' && typeVal) result[typeCol] = typeVal;
-      if (statusCol && statusCol !== 'status' && statusVal) result[statusCol] = statusVal;
-      if (deptCol && deptCol !== 'department' && deptVal) result[deptCol] = deptVal;
-      if (mapCol && mapCol !== 'map_id' && mapVal) result[mapCol] = mapVal;
-      if (brandCol && brandCol !== 'brand' && brandVal) result[brandCol] = brandVal;
-      if (modelCol && modelCol !== 'model' && modelVal) result[modelCol] = modelVal;
-      if (serialCol && serialCol !== 'serial' && serialVal) result[serialCol] = serialVal;
-      if (ipCol && ipCol !== 'ip' && ipVal) result[ipCol] = ipVal;
-      if (macCol && macCol !== 'mac_address' && macVal) result[macCol] = macVal;
-      if (imgCol && imgVal) result[imgCol] = imgVal;
-      if (xCol && xCol !== 'x' && xVal != null) result[xCol] = xVal;
-      if (yCol && yCol !== 'y' && yVal != null) result[yCol] = yVal;
+      if (isCodeProvided && codeCol && codeVal) mapped[codeCol] = codeVal;
+      if (isNameProvided && nameCol && nameVal) mapped[nameCol] = nameVal;
+      if (isHolderProvided && holderCol) mapped[holderCol] = holderVal;
+      if (isTypeProvided && typeCol) mapped[typeCol] = typeVal;
+      if (isStatusProvided && statusCol) mapped[statusCol] = statusVal;
+      if (isDeptProvided && deptCol) mapped[deptCol] = deptVal;
+      if (isMapProvided && mapCol) mapped[mapCol] = mapVal;
+      if (isBrandProvided && brandCol) mapped[brandCol] = brandVal;
+      if (isModelProvided && modelCol) mapped[modelCol] = modelVal;
+      if (isSerialProvided && serialCol) mapped[serialCol] = serialVal;
+      if (isIpProvided && ipCol) mapped[ipCol] = ipVal;
+      if (isMacProvided && macCol) mapped[macCol] = macVal;
+      if (isImgProvided && imgCol && imgVal) mapped[imgCol] = imgVal;
+      if (isXProvided && xCol && xVal != null) mapped[xCol] = xVal;
+      if (isYProvided && yCol && yVal != null) mapped[yCol] = yVal;
 
-      // Always populate Name column if present in table
-      const nameColExplicit = availableNames.find(n => n.trim().toLowerCase() === 'name');
-      if (nameColExplicit && !result[nameColExplicit]) {
-        result[nameColExplicit] = codeVal || nameVal;
+      if ((isCodeProvided || isNameProvided) && primaryField && primaryField.name && !mapped[primaryField.name]) {
+        mapped[primaryField.name] = codeVal || nameVal;
       }
-      if (primaryField && primaryField.name && !result[primaryField.name]) {
-        result[primaryField.name] = codeVal || nameVal;
-      }
+      return mapped;
     }
 
     return result;
@@ -1289,6 +1426,75 @@ module.exports = async (req, res) => {
       all403,
       any404,
       tables: tableResults
+    });
+  }
+
+  // ─── RESTORE / SYNC FROM CSV TO AIRTABLE ───
+  if (query.action === 'restore_csv' || query.action === 'restore_devices' || (req.method === 'POST' && req.body && (req.body.action === 'restore_csv' || req.body.action === 'restore_devices'))) {
+    const targetTable = await resolveWorkingTable(baseId, token, 'device');
+    const csvRecords = loadCsvRecords('device');
+    if (!csvRecords || csvRecords.length === 0) {
+      return res.status(400).json({ error: 'ไม่พบไฟล์ device.csv หรือไม่มีข้อมูลในไฟล์' });
+    }
+
+    const existing = await fetchAllRecords(baseId, token, [targetTable], null, 'device');
+    const existingRecords = existing.ok ? existing.records : [];
+
+    let updatedCount = 0;
+    let createdCount = 0;
+    const errors = [];
+
+    const existingMap = new Map();
+    for (const er of existingRecords) {
+      const ef = er.fields || {};
+      const eCode = String(ef.asset_code || ef['Asset Code'] || ef.account_no || ef.code || ef.Name || ef.name || ef.id || '').trim().toLowerCase();
+      if (eCode && !eCode.startsWith('rec')) existingMap.set(eCode, er.id);
+      if (ef.ip) existingMap.set(`ip:${ef.ip}`, er.id);
+    }
+
+    const matchByOrder = existingRecords.length > 0 && existingMap.size === 0;
+
+    for (let i = 0; i < csvRecords.length; i++) {
+      const row = csvRecords[i];
+      try {
+        const code = (row.asset_code || row.id || '').trim();
+        const ip = (row.ip || '').trim();
+        let existingId = null;
+        if (code && existingMap.has(code.toLowerCase())) {
+          existingId = existingMap.get(code.toLowerCase());
+        } else if (ip && existingMap.has(`ip:${ip}`)) {
+          existingId = existingMap.get(`ip:${ip}`);
+        } else if (matchByOrder && existingRecords[i]) {
+          existingId = existingRecords[i].id;
+        }
+
+        const preparedFields = await prepareFieldsForTable(baseId, token, 'device', targetTable, row);
+
+        if (existingId) {
+          const patchUrl = `${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(targetTable)}/${encodeURIComponent(existingId)}`;
+          const writeRes = await writeAirtableWithRetry(patchUrl, 'PATCH', token, preparedFields);
+          if (writeRes.ok) updatedCount++;
+          else errors.push(`Record ${code || i}: ${JSON.stringify(writeRes.data)}`);
+        } else {
+          const postUrl = `${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(targetTable)}`;
+          const writeRes = await writeAirtableWithRetry(postUrl, 'POST', token, preparedFields);
+          if (writeRes.ok) createdCount++;
+          else errors.push(`Record ${code || i}: ${JSON.stringify(writeRes.data)}`);
+        }
+      } catch (err) {
+        errors.push(err.message);
+      }
+    }
+
+    return res.status(200).json({
+      ok: true,
+      totalCsv: csvRecords.length,
+      updatedCount,
+      createdCount,
+      totalProcessed: updatedCount + createdCount,
+      targetTable,
+      errors: errors.slice(0, 5),
+      message: `กู้คืนข้อมูลอุปกรณ์ลง Airtable สำเร็จ: อัปเดต ${updatedCount} รายการ, สร้างใหม่ ${createdCount} รายการ (รวม ${updatedCount + createdCount} จาก ${csvRecords.length} รายการ)`
     });
   }
 

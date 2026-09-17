@@ -448,6 +448,9 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    <button type="button" onclick="restoreDevicesFromCsv()" class="flex items-center gap-1.5 bg-cyan-900/60 hover:bg-cyan-800 text-cyan-300 hover:text-white text-xs px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl font-medium transition-all border border-cyan-700/60" title="กู้คืนข้อมูลอุปกรณ์ทั้งหมดจาก CSV เข้าสู่ Airtable">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-cyan-400"></i> <span class="hidden sm:inline">กู้คืนข้อมูลจาก CSV</span><span class="sm:hidden">กู้คืน</span>
+                    </button>
                     <button type="button" onclick="checkAirtableStatus()" class="hidden md:flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl font-medium transition-all border border-slate-600" title="ตรวจสอบ Airtable">
                         <i data-lucide="database" class="w-3.5 h-3.5 text-cyan-400"></i> ตรวจสอบ Airtable
                     </button>
@@ -3294,6 +3297,41 @@
                 alert(msg);
             } catch (err) {
                 alert('ไม่สามารถตรวจสอบสถานะ Airtable: ' + err.message);
+            }
+        }
+
+        async function restoreDevicesFromCsv() {
+            if (!confirm('ยืนยันการกู้คืนข้อมูลอุปกรณ์ทั้งหมด 166 รายการจากไฟล์ CSV เข้าสู่ Airtable หรือไม่?\n(ระบบจะอัปเดต asset_code, serial, asset_name, holder, type, brand, model ฯลฯ ให้ตรงกับข้อมูลต้นฉบับ)')) {
+                return;
+            }
+            const origText = 'กู้คืนข้อมูลจาก CSV';
+            const btn = document.querySelector('button[onclick="restoreDevicesFromCsv()"]');
+            try {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> กำลังกู้คืน...';
+                    if (window.lucide) lucide.createIcons();
+                }
+
+                const res = await fetch(`${API_BASE}?table=device&action=restore_csv`);
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.error || 'เกิดข้อผิดพลาดในการกู้คืน');
+                }
+
+                alert(data.message || 'กู้คืนข้อมูลอุปกรณ์ลง Airtable เรียบร้อยแล้ว');
+                await fetchDevices();
+                renderDeviceManagerList();
+                renderMapCameras();
+            } catch (err) {
+                console.error('Failed to restore devices from CSV:', err);
+                alert('เกิดข้อผิดพลาด: ' + err.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-cyan-400"></i> <span class="hidden sm:inline">${origText}</span><span class="sm:hidden">กู้คืน</span>`;
+                    if (window.lucide) lucide.createIcons();
+                }
             }
         }
 
