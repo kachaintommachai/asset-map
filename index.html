@@ -7,6 +7,7 @@
     <title>IT Asset Map - แผนผังอุปกรณ์ไอที</title>
     <script src="asset/vendor/tailwindcss.js"></script>
     <script src="asset/vendor/lucide.min.js"></script>
+    <script src="asset/vendor/qrcode.min.js"></script>
     <link rel="stylesheet" href="asset/vendor/fonts/font.css">
     <style>
         * { font-family: 'IBM Plex Sans Thai', sans-serif; }
@@ -111,6 +112,27 @@
             #floor-plan-img { width: 100% !important; height: auto !important; box-shadow: none !important; }
             .device-dot { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
             .device-dot .dot-label { color: #000 !important; background: transparent !important; font-weight: 600 !important; }
+
+            /* QR Code Sticker Print Mode */
+            body.print-qr-mode * { visibility: hidden !important; }
+            body.print-qr-mode #qr-sticker-tag,
+            body.print-qr-mode #qr-sticker-tag * { visibility: visible !important; }
+            body.print-qr-mode #qr-sticker-tag {
+                position: fixed !important;
+                left: 50% !important;
+                top: 50% !important;
+                transform: translate(-50%, -50%) !important;
+                width: 90mm !important;
+                max-width: 100% !important;
+                border: 2px solid #000 !important;
+                padding: 4mm !important;
+                background: #fff !important;
+                color: #000 !important;
+                box-sizing: border-box !important;
+                border-radius: 4px !important;
+                display: flex !important;
+                box-shadow: none !important;
+            }
         }
         .dragging { opacity: 0.6; }
         .floor-plan-container { position: relative; background: #0f172a; border: 2px dashed #334155; min-height: 400px; overflow: auto; }
@@ -762,9 +784,93 @@
 
     <!-- Device Detail Modal (เปลี่ยน Live View เป็นภาพอุปกรณ์ไอที) -->
     <div id="modal-detail" class="fixed inset-0 z-[60] hidden items-center justify-center modal-overlay">
-        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-md mx-4 border border-slate-700 shadow-2xl max-h-[92vh] overflow-y-auto">
+        <div class="bg-slate-800 rounded-2xl p-4 sm:p-6 w-full max-w-md mx-3 sm:mx-4 border border-slate-700 shadow-2xl max-h-[92vh] overflow-y-auto">
             <div id="detail-content"></div>
             <button onclick="closeModal('modal-detail')" class="w-full mt-4 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium transition-all">ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
+    <!-- Asset QR Code & Printable Tag Modal -->
+    <div id="modal-qrcode" class="fixed inset-0 z-[75] hidden items-center justify-center modal-overlay">
+        <div class="bg-slate-800 rounded-2xl p-4 sm:p-6 w-full max-w-lg mx-3 sm:mx-4 border border-slate-700 shadow-2xl max-h-[94vh] overflow-y-auto flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-700 shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                        <i data-lucide="qr-code" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                            QR Code ป้ายทรัพย์สินไอที
+                        </h3>
+                        <span id="qr-modal-sub" class="text-xs text-slate-400">สแกนเพื่อเปิดดูข้อมูลอุปกรณ์ หรือพิมพ์ติดตัวเครื่อง</span>
+                    </div>
+                </div>
+                <button type="button" onclick="closeModal('modal-qrcode')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-700 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Printable IT Asset Sticker Tag Preview -->
+            <div class="bg-slate-900/80 p-3 sm:p-4 rounded-xl border border-slate-700 flex flex-col items-center justify-center mb-4">
+                <div id="qr-sticker-tag" class="w-full bg-white text-slate-900 rounded-xl p-4 border-2 border-slate-300 shadow-lg flex flex-col sm:flex-row items-center gap-4 text-left">
+                    <!-- QR Code Canvas & Image -->
+                    <div class="shrink-0 flex flex-col items-center justify-center bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                        <div id="qr-code-display" class="w-32 h-32 flex items-center justify-center"></div>
+                        <span class="text-[9px] text-slate-500 font-mono mt-1 font-semibold uppercase">Scan for info</span>
+                    </div>
+
+                    <!-- Asset Details Info on Tag -->
+                    <div class="flex-1 min-w-0 space-y-1 text-xs">
+                        <div class="flex items-center justify-between border-b border-slate-200 pb-1 mb-1">
+                            <span class="font-bold text-[11px] text-emerald-700 flex items-center gap-1">
+                                <i data-lucide="shield-check" class="w-3.5 h-3.5 inline"></i> IT ASSET TAG
+                            </span>
+                            <span id="qr-tag-type" class="text-[10px] bg-slate-100 font-semibold px-1.5 py-0.2 rounded text-slate-700"></span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-500 block">รหัสทรัพย์สิน (Asset Code):</span>
+                            <span id="qr-tag-code" class="text-base sm:text-lg font-black font-mono text-slate-900 block leading-tight"></span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-500 block">ชื่ออุปกรณ์:</span>
+                            <span id="qr-tag-name" class="font-bold text-slate-800 truncate block text-xs"></span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1 text-[11px] pt-0.5 border-t border-slate-100">
+                            <div><span class="text-slate-500 text-[10px]">ผู้ถือครอง: </span><span id="qr-tag-holder" class="font-medium text-slate-700 truncate block"></span></div>
+                            <div><span class="text-slate-500 text-[10px]">แผนก: </span><span id="qr-tag-dept" class="font-medium text-slate-700 truncate block"></span></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1 text-[11px]">
+                            <div><span class="text-slate-500 text-[10px]">ยี่ห้อ/รุ่น: </span><span id="qr-tag-model" class="font-medium text-slate-700 truncate block"></span></div>
+                            <div><span class="text-slate-500 text-[10px]">IP: </span><span id="qr-tag-ip" class="font-mono font-medium text-slate-700 truncate block"></span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Direct URL Link Display -->
+            <div class="bg-slate-700/60 p-2.5 rounded-xl border border-slate-600 mb-4 text-xs">
+                <label class="text-[11px] text-slate-400 mb-1 block">ลิงก์ตรงสำหรับเปิดดูข้อมูลทรัพย์สินนี้ (Direct URL):</label>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="qr-direct-url" readonly class="flex-1 px-2.5 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-emerald-400 font-mono text-[11px] focus:outline-none select-all">
+                    <button type="button" onclick="copyAssetDirectLink()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white rounded-lg text-xs font-medium transition-all shrink-0 flex items-center gap-1">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i> คัดลอก
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action Buttons: Print, Download, Close -->
+            <div class="flex flex-wrap sm:flex-nowrap gap-2 pt-1 shrink-0">
+                <button type="button" onclick="printAssetQrTag()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-1.5">
+                    <i data-lucide="printer" class="w-4 h-4"></i> พิมพ์ป้าย QR Code
+                </button>
+                <button type="button" onclick="downloadQrCodePng()" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-lg shadow-cyan-900/30 flex items-center justify-center gap-1.5">
+                    <i data-lucide="download" class="w-4 h-4"></i> บันทึกภาพ QR (PNG)
+                </button>
+                <button type="button" onclick="closeModal('modal-qrcode')" class="w-full sm:w-auto bg-slate-700 hover:bg-slate-600 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all">
+                    ปิด
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1109,6 +1215,32 @@
             populateMapSelects();
             renderBookmarks();
             lucide.createIcons();
+
+            // Check for direct deep-link parameter from QR scan (?asset=... or ?code=... or ?id=...)
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const targetAsset = (urlParams.get('asset') || urlParams.get('code') || urlParams.get('id') || '').trim();
+                if (targetAsset) {
+                    const matchedCam = cameras.find(c => 
+                        String(c.asset_code || '').toLowerCase() === targetAsset.toLowerCase() ||
+                        String(c.id || '').toLowerCase() === targetAsset.toLowerCase() ||
+                        String(c._recordId || '').toLowerCase() === targetAsset.toLowerCase()
+                    );
+                    if (matchedCam) {
+                        if (matchedCam.map_id && String(matchedCam.map_id) !== String(selectedMapId)) {
+                            selectedMapId = String(matchedCam.map_id);
+                            renderMapSelector();
+                            showFloorPlan();
+                            renderCameras();
+                        }
+                        setTimeout(() => {
+                            showCameraDetail(matchedCam);
+                        }, 300);
+                    }
+                }
+            } catch (err) {
+                console.warn('Deep link parse error:', err);
+            }
         }
 
         function showAirtableErrorBanner(msg) {
@@ -2025,6 +2157,9 @@
                                 <span class="text-xs text-emerald-400 font-mono">${cam.asset_code || cam.id}</span>
                             </div>
                         </div>
+                        <button type="button" onclick="openAssetQrCode('${cam._recordId || cam.id}')" class="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-emerald-400 hover:text-white rounded-xl text-xs font-semibold transition-all border border-slate-600 flex items-center gap-1.5 shadow-sm" title="สร้าง / ดู QR Code ป้ายทรัพย์สิน">
+                            <i data-lucide="qr-code" class="w-4 h-4"></i> QR Tag
+                        </button>
                     </div>
                     
                     <form id="detail-form" class="space-y-3" onsubmit="saveDetailEdit(event, '${cam._recordId}')">
@@ -2108,7 +2243,10 @@
                         <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">แผนก</span><span class="text-right font-medium text-emerald-400">${cam.department || '-'}</span></div>
                         <div class="flex justify-between py-1"><span class="text-slate-400">แผนผังที่ติดตั้ง</span><span class="text-right text-slate-300">${mapLabel || '-'}</span></div>
                     </div>
-                    ${imageHtml}`;
+                    ${imageHtml}
+                    <button type="button" onclick="openAssetQrCode('${cam._recordId || cam.id}')" class="w-full mt-3 bg-slate-700 hover:bg-slate-600 text-emerald-400 hover:text-white py-2 rounded-xl text-xs font-semibold transition-all border border-slate-600 flex items-center justify-center gap-2 shadow-sm">
+                        <i data-lucide="qr-code" class="w-4 h-4"></i> ดู / พิมพ์ QR Code ป้ายทรัพย์สิน (Asset Tag)
+                    </button>`;
             }
             openModal('modal-detail');
             lucide.createIcons();
@@ -2917,6 +3055,9 @@
                         <td class="py-2.5 px-3 text-center">${statusBadge}</td>
                         <td class="py-2.5 px-3 text-center">
                             <div class="flex items-center justify-center gap-1.5">
+                                <button onclick="openAssetQrCode('${c._recordId || c.id}')" class="p-1.5 rounded-lg bg-slate-700 hover:bg-cyan-600 text-emerald-400 hover:text-white transition-all" title="QR Code ป้ายทรัพย์สิน">
+                                    <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
+                                </button>
                                 <button onclick="openEditDevice('${c._recordId}')" class="p-1.5 rounded-lg bg-slate-700 hover:bg-emerald-600 text-slate-300 hover:text-white transition-all" title="แก้ไข">
                                     <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                                 </button>
@@ -3392,6 +3533,118 @@
                     touchScrollY = viewport.scrollTop;
                 }
             }, { passive: true });
+        }
+
+        // ─── QR CODE & PRINTABLE ASSET TAG ───
+        let currentQrCam = null;
+
+        function openAssetQrCode(camOrId) {
+            let cam = null;
+            if (typeof camOrId === 'object' && camOrId !== null) {
+                cam = camOrId;
+            } else if (typeof camOrId === 'string') {
+                cam = cameras.find(c => String(c._recordId) === camOrId || String(c.id) === camOrId || String(c.asset_code) === camOrId);
+            }
+            if (!cam) {
+                alert('ไม่พบข้อมูลอุปกรณ์ไอที');
+                return;
+            }
+
+            currentQrCam = cam;
+            const assetCode = cam.asset_code || cam.id || '-';
+            const assetName = cam.asset_name || cam.eng_name || '-';
+            const holder = cam.holder || cam.thai_name || '-';
+            const dept = cam.department || cam.group || '-';
+            const brandModel = [cam.brand, cam.model].filter(Boolean).join(' ') || '-';
+            const ip = cam.ip || '-';
+            const devType = getDeviceType(cam.type);
+
+            // Generate deep-link URL pointing to this asset
+            const url = new URL(window.location.href);
+            url.search = '';
+            url.searchParams.set('asset', assetCode);
+            const directUrl = url.toString();
+
+            // Populate preview tag elements
+            const codeEl = document.getElementById('qr-tag-code');
+            const nameEl = document.getElementById('qr-tag-name');
+            const holderEl = document.getElementById('qr-tag-holder');
+            const deptEl = document.getElementById('qr-tag-dept');
+            const modelEl = document.getElementById('qr-tag-model');
+            const ipEl = document.getElementById('qr-tag-ip');
+            const typeEl = document.getElementById('qr-tag-type');
+            const directUrlInput = document.getElementById('qr-direct-url');
+            const qrDisplay = document.getElementById('qr-code-display');
+
+            if (codeEl) codeEl.textContent = assetCode;
+            if (nameEl) nameEl.textContent = assetName;
+            if (holderEl) holderEl.textContent = holder;
+            if (deptEl) deptEl.textContent = dept;
+            if (modelEl) modelEl.textContent = brandModel;
+            if (ipEl) ipEl.textContent = ip;
+            if (typeEl) typeEl.textContent = devType;
+            if (directUrlInput) directUrlInput.value = directUrl;
+
+            // Render SVG QR Code
+            if (qrDisplay && window.QRCode) {
+                try {
+                    const svg = QRCode.generateSVG(directUrl, { size: 128, margin: 1 });
+                    qrDisplay.innerHTML = svg;
+                } catch (err) {
+                    console.error('QR Code render error:', err);
+                    qrDisplay.innerHTML = '<span class="text-xs text-red-500">QR Error</span>';
+                }
+            }
+
+            openModal('modal-qrcode');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function printAssetQrTag() {
+            document.body.classList.add('print-qr-mode');
+            const cleanup = () => {
+                document.body.classList.remove('print-qr-mode');
+                window.removeEventListener('afterprint', cleanup);
+            };
+            window.addEventListener('afterprint', cleanup);
+            setTimeout(() => {
+                window.print();
+                setTimeout(cleanup, 1500);
+            }, 150);
+        }
+
+        function downloadQrCodePng() {
+            if (!currentQrCam || !window.QRCode) return;
+            const assetCode = currentQrCam.asset_code || currentQrCam.id || 'asset';
+            const url = new URL(window.location.href);
+            url.search = '';
+            url.searchParams.set('asset', assetCode);
+            const directUrl = url.toString();
+
+            const canvas = document.createElement('canvas');
+            QRCode.drawToCanvas(canvas, directUrl, { size: 500, margin: 2 });
+            const link = document.createElement('a');
+            link.download = `QR_${assetCode}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function copyAssetDirectLink() {
+            const input = document.getElementById('qr-direct-url');
+            if (!input) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(input.value).then(() => {
+                    alert('คัดลอกลิงก์ไปยังคลิปบอร์ดแล้ว: ' + input.value);
+                }).catch(() => {
+                    input.select();
+                    document.execCommand('copy');
+                    alert('คัดลอกลิงก์เรียบร้อย');
+                });
+            } else {
+                input.select();
+                document.execCommand('copy');
+                alert('คัดลอกลิงก์เรียบร้อย');
+            }
         }
 
         lucide.createIcons();
