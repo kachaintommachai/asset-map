@@ -2093,7 +2093,7 @@
                 go2rtc_link: imageUrl
             };
             try {
-                await apiUpdate('device', recordId, fields);
+                const saveRes = await apiUpdate('device', recordId, fields);
                 await fetchDevices();
                 closeModal('modal-detail');
                 renderMapSelector();
@@ -2105,7 +2105,7 @@
                 if (document.getElementById('modal-devices') && !document.getElementById('modal-devices').classList.contains('hidden')) {
                     renderDeviceManagerList();
                 }
-                alert('บันทึกการเปลี่ยนแปลงเรียบร้อยแล้ว');
+                alert(`บันทึกการเปลี่ยนแปลงรหัส "${assetCode}" สำเร็จ!\n• ตารางใน Airtable: "${saveRes.targetTable || 'device'}"\n• Record ID: "${saveRes.id}"`);
             } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
         }
 
