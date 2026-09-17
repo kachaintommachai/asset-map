@@ -223,13 +223,6 @@ function normalizeFields(table, fields) {
     let rawX = f.x != null && f.x !== '' ? f.x : (f.X != null && f.X !== '' ? f.X : (f.pos_x != null ? f.pos_x : null));
     let rawY = f.y != null && f.y !== '' ? f.y : (f.Y != null && f.Y !== '' ? f.Y : (f.pos_y != null ? f.pos_y : null));
     let numX = rawX != null ? parseFloat(rawX) : null;
-    let numY = rawY != null ? parseFloat(rawY) : null;
-    if (numX != null && isNaN(numX)) numX = null;
-    if (numY != null && isNaN(numY)) numY = null;
-    if (numX != null && numY != null && numX > 0 && numX <= 1 && numY > 0 && numY <= 1) {
-      numX = Math.round(numX * 10000) / 100;
-      numY = Math.round(numY * 10000) / 100;
-    }
 
     let devMapId = '1';
     if (Array.isArray(f.map_id) && f.map_id.length > 0) devMapId = String(f.map_id[0]);
@@ -301,11 +294,22 @@ function normalizeFields(table, fields) {
         if (img) break;
       }
     }
-    const mapId = f.map_id != null && f.map_id !== '' ? f.map_id : (f['Map ID'] != null ? f['Map ID'] : (f.id != null ? f.id : '1'));
+    let rawMapId = f.map_id != null && f.map_id !== '' ? f.map_id : (f['Map ID'] != null && f['Map ID'] !== '' ? f['Map ID'] : (f.Map_ID != null && f.Map_ID !== '' ? f.Map_ID : (f.id != null && f.id !== '' && !String(f.id).startsWith('rec') ? f.id : (recordId && !String(recordId).startsWith('rec') ? recordId : ''))));
+    const mName = String(f.map_name || f['Map Name'] || f.Name || f.name || '').trim();
+    if (!rawMapId) {
+      const nameLow = mName.toLowerCase();
+      if (nameLow.includes('cm2') && (nameLow.includes('1') || nameLow.includes('ชั้น 1'))) rawMapId = '1';
+      else if (nameLow.includes('cm2') && (nameLow.includes('2') || nameLow.includes('ชั้น 2'))) rawMapId = '4';
+      else if (nameLow.includes('cm1') || nameLow.includes('13')) rawMapId = '13';
+      else {
+        const num = mName.match(/\d+/);
+        rawMapId = num ? num[0] : (recordId || '1');
+      }
+    }
     return {
       ...f,
-      map_id: String(mapId),
-      map_name: f.map_name || f['Map Name'] || f.Name || f.name || `แผนผัง ${mapId}`,
+      map_id: String(rawMapId),
+      map_name: mName || `แผนผัง ${rawMapId}`,
       map_url: img,
       map_pic: img
     };
@@ -1041,7 +1045,7 @@ module.exports = async (req, res) => {
 
     let records = result.records.map(r => ({
       id: r.id,
-      fields: normalizeFields(table, r.fields)
+      fields: normalizeFields(table, r.fields, r.id)
     }));
 
     // Handle User Login verification
@@ -1114,7 +1118,7 @@ module.exports = async (req, res) => {
 
     return res.status(200).json({
       id: writeResult.data.id,
-      fields: normalizeFields(table, { ...(fields || {}), ...(writeResult.data.fields || {}) }),
+      fields: normalizeFields(table, { ...(fields || {}), ...(writeResult.data.fields || {}) }, writeResult.data.id),
       targetTable: targetTable,
       baseId: baseId,
       _debug: writeResult._debug
@@ -1141,7 +1145,7 @@ module.exports = async (req, res) => {
 
     return res.status(200).json({
       id: writeResult.data.id,
-      fields: normalizeFields(table, { ...(fields || {}), ...(writeResult.data.fields || {}) }),
+      fields: normalizeFields(table, { ...(fields || {}), ...(writeResult.data.fields || {}) }, writeResult.data.id),
       targetTable: targetTable,
       baseId: baseId,
       _debug: writeResult._debug

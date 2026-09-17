@@ -1613,19 +1613,30 @@
                 const records = await apiGetAll('map', { sort: [{ field: 'map_id' }] });
                 maps = records.map((r, idx) => {
                     const f = r.fields || {};
-                    const mId = (f.map_id != null && f.map_id !== '') ? String(f.map_id)
+                    let mId = (f.map_id != null && f.map_id !== '') ? String(f.map_id)
                               : (f['Map ID'] != null && f['Map ID'] !== '') ? String(f['Map ID'])
-                              : (f.id != null && f.id !== '') ? String(f.id)
-                              : String(idx + 1);
-                    const mName = f.map_name || f['Map Name'] || f.Name || f.name || `แผนผัง ${mId}`;
+                              : (f.id != null && f.id !== '' && !String(f.id).startsWith('rec')) ? String(f.id)
+                              : '';
+                    const mName = (f.map_name || f['Map Name'] || f.Name || f.name || '').trim();
+                    if (!mId) {
+                        const nameLow = mName.toLowerCase();
+                        if (nameLow.includes('cm2') && (nameLow.includes('1') || nameLow.includes('ชั้น 1'))) mId = '1';
+                        else if (nameLow.includes('cm2') && (nameLow.includes('2') || nameLow.includes('ชั้น 2'))) mId = '4';
+                        else if (nameLow.includes('cm1') || nameLow.includes('13')) mId = '13';
+                        else {
+                            const num = mName.match(/\d+/);
+                            mId = num ? num[0] : String(r.id || idx + 1);
+                        }
+                    }
+                    const displayName = mName || `แผนผัง ${mId}`;
 
                     let imgUrl = extractMapImage(f);
                     if (!imgUrl) {
                         imgUrl = LocalImageStore.get(`map_${mId}`) || LocalImageStore.get(`map_${r.id}`) || DEFAULT_MAP_IMAGES[mId] || '';
                         if (!imgUrl) {
-                            const nameLow = mName.toLowerCase();
-                            if (nameLow.includes('cm2') && nameLow.includes('1')) imgUrl = DEFAULT_MAP_IMAGES['1'];
-                            else if (nameLow.includes('cm2') && nameLow.includes('2')) imgUrl = DEFAULT_MAP_IMAGES['4'];
+                            const nameLow = displayName.toLowerCase();
+                            if (nameLow.includes('cm2') && (nameLow.includes('1') || nameLow.includes('ชั้น 1'))) imgUrl = DEFAULT_MAP_IMAGES['1'];
+                            else if (nameLow.includes('cm2') && (nameLow.includes('2') || nameLow.includes('ชั้น 2'))) imgUrl = DEFAULT_MAP_IMAGES['4'];
                             else if (nameLow.includes('cm1')) imgUrl = DEFAULT_MAP_IMAGES['13'];
                         }
                     } else {
@@ -1635,8 +1646,8 @@
 
                     return {
                         _recordId: String(r.id),
-                        map_id: mId,
-                        map_name: mName,
+                        map_id: String(mId),
+                        map_name: displayName,
                         map_url: imgUrl,
                         map_pic: imgUrl
                     };
@@ -1735,9 +1746,16 @@
             const numM = parseInt(mId, 10);
             if (!isNaN(numC) && !isNaN(numM) && numC === numM) return true;
 
-            // 4. Default fallback: if device has no map specified or map_id is '1'/'0', attach to first map
+            // 4. Heuristic name check on cMap
+            if (cMapLower) {
+                if (cMapLower.includes('cm2') && (cMapLower.includes('1') || cMapLower.includes('ชั้น 1')) && mId === '1') return true;
+                if (cMapLower.includes('cm2') && (cMapLower.includes('2') || cMapLower.includes('ชั้น 2')) && mId === '4') return true;
+                if (cMapLower.includes('cm1') && mId === '13') return true;
+            }
+
+            // 5. Default fallback: if device has no map specified or map_id is '0'/'undefined', attach to first map
             const isFirstMap = maps[0] && (String(maps[0].map_id) === tId || String(maps[0]._recordId) === tId);
-            if (isFirstMap && (!cMap || cMap === '1' || cMap === '0' || cMap === 'undefined')) return true;
+            if (isFirstMap && (!cMap || cMap === '0' || cMap === 'undefined')) return true;
 
             return false;
         }
