@@ -1462,12 +1462,11 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'ไม่พบไฟล์ device.csv หรือไม่มีข้อมูลในไฟล์' });
     }
 
+    const schema = await discoverTableSchema(baseId, token, targetTable);
+    const existingFieldNames = schema ? schema.fieldNames : [];
+
     const existing = await fetchAllRecords(baseId, token, [targetTable], null, 'device');
     const existingRecords = existing.ok ? existing.records : [];
-
-    let updatedCount = 0;
-    let createdCount = 0;
-    const errors = [];
 
     const existingMap = new Map();
     for (const er of existingRecords) {
@@ -1479,36 +1478,93 @@ module.exports = async (req, res) => {
 
     const matchByOrder = existingRecords.length > 0 && existingMap.size === 0;
 
+    const patchRecords = [];
+    const postRecords = [];
+
     for (let i = 0; i < csvRecords.length; i++) {
       const row = csvRecords[i];
+      const code = (row.asset_code || row.id || '').trim();
+      const ip = (row.ip || '').trim();
+      let existingId = null;
+      if (code && existingMap.has(code.toLowerCase())) {
+        existingId = existingMap.get(code.toLowerCase());
+      } else if (ip && existingMap.has(`ip:${ip}`)) {
+        existingId = existingMap.get(`ip:${ip}`);
+      } else if (matchByOrder && existingRecords[i]) {
+        existingId = existingRecords[i].id;
+      }
+
+      const preparedFields = await prepareFieldsForTable(baseId, token, 'device', targetTable, row);
+
+      if (existingId) {
+        patchRecords.push({ id: existingId, fields: preparedFields });
+      } else {
+        postRecords.push({ fields: preparedFields });
+      }
+    }
+
+    let updatedCount = 0;
+    let createdCount = 0;
+    const errors = [];
+
+    // 1. Batch PATCH existing records (up to 10 per request)
+    for (let i = 0; i < patchRecords.length; i += 10) {
+      const chunk = patchRecords.slice(i, i + 10);
       try {
-        const code = (row.asset_code || row.id || '').trim();
-        const ip = (row.ip || '').trim();
-        let existingId = null;
-        if (code && existingMap.has(code.toLowerCase())) {
-          existingId = existingMap.get(code.toLowerCase());
-        } else if (ip && existingMap.has(`ip:${ip}`)) {
-          existingId = existingMap.get(`ip:${ip}`);
-        } else if (matchByOrder && existingRecords[i]) {
-          existingId = existingRecords[i].id;
-        }
-
-        const preparedFields = await prepareFieldsForTable(baseId, token, 'device', targetTable, row);
-
-        if (existingId) {
-          const patchUrl = `${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(targetTable)}/${encodeURIComponent(existingId)}`;
-          const writeRes = await writeAirtableWithRetry(patchUrl, 'PATCH', token, preparedFields);
-          if (writeRes.ok) updatedCount++;
-          else errors.push(`Record ${code || i}: ${JSON.stringify(writeRes.data)}`);
+        const patchUrl = `${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(targetTable)}`;
+        const res = await fetch(patchUrl, {
+          method: 'PATCH',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ records: chunk, typecast: true })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && Array.isArray(data.records)) {
+          updatedCount += data.records.length;
         } else {
-          const postUrl = `${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(targetTable)}`;
-          const writeRes = await writeAirtableWithRetry(postUrl, 'POST', token, preparedFields);
-          if (writeRes.ok) createdCount++;
-          else errors.push(`Record ${code || i}: ${JSON.stringify(writeRes.data)}`);
+          // If batch failed, fallback to individual write with auto-retry pruning
+          for (const item of chunk) {
+            const indUrl = `${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(targetTable)}/${encodeURIComponent(item.id)}`;
+            const indRes = await writeAirtableWithRetry(indUrl, 'PATCH', token, item.fields);
+            if (indRes.ok) updatedCount++;
+            else errors.push(indRes.data?.error?.message || 'Error updating record');
+          }
         }
       } catch (err) {
         errors.push(err.message);
       }
+    }
+
+    // 2. Batch POST new records (up to 10 per request)
+    for (let i = 0; i < postRecords.length; i += 10) {
+      const chunk = postRecords.slice(i, i + 10);
+      try {
+        const postUrl = `${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(targetTable)}`;
+        const res = await fetch(postUrl, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ records: chunk, typecast: true })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && Array.isArray(data.records)) {
+          createdCount += data.records.length;
+        } else {
+          for (const item of chunk) {
+            const indRes = await writeAirtableWithRetry(postUrl, 'POST', token, item.fields);
+            if (indRes.ok) createdCount++;
+            else errors.push(indRes.data?.error?.message || 'Error creating record');
+          }
+        }
+      } catch (err) {
+        errors.push(err.message);
+      }
+    }
+
+    const recommendedCols = ['asset_code', 'asset_name', 'holder', 'type', 'brand', 'model', 'serial', 'department', 'ip', 'status'];
+    const missingCols = existingFieldNames.length > 0 ? recommendedCols.filter(rc => !existingFieldNames.some(ef => ef.toLowerCase().replace(/[\s_\-]+/g, '') === rc.toLowerCase().replace(/[\s_\-]+/g, ''))) : [];
+
+    let noticeMsg = `กู้คืนข้อมูลอุปกรณ์ลง Airtable สำเร็จ: อัปเดต ${updatedCount} รายการ, สร้างใหม่ ${createdCount} รายการ (รวม ${updatedCount + createdCount} รายการ)`;
+    if (missingCols.length > 0) {
+      noticeMsg += `\n\n⚠️ ตรวจพบว่าตาราง "${targetTable}" ใน Airtable ของคุณยังขาดคอลัมน์: [${missingCols.join(', ')}]\nแนะนำให้ไปที่ airtable.com และกด "+ Add field" เพื่อเพิ่มคอลัมน์เหล่านี้ แล้วกดกู้คืนอีกครั้ง`;
     }
 
     return res.status(200).json({
@@ -1518,8 +1574,10 @@ module.exports = async (req, res) => {
       createdCount,
       totalProcessed: updatedCount + createdCount,
       targetTable,
+      existingFieldNames,
+      missingCols,
       errors: errors.slice(0, 5),
-      message: `กู้คืนข้อมูลอุปกรณ์ลง Airtable สำเร็จ: อัปเดต ${updatedCount} รายการ, สร้างใหม่ ${createdCount} รายการ (รวม ${updatedCount + createdCount} จาก ${csvRecords.length} รายการ)`
+      message: noticeMsg
     });
   }
 
