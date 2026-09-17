@@ -257,6 +257,9 @@
                         <button onclick="runAdminAction(openDeviceManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-emerald-400 font-semibold hover:bg-slate-700 transition-all text-left">
                             <i data-lucide="monitor" class="w-4 h-4 text-emerald-400 shrink-0"></i> จัดการอุปกรณ์ (เพิ่ม/แก้ไข/ลบ)
                         </button>
+                        <button onclick="runAdminAction(openMaintenanceManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-cyan-300 font-semibold hover:bg-slate-700 transition-all text-left">
+                            <i data-lucide="wrench" class="w-4 h-4 text-cyan-400 shrink-0"></i> ประวัติการซื้อ / ซ่อมบำรุง
+                        </button>
                         <button onclick="runAdminAction(openAddDevice)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-all text-left">
                             <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i> เพิ่มอุปกรณ์ใหม่
                         </button>
@@ -874,6 +877,223 @@
         </div>
     </div>
 
+    <!-- ─── MAINTENANCE / REPAIR / PURCHASE HISTORY MANAGER MODAL (ADMIN) ─── -->
+    <div id="modal-maintenance-list" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
+        <div class="bg-slate-800 rounded-2xl w-full max-w-6xl mx-3 sm:mx-6 border border-slate-700 shadow-2xl flex flex-col" style="max-height: 92vh;">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-slate-700 shrink-0">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                        <i data-lucide="wrench" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                            ประวัติการซื้อและการซ่อมบำรุง
+                            <span id="maint-mgr-total-badge" class="text-xs bg-slate-700 text-cyan-400 px-2 py-0.5 rounded-full font-mono font-normal">0 รายการ</span>
+                        </h3>
+                        <span class="text-xs text-slate-400">บันทึกและติดตามประวัติการจัดซื้อ การส่งซ่อม ค่าใช้จ่าย และการบำรุงรักษาอุปกรณ์ไอที</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="openAddMaintenance()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 shadow-md shadow-emerald-900/30">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i> <span class="hidden sm:inline">บันทึกประวัติใหม่</span><span class="sm:hidden">เพิ่ม</span>
+                    </button>
+                    <button onclick="closeModal('modal-maintenance-list')" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-700 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Summary Statistic Cards -->
+            <div class="px-4 sm:px-6 pt-3 grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0">
+                <div class="bg-slate-900/70 p-2.5 sm:p-3 rounded-xl border border-slate-700/80">
+                    <span class="text-[10px] sm:text-xs text-slate-400 block mb-0.5">รายการทั้งหมด</span>
+                    <div id="maint-stat-total-count" class="text-base sm:text-xl font-bold text-white font-mono">0</div>
+                </div>
+                <div class="bg-slate-900/70 p-2.5 sm:p-3 rounded-xl border border-slate-700/80">
+                    <span class="text-[10px] sm:text-xs text-slate-400 block mb-0.5">ค่าใช้จ่ายรวมทั้งหมด</span>
+                    <div id="maint-stat-total-cost" class="text-base sm:text-xl font-bold text-emerald-400 font-mono">฿0</div>
+                </div>
+                <div class="bg-slate-900/70 p-2.5 sm:p-3 rounded-xl border border-slate-700/80">
+                    <span class="text-[10px] sm:text-xs text-slate-400 block mb-0.5">การซื้อ / รับเข้า</span>
+                    <div id="maint-stat-purchase-count" class="text-base sm:text-xl font-bold text-cyan-400 font-mono">0</div>
+                </div>
+                <div class="bg-slate-900/70 p-2.5 sm:p-3 rounded-xl border border-slate-700/80">
+                    <span class="text-[10px] sm:text-xs text-slate-400 block mb-0.5">ส่งซ่อม / บำรุงรักษา</span>
+                    <div id="maint-stat-repair-count" class="text-base sm:text-xl font-bold text-amber-400 font-mono">0</div>
+                </div>
+            </div>
+
+            <!-- Filter and Search Bar -->
+            <div class="p-3 sm:p-4 pb-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 shrink-0">
+                <div class="relative">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                    <input type="text" id="maint-mgr-search" oninput="renderMaintenanceManagerList()" placeholder="ค้นหารหัส, ชื่ออุปกรณ์, ร้านค้า, เลขเอกสาร, อาการ..." class="w-full pl-9 pr-3 py-1.5 bg-slate-700 border border-slate-600 rounded-xl text-white text-xs placeholder-slate-400 focus:outline-none focus:border-cyan-500">
+                </div>
+                <div>
+                    <select id="maint-mgr-filter-type" onchange="renderMaintenanceManagerList()" class="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-xl text-white text-xs focus:outline-none focus:border-cyan-500">
+                        <option value="">ทุกประเภทรายการ</option>
+                        <option value="ซื้อ / รับเข้า">ซื้อ / รับเข้า (Purchase)</option>
+                        <option value="ส่งซ่อม">ส่งซ่อม (Repair)</option>
+                        <option value="บำรุงรักษา">บำรุงรักษา (Maintenance)</option>
+                        <option value="เปลี่ยนอะไหล่">เปลี่ยนอะไหล่ (Parts Replacement)</option>
+                        <option value="ตรวจเช็คสภาพ">ตรวจเช็คสภาพ (Inspection)</option>
+                        <option value="ปลดระวาง">ปลดระวาง (Retired)</option>
+                    </select>
+                </div>
+                <div>
+                    <select id="maint-mgr-filter-dept" onchange="renderMaintenanceManagerList()" class="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-xl text-white text-xs focus:outline-none focus:border-cyan-500">
+                        <option value="">ทุกแผนก</option>
+                    </select>
+                </div>
+                <div>
+                    <select id="maint-mgr-filter-status" onchange="renderMaintenanceManagerList()" class="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-xl text-white text-xs focus:outline-none focus:border-cyan-500">
+                        <option value="">ทุกสถานะ</option>
+                        <option value="Completed">เสร็จสิ้น (Completed)</option>
+                        <option value="In Progress">กำลังดำเนินการ (In Progress)</option>
+                        <option value="Pending">รอดำเนินการ (Pending)</option>
+                        <option value="Cancelled">ยกเลิก (Cancelled)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Table Content -->
+            <div class="overflow-auto flex-1 px-3 sm:px-6">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead class="bg-slate-900/80 sticky top-0 z-10 text-slate-400 text-[11px] uppercase border-b border-slate-700">
+                        <tr>
+                            <th class="py-2.5 px-3">วันที่</th>
+                            <th class="py-2.5 px-3">รหัสทรัพย์สิน</th>
+                            <th class="py-2.5 px-3">ชื่ออุปกรณ์ / ผู้ถือครอง</th>
+                            <th class="py-2.5 px-3">ประเภทรายการ</th>
+                            <th class="py-2.5 px-3">รายละเอียด / อาการ</th>
+                            <th class="py-2.5 px-3">ผู้ให้บริการ / เลขที่เอกสาร</th>
+                            <th class="py-2.5 px-3 text-right">ค่าใช้จ่าย</th>
+                            <th class="py-2.5 px-3 text-center">สถานะ</th>
+                            <th class="py-2.5 px-3 text-center w-24">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="maint-mgr-tbody" class="divide-y divide-slate-700/60 text-slate-200">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-4 sm:px-6 py-3 border-t border-slate-700 flex items-center justify-between shrink-0 text-xs text-slate-400">
+                <span id="maint-mgr-footer-count">แสดง 0 รายการ</span>
+                <button type="button" onclick="closeModal('modal-maintenance-list')" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition-all">
+                    ปิด
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── ADD / EDIT MAINTENANCE & REPAIR RECORD MODAL ─── -->
+    <div id="modal-maintenance" class="fixed inset-0 z-[70] hidden items-center justify-center modal-overlay">
+        <div class="bg-slate-800 rounded-2xl p-4 sm:p-6 w-full max-w-lg mx-3 sm:mx-4 border border-slate-700 shadow-2xl max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-700">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                        <i data-lucide="wrench" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h4 id="maint-form-title" class="text-base font-bold text-white">บันทึกประวัติการซื้อ / ซ่อมบำรุง</h4>
+                        <span class="text-xs text-slate-400">ระบุรายละเอียดการจัดซื้อหรือการส่งซ่อมอุปกรณ์</span>
+                    </div>
+                </div>
+                <button type="button" onclick="closeModal('modal-maintenance')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="maint-form" class="space-y-3" onsubmit="handleSaveMaintenance(event)">
+                <input type="hidden" id="maint-form-id" value="">
+
+                <!-- Link to Device -->
+                <div>
+                    <label class="text-xs text-slate-300 font-medium block mb-1">อุปกรณ์ที่เกี่ยวข้อง (Select Device)</label>
+                    <div class="flex gap-2">
+                        <select id="maint-form-device-select" onchange="onMaintenanceDeviceSelectChange(this.value)" class="flex-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                            <!-- Populated dynamically -->
+                        </select>
+                        <input type="text" id="maint-form-asset-code" placeholder="หรือพิมพ์รหัสเอง" class="w-36 px-2.5 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-400">ประเภทรายการ (Event Type)</label>
+                        <select id="maint-form-type" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                            <option value="ส่งซ่อม">ส่งซ่อม (Repair)</option>
+                            <option value="ซื้อ / รับเข้า">ซื้อ / รับเข้า (Purchase)</option>
+                            <option value="บำรุงรักษา">บำรุงรักษา (Maintenance)</option>
+                            <option value="เปลี่ยนอะไหล่">เปลี่ยนอะไหล่ (Parts Replacement)</option>
+                            <option value="ตรวจเช็คสภาพ">ตรวจเช็คสภาพ (Inspection)</option>
+                            <option value="ปลดระวาง">ปลดระวาง (Retired)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400">วันที่ทำรายการ (Date)</label>
+                        <input type="date" id="maint-form-date" required class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-400">ค่าใช้จ่าย / ราคา (บาท)</label>
+                        <input type="number" step="any" min="0" id="maint-form-cost" placeholder="0.00" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400">สถานะรายการ (Status)</label>
+                        <select id="maint-form-status" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                            <option value="Completed">เสร็จสิ้น (Completed)</option>
+                            <option value="In Progress">กำลังดำเนินการ (In Progress)</option>
+                            <option value="Pending">รอดำเนินการ (Pending)</option>
+                            <option value="Cancelled">ยกเลิก (Cancelled)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-400">ผู้ให้บริการ / ร้านค้า / ช่าง</label>
+                        <input type="text" id="maint-form-vendor" placeholder="เช่น บจก. ไอทีคอม / ร้านช่างแดง" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400">เลขที่เอกสาร / ใบเสร็จ / PO</label>
+                        <input type="text" id="maint-form-invoice" placeholder="เช่น INV-670901, PO-1234" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-400">รายละเอียด / อาการเสีย / อะไหล่ที่เปลี่ยน (Description)</label>
+                    <textarea id="maint-form-description" rows="3" placeholder="ระบุอาการเสีย สาเหตุ การแก้ไข หรือรายการอะไหล่ที่เปลี่ยน..." class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500 resize-none"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-400">ผู้บันทึกข้อมูล (Created By)</label>
+                        <input type="text" id="maint-form-created-by" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400">ชื่ออุปกรณ์อ้างอิง</label>
+                        <input type="text" id="maint-form-dev-name" readonly class="w-full mt-1 px-3 py-1.5 bg-slate-750 border border-slate-600 rounded-lg text-slate-300 text-xs focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" id="maint-form-submit-btn" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-emerald-900/30 flex items-center justify-center gap-1.5">
+                        <i data-lucide="save" class="w-4 h-4"></i> บันทึกข้อมูล
+                    </button>
+                    <button type="button" onclick="closeModal('modal-maintenance')" class="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all">
+                        ยกเลิก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Full Image Viewer Modal -->
     <div id="modal-image-viewer" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/90 p-4" onclick="closeModal('modal-image-viewer')">
         <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center" onclick="event.stopPropagation()">
@@ -971,6 +1191,7 @@
         let cameras = []; // เก็บอุปกรณ์ทั้งหมด (รักษาตัวแปรชื่อเดิม cameras เพื่อ backward compatibility)
         let maps = [];
         let departments = [];
+        let maintenances = []; // เก็บประวัติการซื้อและการซ่อมบำรุง
         let currentUser = null;
         let selectedMapId = null;
         let activeGroups = new Set();
@@ -1177,6 +1398,7 @@
             currentUser = null;
             cameras = [];
             maps = [];
+            maintenances = [];
             selectedMapId = null;
             activeGroups.clear();
             selectedTypeFilter = 'ALL';
@@ -1194,7 +1416,7 @@
 
         // ─── INIT ───
         async function initializeApp() {
-            await Promise.all([fetchDevices(), fetchDepartments(), fetchMaps()]);
+            await Promise.all([fetchDevices(), fetchDepartments(), fetchMaps(), fetchMaintenances()]);
             if (cameras.length > 0) {
                 const devDepts = [...new Set(cameras.map(c => c.department || c.group).filter(g => g && g !== 'ไม่มีแผนก'))];
                 devDepts.forEach(d => {
@@ -1644,12 +1866,182 @@
             }
         }
 
+        // ─── MAINTENANCE & REPAIR HISTORY API & HELPERS ───
+        async function fetchMaintenances() {
+            try {
+                const records = await apiGetAll('maintenance');
+                maintenances = records.map(r => {
+                    const f = r.fields || {};
+                    return {
+                        _recordId: String(r.id),
+                        id: String(r.id),
+                        asset_code: String(f.asset_code || f.code || f.id || '').trim(),
+                        device_name: String(f.device_name || f.asset_name || '').trim(),
+                        type: String(f.type || f.event_type || 'ส่งซ่อม').trim(),
+                        date: String(f.date || f.event_date || '').trim(),
+                        cost: parseFloat(f.cost) || 0,
+                        vendor: String(f.vendor || '').trim(),
+                        invoice_no: String(f.invoice_no || f.doc_no || '').trim(),
+                        description: String(f.description || f.detail || '').trim(),
+                        status: String(f.status || 'Completed').trim(),
+                        created_by: String(f.created_by || '').trim()
+                    };
+                });
+                maintenances.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+                console.log(`[it-asset-map] Loaded ${maintenances.length} maintenance records`);
+            } catch (err) {
+                console.warn('Could not load maintenances:', err);
+                maintenances = [];
+            }
+        }
+
+        function formatCurrency(val) {
+            const num = Number(val) || 0;
+            return '฿' + num.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        }
+
+        function getMaintenanceTypeBadge(type) {
+            const t = (type || '').trim().toLowerCase();
+            if (t.includes('ซื้อ') || t.includes('รับเข้า') || t.includes('purch')) {
+                return '<span class="bg-cyan-950 text-cyan-400 border border-cyan-800 px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 w-fit"><i data-lucide="shopping-cart" class="w-3 h-3"></i> ซื้อ/รับเข้า</span>';
+            }
+            if (t.includes('บำรุง') || t.includes('maint')) {
+                return '<span class="bg-blue-950 text-blue-400 border border-blue-800 px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 w-fit"><i data-lucide="settings" class="w-3 h-3"></i> บำรุงรักษา</span>';
+            }
+            if (t.includes('เปลี่ยน') || t.includes('อะไหล่') || t.includes('part')) {
+                return '<span class="bg-purple-950 text-purple-400 border border-purple-800 px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 w-fit"><i data-lucide="refresh-cw" class="w-3 h-3"></i> เปลี่ยนอะไหล่</span>';
+            }
+            if (t.includes('ตรวจ') || t.includes('inspect')) {
+                return '<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 w-fit"><i data-lucide="check-circle" class="w-3 h-3"></i> ตรวจเช็ค</span>';
+            }
+            if (t.includes('ปลด') || t.includes('retire')) {
+                return '<span class="bg-red-950 text-red-400 border border-red-800 px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 w-fit"><i data-lucide="archive" class="w-3 h-3"></i> ปลดระวาง</span>';
+            }
+            return '<span class="bg-amber-950 text-amber-400 border border-amber-800 px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 w-fit"><i data-lucide="wrench" class="w-3 h-3"></i> ส่งซ่อม</span>';
+        }
+
+        function getMaintenanceStatusBadge(status) {
+            const st = (status || '').toLowerCase();
+            if (st === 'completed' || st.includes('เสร็จ')) {
+                return '<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full text-[10px] font-medium">เสร็จสิ้น</span>';
+            }
+            if (st === 'in progress' || st.includes('กำลัง')) {
+                return '<span class="bg-blue-950 text-blue-400 border border-blue-800 px-2 py-0.5 rounded-full text-[10px] font-medium">กำลังดำเนินการ</span>';
+            }
+            if (st === 'cancelled' || st.includes('ยกเลิก')) {
+                return '<span class="bg-red-950 text-red-400 border border-red-800 px-2 py-0.5 rounded-full text-[10px] font-medium">ยกเลิก</span>';
+            }
+            return '<span class="bg-amber-950 text-amber-400 border border-amber-800 px-2 py-0.5 rounded-full text-[10px] font-medium">รอดำเนินการ</span>';
+        }
+
+        function getMaintenancesForDevice(assetCode) {
+            if (!assetCode) return [];
+            const key = String(assetCode).trim().toLowerCase();
+            return maintenances.filter(m => {
+                const mCode = String(m.asset_code || '').trim().toLowerCase();
+                return mCode === key || (key && mCode.includes(key));
+            });
+        }
+
+        function getDeviceMaintenanceHtml(cam, isAdmin) {
+            const code = cam.asset_code || cam.id || cam.account_no || '';
+            const list = getMaintenancesForDevice(code);
+            const totalCost = list.reduce((sum, r) => sum + (Number(r.cost) || 0), 0);
+            const repairCount = list.filter(r => (r.type || '').includes('ซ่อม') || (r.type || '').includes('บำรุง') || (r.type || '').includes('เปลี่ยน')).length;
+            const purchaseRec = list.find(r => (r.type || '').includes('ซื้อ') || (r.type || '').includes('รับเข้า'));
+
+            let itemsHtml = '';
+            if (list.length === 0) {
+                itemsHtml = `
+                    <div class="py-4 px-3 text-center bg-slate-900/40 rounded-xl border border-dashed border-slate-700 text-slate-400 text-xs">
+                        <i data-lucide="clipboard-list" class="w-6 h-6 mx-auto mb-1 text-slate-500"></i>
+                        <span>ยังไม่มีประวัติการซื้อหรือส่งซ่อมสำหรับอุปกรณ์นี้</span>
+                    </div>
+                `;
+            } else {
+                itemsHtml = list.map(m => {
+                    const badge = getMaintenanceTypeBadge(m.type);
+                    const statusBadge = getMaintenanceStatusBadge(m.status);
+                    const costStr = m.cost ? formatCurrency(m.cost) : '-';
+                    const adminActions = isAdmin ? `
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button type="button" onclick="event.stopPropagation(); openEditMaintenance('${m._recordId || m.id}')" class="p-1 hover:bg-slate-700 text-slate-400 hover:text-emerald-400 rounded transition-colors" title="แก้ไข">
+                                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button type="button" onclick="event.stopPropagation(); requestDelete('${m._recordId || m.id}', 'maintenance')" class="p-1 hover:bg-slate-700 text-slate-400 hover:text-red-400 rounded transition-colors" title="ลบ">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    ` : '';
+
+                    return `
+                        <div class="p-2.5 bg-slate-900/60 rounded-xl border border-slate-700/80 space-y-1.5 hover:border-slate-600 transition-colors">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    ${badge}
+                                    <span class="text-[11px] font-mono text-slate-400">${m.date || '-'}</span>
+                                    ${statusBadge}
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold font-mono text-emerald-400">${costStr}</span>
+                                    ${adminActions}
+                                </div>
+                            </div>
+                            ${m.description ? `<p class="text-xs text-slate-300 font-medium whitespace-pre-wrap">${m.description}</p>` : ''}
+                            <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800">
+                                <span>${m.vendor ? '🏪 ' + m.vendor : ''} ${m.invoice_no ? '(' + m.invoice_no + ')' : ''}</span>
+                                <span>${m.created_by ? 'ผู้บันทึก: ' + m.created_by : ''}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const addBtn = isAdmin ? `
+                <button type="button" onclick="openAddMaintenance('${code}')" class="text-xs bg-cyan-600/20 hover:bg-cyan-600 text-cyan-400 hover:text-white border border-cyan-500/40 px-2.5 py-1 rounded-lg font-medium transition-all flex items-center gap-1">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> เพิ่มบันทึก
+                </button>
+            ` : '';
+
+            return `
+                <div class="mt-4 pt-3 border-t border-slate-700">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                            <i data-lucide="wrench" class="w-3.5 h-3.5 text-cyan-400"></i> ประวัติการซื้อ / การซ่อมบำรุง
+                            <span class="text-[10px] bg-slate-700 text-cyan-300 px-1.5 py-0.2 rounded-full font-mono">${list.length}</span>
+                        </span>
+                        ${addBtn}
+                    </div>
+
+                    <!-- Mini Summary -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-2.5 text-[11px]">
+                        <div class="bg-slate-900/70 px-2.5 py-1.5 rounded-lg border border-slate-700">
+                            <span class="text-slate-400 block text-[10px]">รวมค่าใช้จ่าย:</span>
+                            <span class="font-bold font-mono text-emerald-400">${formatCurrency(totalCost)}</span>
+                        </div>
+                        <div class="bg-slate-900/70 px-2.5 py-1.5 rounded-lg border border-slate-700">
+                            <span class="text-slate-400 block text-[10px]">จำนวนครั้งที่ซ่อม:</span>
+                            <span class="font-bold text-slate-200">${repairCount} ครั้ง</span>
+                        </div>
+                        <div class="bg-slate-900/70 px-2.5 py-1.5 rounded-lg border border-slate-700 col-span-2 sm:col-span-1">
+                            <span class="text-slate-400 block text-[10px]">วันที่ซื้อ/รับเข้า:</span>
+                            <span class="font-medium text-cyan-300 font-mono">${purchaseRec ? purchaseRec.date : '-'}</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 max-h-56 overflow-y-auto pr-0.5">
+                        ${itemsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
         function populateDepartmentSelects() {
-            ['cam-department', 'new-user-dept', 'dev-mgr-filter-dept'].forEach(id => {
+            ['cam-department', 'new-user-dept', 'dev-mgr-filter-dept', 'maint-mgr-filter-dept'].forEach(id => {
                 const sel = document.getElementById(id);
                 if (!sel) return;
                 const isUser = id === 'new-user-dept';
-                const isFilter = id === 'dev-mgr-filter-dept';
+                const isFilter = id === 'dev-mgr-filter-dept' || id === 'maint-mgr-filter-dept';
                 if (isUser) {
                     sel.innerHTML = '<option value="admin">admin</option>';
                 } else if (isFilter) {
@@ -2294,6 +2686,7 @@
             const devType = getDeviceType(cam.type);
             const iconName = getDeviceIconName(cam.type);
             const imageHtml = getDeviceImageHtml(cam);
+            const maintHtml = getDeviceMaintenanceHtml(cam, isAdmin);
             const displayName = (cam.asset_name || cam.eng_name || cam.asset_code || cam.id) + (cam.holder || cam.thai_name ? ' - ' + (cam.holder || cam.thai_name) : '');
             const currentMapLabel = maps.find(m => String(m.map_id) === String(cam.map_id) || String(m._recordId) === String(cam.map_id));
             const mapLabel = currentMapLabel ? (currentMapLabel.map_name || `แผนผัง ${currentMapLabel.map_id}`) : (cam.map_id || '-');
@@ -2314,9 +2707,14 @@
                                 <span class="text-xs text-emerald-400 font-mono">${cam.asset_code || cam.id}</span>
                             </div>
                         </div>
-                        <button type="button" onclick="openAssetQrCode('${cam._recordId || cam.id}')" class="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-emerald-400 hover:text-white rounded-xl text-xs font-semibold transition-all border border-slate-600 flex items-center gap-1.5 shadow-sm" title="สร้าง / ดู QR Code ป้ายทรัพย์สิน">
-                            <i data-lucide="qr-code" class="w-4 h-4"></i> QR Tag
-                        </button>
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" onclick="openAddMaintenance('${cam.asset_code || cam.id}')" class="px-2.5 py-1.5 bg-cyan-600/20 hover:bg-cyan-600 text-cyan-400 hover:text-white rounded-xl text-xs font-semibold transition-all border border-cyan-500/40 flex items-center gap-1 shadow-sm" title="บันทึกประวัติการซื้อ/ซ่อม">
+                                <i data-lucide="plus-circle" class="w-4 h-4"></i> บันทึกซ่อม/ซื้อ
+                            </button>
+                            <button type="button" onclick="openAssetQrCode('${cam._recordId || cam.id}')" class="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-emerald-400 hover:text-white rounded-xl text-xs font-semibold transition-all border border-slate-600 flex items-center gap-1.5 shadow-sm" title="สร้าง / ดู QR Code ป้ายทรัพย์สิน">
+                                <i data-lucide="qr-code" class="w-4 h-4"></i> QR Tag
+                            </button>
+                        </div>
                     </div>
                     
                     <form id="detail-form" class="space-y-3" onsubmit="saveDetailEdit(event, '${cam._recordId}')">
@@ -2372,6 +2770,7 @@
                         </div>
 
                         ${imageHtml}
+                        ${maintHtml}
                         <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-semibold transition-all mt-3 shadow-md shadow-emerald-600/20">บันทึกการเปลี่ยนแปลง</button>
                     </form>`;
             } else {
@@ -2409,6 +2808,7 @@
                         <div class="flex justify-between py-1"><span class="text-slate-400">แผนผังที่ติดตั้ง</span><span class="text-right text-slate-300">${mapLabel || '-'}</span></div>
                     </div>
                     ${imageHtml}
+                    ${maintHtml}
                     <div class="flex gap-2 mt-3">
                         <button type="button" onclick="openAssetQrCode('${cam._recordId || cam.id}')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-emerald-400 hover:text-white py-2 rounded-xl text-xs font-semibold transition-all border border-slate-600 flex items-center justify-center gap-1.5 shadow-sm">
                             <i data-lucide="qr-code" class="w-4 h-4"></i> ป้าย QR Tag
@@ -2910,6 +3310,9 @@
             } else if (type === 'department') {
                 const d = departmentRecords.find(d => String(d._recordId) === String(recordId));
                 label = d ? d.department : recordId;
+            } else if (type === 'maintenance') {
+                const m = maintenances.find(m => String(m._recordId) === String(recordId) || String(m.id) === String(recordId));
+                label = m ? `${m.asset_code || 'อุปกรณ์'} - ${m.type || 'รายการ'} (${m.date || ''})` : recordId;
             }
             document.getElementById('delete-msg').textContent = `คุณต้องการลบ "${label}" หรือไม่?`;
             openModal('modal-delete');
@@ -2930,6 +3333,15 @@
                     renderBookmarks();
                     if (document.getElementById('modal-devices') && !document.getElementById('modal-devices').classList.contains('hidden')) {
                         renderDeviceManagerList();
+                    }
+                } else if (deleteTargetType === 'maintenance') {
+                    await fetchMaintenances();
+                    renderMaintenanceManagerList();
+                    // If device detail modal is currently open, refresh it
+                    const curDevId = document.getElementById('detail-id')?.value;
+                    if (curDevId) {
+                        const curCam = cameras.find(c => String(c.asset_code || c.id) === String(curDevId));
+                        if (curCam) showCameraDetail(curCam);
                     }
                 } else if (deleteTargetType === 'user') {
                     await fetchAllUsers();
@@ -3281,7 +3693,10 @@
                         <td class="py-2.5 px-3 text-center">${statusBadge}</td>
                         <td class="py-2.5 px-3 text-center">
                             <div class="flex items-center justify-center gap-1.5">
-                                <button onclick="openAssetQrCode('${c._recordId || c.id}')" class="p-1.5 rounded-lg bg-slate-700 hover:bg-cyan-600 text-emerald-400 hover:text-white transition-all" title="QR Code ป้ายทรัพย์สิน">
+                                <button onclick="openMaintenanceManager('${c.asset_code || c.id}')" class="p-1.5 rounded-lg bg-slate-700 hover:bg-cyan-600 text-cyan-400 hover:text-white transition-all" title="ประวัติการซื้อ/ซ่อมบำรุง">
+                                    <i data-lucide="wrench" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button onclick="openAssetQrCode('${c._recordId || c.id}')" class="p-1.5 rounded-lg bg-slate-700 hover:bg-emerald-600 text-emerald-400 hover:text-white transition-all" title="QR Code ป้ายทรัพย์สิน">
                                     <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
                                 </button>
                                 <button onclick="openEditDevice('${c._recordId}')" class="p-1.5 rounded-lg bg-slate-700 hover:bg-emerald-600 text-slate-300 hover:text-white transition-all" title="แก้ไข">
@@ -3517,6 +3932,294 @@
                 populateDepartmentSelects();
                 alert('เพิ่มแผนกเรียบร้อย');
             } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+        }
+
+        // ─── MAINTENANCE & REPAIR MANAGER (ADMIN / ALL DEVICES) ───
+        function openMaintenanceManager(filterAssetCode = '') {
+            populateDepartmentSelects();
+            const searchInput = document.getElementById('maint-mgr-search');
+            if (searchInput) {
+                searchInput.value = filterAssetCode || '';
+            }
+            renderMaintenanceManagerList();
+            openModal('modal-maintenance-list');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function renderMaintenanceManagerList() {
+            const tbody = document.getElementById('maint-mgr-tbody');
+            if (!tbody) return;
+
+            const searchTerm = (document.getElementById('maint-mgr-search')?.value || '').trim().toLowerCase();
+            const filterType = (document.getElementById('maint-mgr-filter-type')?.value || '').trim().toLowerCase();
+            const filterDept = (document.getElementById('maint-mgr-filter-dept')?.value || '').trim();
+            const filterStatus = (document.getElementById('maint-mgr-filter-status')?.value || '').trim().toLowerCase();
+
+            // Overall Summary Stats across all records
+            const totalCount = maintenances.length;
+            const totalCost = maintenances.reduce((sum, r) => sum + (Number(r.cost) || 0), 0);
+            const purchaseCount = maintenances.filter(r => (r.type || '').includes('ซื้อ') || (r.type || '').includes('รับเข้า')).length;
+            const repairCount = maintenances.filter(r => (r.type || '').includes('ซ่อม') || (r.type || '').includes('บำรุง') || (r.type || '').includes('เปลี่ยน')).length;
+
+            const elTotalBadge = document.getElementById('maint-mgr-total-badge');
+            if (elTotalBadge) elTotalBadge.textContent = `${totalCount} รายการ`;
+            const elStatCount = document.getElementById('maint-stat-total-count');
+            if (elStatCount) elStatCount.textContent = totalCount;
+            const elStatCost = document.getElementById('maint-stat-total-cost');
+            if (elStatCost) elStatCost.textContent = formatCurrency(totalCost);
+            const elStatPurch = document.getElementById('maint-stat-purchase-count');
+            if (elStatPurch) elStatPurch.textContent = purchaseCount;
+            const elStatRepair = document.getElementById('maint-stat-repair-count');
+            if (elStatRepair) elStatRepair.textContent = repairCount;
+
+            let list = maintenances.slice();
+
+            // Search filter
+            if (searchTerm) {
+                list = list.filter(m => 
+                    (m.asset_code || '').toLowerCase().includes(searchTerm) ||
+                    (m.device_name || '').toLowerCase().includes(searchTerm) ||
+                    (m.vendor || '').toLowerCase().includes(searchTerm) ||
+                    (m.invoice_no || '').toLowerCase().includes(searchTerm) ||
+                    (m.description || '').toLowerCase().includes(searchTerm) ||
+                    (m.created_by || '').toLowerCase().includes(searchTerm) ||
+                    (m.type || '').toLowerCase().includes(searchTerm)
+                );
+            }
+
+            // Event Type filter
+            if (filterType) {
+                list = list.filter(m => (m.type || '').toLowerCase().includes(filterType));
+            }
+
+            // Department filter (cross-referenced from device)
+            if (filterDept) {
+                list = list.filter(m => {
+                    const dev = cameras.find(c => String(c.asset_code || c.id).toLowerCase() === String(m.asset_code).toLowerCase());
+                    return dev && (dev.department === filterDept || dev.group === filterDept);
+                });
+            }
+
+            // Status filter
+            if (filterStatus) {
+                list = list.filter(m => (m.status || 'Completed').toLowerCase().includes(filterStatus));
+            }
+
+            const footerCount = document.getElementById('maint-mgr-footer-count');
+            if (footerCount) footerCount.textContent = `แสดง ${list.length} จากทั้งหมด ${totalCount} รายการ`;
+
+            if (list.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="text-center py-12 text-slate-500">
+                            <i data-lucide="clipboard-list" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+                            <p class="text-sm">ไม่พบประวัติการซื้อหรือซ่อมบำรุงตามเงื่อนไขที่ระบุ</p>
+                        </td>
+                    </tr>
+                `;
+                if (window.lucide) lucide.createIcons();
+                return;
+            }
+
+            tbody.innerHTML = list.map(m => {
+                const badge = getMaintenanceTypeBadge(m.type);
+                const statusBadge = getMaintenanceStatusBadge(m.status);
+                const costStr = m.cost ? formatCurrency(m.cost) : '-';
+                const dev = cameras.find(c => String(c.asset_code || c.id).toLowerCase() === String(m.asset_code).toLowerCase());
+                const devName = m.device_name || (dev ? (dev.asset_name || dev.eng_name || '-') : '-');
+                const devHolder = dev ? (dev.holder || dev.thai_name || '') : '';
+                const devDept = dev ? (dev.department || dev.group || '') : '';
+
+                return `
+                    <tr class="hover:bg-slate-750/70 transition-colors">
+                        <td class="py-2.5 px-3 font-mono text-slate-300 whitespace-nowrap">${m.date || '-'}</td>
+                        <td class="py-2.5 px-3 font-mono font-bold text-cyan-400">
+                            ${m.asset_code ? `
+                                <button type="button" onclick="inspectDeviceFromMaintenance('${m.asset_code}')" class="hover:underline flex items-center gap-1 text-left font-mono" title="คลิกเพื่อดูรายละเอียดอุปกรณ์">
+                                    <span>${m.asset_code}</span>
+                                    <i data-lucide="external-link" class="w-3 h-3 opacity-60"></i>
+                                </button>
+                            ` : '-'}
+                        </td>
+                        <td class="py-2.5 px-3">
+                            <div class="font-semibold text-slate-100">${devName}</div>
+                            <div class="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                                ${devHolder ? `<span>👤 ${devHolder}</span>` : ''}
+                                ${devDept ? `<span class="text-emerald-400">🏢 ${devDept}</span>` : ''}
+                            </div>
+                        </td>
+                        <td class="py-2.5 px-3">${badge}</td>
+                        <td class="py-2.5 px-3">
+                            <div class="max-w-xs text-slate-300 whitespace-pre-wrap line-clamp-2" title="${(m.description || '').replace(/"/g, '&quot;')}">${m.description || '-'}</div>
+                        </td>
+                        <td class="py-2.5 px-3 text-slate-300">
+                            <div class="font-medium">${m.vendor || '-'}</div>
+                            ${m.invoice_no ? `<div class="text-[10px] font-mono text-slate-400">เลขที่: ${m.invoice_no}</div>` : ''}
+                        </td>
+                        <td class="py-2.5 px-3 text-right font-mono font-bold text-emerald-400 whitespace-nowrap">${costStr}</td>
+                        <td class="py-2.5 px-3 text-center">${statusBadge}</td>
+                        <td class="py-2.5 px-3 text-center">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button type="button" onclick="openEditMaintenance('${m._recordId || m.id}')" class="p-1.5 rounded-lg bg-slate-700 hover:bg-emerald-600 text-slate-300 hover:text-white transition-all" title="แก้ไข">
+                                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button type="button" onclick="requestDelete('${m._recordId || m.id}', 'maintenance')" class="p-1.5 rounded-lg bg-slate-700 hover:bg-red-600 text-slate-300 hover:text-white transition-all" title="ลบ">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function inspectDeviceFromMaintenance(assetCode) {
+            if (!assetCode) return;
+            const dev = cameras.find(c => String(c.asset_code || c.id).toLowerCase() === String(assetCode).toLowerCase());
+            if (dev) {
+                showCameraDetail(dev);
+            } else {
+                alert(`ไม่พบอุปกรณ์รหัส "${assetCode}" ในระบบแผนผัง`);
+            }
+        }
+
+        // ─── ADD / EDIT MAINTENANCE FORM ───
+        function populateMaintenanceAssetSelect(selectedAssetCode = '') {
+            const sel = document.getElementById('maint-form-device-select');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">-- เลือกอุปกรณ์ในระบบ --</option>';
+            cameras.forEach(c => {
+                const opt = document.createElement('option');
+                const code = c.asset_code || c.id || '';
+                opt.value = code;
+                const dName = c.asset_name || c.eng_name || '';
+                const dHolder = c.holder || c.thai_name || c.department || '';
+                opt.textContent = `${code} - ${dName}${dHolder ? ' (' + dHolder + ')' : ''}`;
+                if (selectedAssetCode && String(code).toLowerCase() === String(selectedAssetCode).toLowerCase()) {
+                    opt.selected = true;
+                }
+                sel.appendChild(opt);
+            });
+        }
+
+        function onMaintenanceDeviceSelectChange(selectedVal) {
+            const codeInput = document.getElementById('maint-form-asset-code');
+            const nameInput = document.getElementById('maint-form-dev-name');
+            if (codeInput && selectedVal) {
+                codeInput.value = selectedVal;
+            }
+            if (nameInput) {
+                const dev = cameras.find(c => String(c.asset_code || c.id).toLowerCase() === String(selectedVal).toLowerCase());
+                nameInput.value = dev ? (dev.asset_name || dev.eng_name || dev.type || '') : '';
+            }
+        }
+
+        function openAddMaintenance(prefilledAssetCode = '') {
+            const form = document.getElementById('maint-form');
+            if (form) form.reset();
+
+            editingMaintenanceId = null;
+            document.getElementById('maint-form-id').value = '';
+            document.getElementById('maint-form-title').textContent = 'บันทึกประวัติการซื้อ / ซ่อมบำรุง';
+
+            populateMaintenanceAssetSelect(prefilledAssetCode);
+            document.getElementById('maint-form-asset-code').value = prefilledAssetCode || '';
+            if (prefilledAssetCode) {
+                const dev = cameras.find(c => String(c.asset_code || c.id).toLowerCase() === String(prefilledAssetCode).toLowerCase());
+                document.getElementById('maint-form-dev-name').value = dev ? (dev.asset_name || dev.eng_name || '') : '';
+            } else {
+                document.getElementById('maint-form-dev-name').value = '';
+            }
+
+            document.getElementById('maint-form-date').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('maint-form-status').value = 'Completed';
+            document.getElementById('maint-form-type').value = 'ส่งซ่อม';
+            document.getElementById('maint-form-created-by').value = currentUser?.name || '';
+
+            openModal('modal-maintenance');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function openEditMaintenance(maintId) {
+            const record = maintenances.find(m => String(m._recordId) === String(maintId) || String(m.id) === String(maintId));
+            if (!record) return;
+
+            editingMaintenanceId = maintId;
+            document.getElementById('maint-form-id').value = maintId;
+            document.getElementById('maint-form-title').textContent = 'แก้ไขประวัติการซื้อ / ซ่อมบำรุง';
+
+            populateMaintenanceAssetSelect(record.asset_code);
+            document.getElementById('maint-form-asset-code').value = record.asset_code || '';
+            document.getElementById('maint-form-dev-name').value = record.device_name || '';
+            document.getElementById('maint-form-type').value = record.type || 'ส่งซ่อม';
+            document.getElementById('maint-form-date').value = record.date || new Date().toISOString().slice(0, 10);
+            document.getElementById('maint-form-cost').value = record.cost != null ? record.cost : '';
+            document.getElementById('maint-form-status').value = record.status || 'Completed';
+            document.getElementById('maint-form-vendor').value = record.vendor || '';
+            document.getElementById('maint-form-invoice').value = record.invoice_no || '';
+            document.getElementById('maint-form-description').value = record.description || '';
+            document.getElementById('maint-form-created-by').value = record.created_by || '';
+
+            openModal('modal-maintenance');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        async function handleSaveMaintenance(e) {
+            e.preventDefault();
+            const submitBtn = document.getElementById('maint-form-submit-btn');
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'กำลังบันทึก...'; }
+
+            const id = document.getElementById('maint-form-id').value.trim();
+            const assetCode = document.getElementById('maint-form-asset-code').value.trim();
+            const devName = document.getElementById('maint-form-dev-name').value.trim();
+            const type = document.getElementById('maint-form-type').value.trim();
+            const date = document.getElementById('maint-form-date').value.trim();
+            const cost = parseFloat(document.getElementById('maint-form-cost').value) || 0;
+            const status = document.getElementById('maint-form-status').value.trim();
+            const vendor = document.getElementById('maint-form-vendor').value.trim();
+            const invoiceNo = document.getElementById('maint-form-invoice').value.trim();
+            const description = document.getElementById('maint-form-description').value.trim();
+            const createdBy = document.getElementById('maint-form-created-by').value.trim();
+
+            const payload = {
+                asset_code: assetCode,
+                device_name: devName,
+                type: type,
+                date: date,
+                cost: cost,
+                status: status,
+                vendor: vendor,
+                invoice_no: invoiceNo,
+                description: description,
+                created_by: createdBy
+            };
+
+            try {
+                if (id) {
+                    await apiUpdate('maintenance', id, payload);
+                } else {
+                    await apiCreate('maintenance', payload);
+                }
+                await fetchMaintenances();
+                renderMaintenanceManagerList();
+
+                // If device detail modal is currently opened for this device, re-render it
+                const curDevId = document.getElementById('detail-id')?.value;
+                if (curDevId && String(curDevId).toLowerCase() === String(assetCode).toLowerCase()) {
+                    const curCam = cameras.find(c => String(c.asset_code || c.id).toLowerCase() === String(curDevId).toLowerCase());
+                    if (curCam) showCameraDetail(curCam);
+                }
+
+                closeModal('modal-maintenance');
+                alert(id ? 'แก้ไขข้อมูลเรียบร้อยแล้ว' : 'บันทึกประวัติการซื้อ/ซ่อมบำรุงเรียบร้อยแล้ว');
+            } catch (err) {
+                console.error('Failed to save maintenance:', err);
+                alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
+            } finally {
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'บันทึกข้อมูล'; }
+            }
         }
 
         // ─── PRINT & ZOOM ───

@@ -34,6 +34,58 @@ function getImageFromStore(key) {
   return inMemoryImages[String(key).trim()] || '';
 }
 
+// ─── Local Fallback Storage for Maintenance / Repair History ───
+const MAINTENANCE_STORE_FILE = '/tmp/asset_maintenance_store.json';
+let inMemoryMaintenances = [];
+
+function loadMaintenanceStore() {
+  try {
+    if (fs.existsSync(MAINTENANCE_STORE_FILE)) {
+      const data = fs.readFileSync(MAINTENANCE_STORE_FILE, 'utf8');
+      inMemoryMaintenances = JSON.parse(data || '[]');
+    }
+  } catch (_) {}
+  return inMemoryMaintenances;
+}
+
+function saveMaintenanceStore(records) {
+  inMemoryMaintenances = records || [];
+  try {
+    fs.writeFileSync(MAINTENANCE_STORE_FILE, JSON.stringify(inMemoryMaintenances), 'utf8');
+  } catch (_) {}
+}
+
+function addLocalMaintenance(fields, customId) {
+  const store = loadMaintenanceStore();
+  const id = customId || `maint_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const record = {
+    id,
+    fields: normalizeFields('maintenance', fields, id)
+  };
+  store.unshift(record);
+  saveMaintenanceStore(store);
+  return record;
+}
+
+function updateLocalMaintenance(id, fields) {
+  const store = loadMaintenanceStore();
+  const idx = store.findIndex(r => String(r.id) === String(id));
+  if (idx !== -1) {
+    store[idx].fields = normalizeFields('maintenance', { ...store[idx].fields, ...(fields || {}) }, id);
+    saveMaintenanceStore(store);
+    return store[idx];
+  }
+  return addLocalMaintenance(fields, id);
+}
+
+function deleteLocalMaintenance(id) {
+  let store = loadMaintenanceStore();
+  const initialLen = store.length;
+  store = store.filter(r => String(r.id) !== String(id));
+  saveMaintenanceStore(store);
+  return store.length < initialLen;
+}
+
 function cleanToken(token) {
   let t = (token || '').trim();
   if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
@@ -98,6 +150,16 @@ function getCandidateTables(table) {
     return [
       'departments', 'department', 'Departments', 'Department', 'department.csv', 'Department.csv',
       'dept', 'depts', 'แผนก', 'ฝ่าย', 'Table 3', 'Table 1'
+    ];
+  }
+  if (lower === 'maintenance' || lower === 'maintenances' || lower === 'repair' || lower === 'repairs' || lower === 'asset_history' || lower === 'history' || lower === 'service' || lower === 'services' || lower === 'purchase' || lower === 'purchases') {
+    return [
+      'maintenance', 'maintenances', 'Maintenance', 'Maintenances', 'maintenance.csv', 'Maintenance.csv',
+      'repair', 'repairs', 'Repair', 'Repairs', 'repair.csv', 'Repair.csv',
+      'asset_history', 'history', 'Asset_History', 'Asset History', 'History', 'history.csv',
+      'service', 'services', 'Service', 'Services', 'service.csv',
+      'purchase', 'purchases', 'Purchase', 'Purchases', 'purchase.csv',
+      'ประวัติการซ่อม', 'การซ่อม', 'ประวัติการซื้อ', 'ประวัติอุปกรณ์', 'Table 5', 'Table 1'
     ];
   }
   return [t, `${t}.csv`];
@@ -387,6 +449,75 @@ function normalizeFields(table, fields, recordId = '') {
       ...f,
       department: String(deptName).trim(),
       Name: String(deptName).trim()
+    };
+  }
+
+  if (t === 'maintenance' || t === 'maintenances' || t === 'repair' || t === 'repairs' || t === 'asset_history' || t === 'history' || t === 'service' || t === 'services' || t === 'purchase' || t === 'purchases') {
+    const assetCode = extractFieldValue(f, [
+      'asset_code', 'asset code', 'Asset Code', 'Asset_Code', 'code', 'Code',
+      'device_id', 'device_code', 'account_no', 'cam_id', 'id', 'ID',
+      'รหัสทรัพย์สิน', 'รหัสอุปกรณ์', 'รหัสเครื่อง', 'รหัส'
+    ]) || (f.asset_code || f.account_no || f.id || '');
+
+    const devName = extractFieldValue(f, [
+      'device_name', 'device name', 'Device Name', 'asset_name', 'asset name', 'Asset Name',
+      'eng_name', 'thai_name', 'Name', 'name', 'ชื่ออุปกรณ์', 'ชื่อ'
+    ]);
+
+    const eventType = extractFieldValue(f, [
+      'type', 'Type', 'event_type', 'action_type', 'category', 'Category',
+      'ประเภท', 'ประเภทรายการ', 'รายการ'
+    ]) || 'ส่งซ่อม';
+
+    const eventDate = extractFieldValue(f, [
+      'date', 'Date', 'event_date', 'service_date', 'purchase_date', 'created_date',
+      'วันที่', 'วันที่ทำรายการ', 'วันที่ซื้อ', 'วันที่ซ่อม'
+    ]) || (new Date()).toISOString().slice(0, 10);
+
+    const rawCost = extractFieldValue(f, [
+      'cost', 'Cost', 'price', 'Price', 'amount', 'Amount', 'total_cost', 'expense',
+      'ค่าใช้จ่าย', 'ราคา', 'จำนวนเงิน'
+    ]);
+    let numCost = 0;
+    if (rawCost != null && rawCost !== '') {
+      numCost = parseFloat(String(rawCost).replace(/,/g, '')) || 0;
+    }
+
+    const vendor = extractFieldValue(f, [
+      'vendor', 'Vendor', 'supplier', 'Supplier', 'shop', 'Shop', 'contractor', 'technician', 'provider',
+      'ผู้ให้บริการ', 'ร้านค้า', 'ผู้รับเหมา', 'ช่าง', 'บริษัท'
+    ]);
+
+    const invoiceNo = extractFieldValue(f, [
+      'invoice_no', 'Invoice No', 'doc_no', 'receipt_no', 'po_no', 'ticket_no',
+      'เลขที่เอกสาร', 'เลขที่ใบเสร็จ', 'เลขที่ใบแจ้งซ่อม', 'ใบแจ้งซ่อม'
+    ]);
+
+    const description = extractFieldValue(f, [
+      'description', 'Description', 'detail', 'details', 'Detail', 'Details', 'note', 'notes', 'symptom',
+      'รายละเอียด', 'อาการเสีย', 'หมายเหตุ', 'ปัญหา'
+    ]);
+
+    const status = extractFieldValue(f, [
+      'status', 'Status', 'สถานะ'
+    ]) || 'Completed';
+
+    const createdBy = extractFieldValue(f, [
+      'created_by', 'Created By', 'reporter', 'user', 'User', 'ผู้บันทึก', 'ผู้แจ้ง'
+    ]);
+
+    return {
+      ...f,
+      asset_code: String(assetCode).trim(),
+      device_name: String(devName || '').trim(),
+      type: String(eventType).trim(),
+      date: String(eventDate).trim(),
+      cost: numCost,
+      vendor: String(vendor || '').trim(),
+      invoice_no: String(invoiceNo || '').trim(),
+      description: String(description || '').trim(),
+      status: String(status).trim(),
+      created_by: String(createdBy || '').trim()
     };
   }
 
@@ -956,6 +1087,65 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     return fallback;
   }
 
+  if (t.startsWith('maint') || t.startsWith('repair') || t.startsWith('hist') || t.startsWith('purch') || t.startsWith('service')) {
+    const assetCode = raw.asset_code || raw.id || raw.code || raw['รหัสทรัพย์สิน'] || raw['รหัสอุปกรณ์'] || '';
+    const eventType = raw.type || raw.event_type || raw['ประเภท'] || 'ส่งซ่อม';
+    const eventDate = raw.date || raw.event_date || (new Date()).toISOString().slice(0, 10);
+    const cost = parseFloat(raw.cost) || 0;
+    const vendor = raw.vendor || raw['ผู้ให้บริการ'] || raw['ร้านค้า'] || '';
+    const invoiceNo = raw.invoice_no || raw.doc_no || raw['เลขที่เอกสาร'] || '';
+    const description = raw.description || raw.detail || raw['รายละเอียด'] || '';
+    const status = raw.status || raw['สถานะ'] || 'Completed';
+    const createdBy = raw.created_by || raw['ผู้บันทึก'] || '';
+    const devName = raw.device_name || raw.asset_name || '';
+
+    const nameLabel = `${assetCode ? assetCode + ' - ' : ''}${eventType} (${eventDate})`;
+
+    if (availableNames && availableNames.length > 0) {
+      const result = {};
+      const codeCol = findMatchingAirtableFieldName(availableNames, ['asset_code', 'asset code', 'Asset Code', 'Asset_Code', 'code', 'id', 'รหัสทรัพย์สิน', 'รหัสอุปกรณ์']);
+      const nameCol = findMatchingAirtableFieldName(availableNames, ['Name', 'name', 'title', 'device_name', 'ชื่ออุปกรณ์', 'ชื่อ']);
+      const typeCol = findMatchingAirtableFieldName(availableNames, ['type', 'Type', 'event_type', 'ประเภท', 'ประเภทรายการ']);
+      const dateCol = findMatchingAirtableFieldName(availableNames, ['date', 'Date', 'event_date', 'วันที่', 'วันที่ทำรายการ']);
+      const costCol = findMatchingAirtableFieldName(availableNames, ['cost', 'Cost', 'price', 'Amount', 'ค่าใช้จ่าย', 'ราคา', 'จำนวนเงิน']);
+      const vendorCol = findMatchingAirtableFieldName(availableNames, ['vendor', 'Vendor', 'supplier', 'ผู้ให้บริการ', 'ร้านค้า', 'ช่าง']);
+      const invCol = findMatchingAirtableFieldName(availableNames, ['invoice_no', 'doc_no', 'receipt_no', 'เลขที่เอกสาร', 'เลขที่ใบแจ้งซ่อม']);
+      const descCol = findMatchingAirtableFieldName(availableNames, ['description', 'Description', 'detail', 'details', 'รายละเอียด', 'หมายเหตุ', 'อาการเสีย']);
+      const statusCol = findMatchingAirtableFieldName(availableNames, ['status', 'Status', 'สถานะ']);
+      const userCol = findMatchingAirtableFieldName(availableNames, ['created_by', 'user', 'ผู้บันทึก']);
+
+      if (codeCol && assetCode) result[codeCol] = assetCode;
+      if (nameCol && nameLabel) result[nameCol] = nameLabel;
+      if (typeCol && eventType) result[typeCol] = eventType;
+      if (dateCol && eventDate) result[dateCol] = eventDate;
+      if (costCol && cost != null) result[costCol] = cost;
+      if (vendorCol && vendor) result[vendorCol] = vendor;
+      if (invCol && invoiceNo) result[invCol] = invoiceNo;
+      if (descCol && description) result[descCol] = description;
+      if (statusCol && status) result[statusCol] = status;
+      if (userCol && createdBy) result[userCol] = createdBy;
+
+      if (primaryField && primaryField.name && !result[primaryField.name]) {
+        result[primaryField.name] = nameLabel;
+      }
+      return result;
+    }
+
+    return {
+      Name: nameLabel,
+      asset_code: assetCode,
+      device_name: devName,
+      type: eventType,
+      date: eventDate,
+      cost: cost,
+      vendor: vendor,
+      invoice_no: invoiceNo,
+      description: description,
+      status: status,
+      created_by: createdBy
+    };
+  }
+
   return raw;
 }
 
@@ -1090,6 +1280,12 @@ module.exports = async (req, res) => {
       const err = result.error || {};
       let msg = err.message || 'Airtable error';
 
+      // Fallback for maintenance table if Airtable table does not exist or has permission issue
+      if (table.toLowerCase().startsWith('maint') || table.toLowerCase().startsWith('repair') || table.toLowerCase().startsWith('hist') || table.toLowerCase().startsWith('purch') || table.toLowerCase().startsWith('service')) {
+        const localRecs = loadMaintenanceStore();
+        return res.status(200).json({ records: localRecs });
+      }
+
       // If user login attempt with default admin credentials, allow fallback access so user is never locked out
       if (table.toLowerCase().startsWith('user') && query.name === 'admin' && query.password === 'cmfsupport') {
         return res.status(200).json({
@@ -1121,6 +1317,17 @@ module.exports = async (req, res) => {
       id: r.id,
       fields: normalizeFields(table, r.fields, r.id)
     }));
+
+    // If maintenance table from Airtable, merge with local store records
+    if (table.toLowerCase().startsWith('maint') || table.toLowerCase().startsWith('repair') || table.toLowerCase().startsWith('hist') || table.toLowerCase().startsWith('purch') || table.toLowerCase().startsWith('service')) {
+      const localRecs = loadMaintenanceStore();
+      const existingIds = new Set(records.map(r => r.id));
+      for (const loc of localRecs) {
+        if (!existingIds.has(loc.id)) {
+          records.push(loc);
+        }
+      }
+    }
 
     // Handle User Login verification
     if (table.toLowerCase().startsWith('user') && query.name && query.password) {
@@ -1180,6 +1387,8 @@ module.exports = async (req, res) => {
 
   // ─── POST (Create Record) ───
   if (req.method === 'POST') {
+    const isMaintenance = table.toLowerCase().startsWith('maint') || table.toLowerCase().startsWith('repair') || table.toLowerCase().startsWith('hist') || table.toLowerCase().startsWith('purch') || table.toLowerCase().startsWith('service');
+
     const targetTable = await resolveWorkingTable(baseId, token, table);
     const preparedFields = await prepareFieldsForTable(baseId, token, table, targetTable, fields);
 
@@ -1187,7 +1396,21 @@ module.exports = async (req, res) => {
     const writeResult = await writeAirtableWithRetry(postUrl, 'POST', token, preparedFields);
 
     if (!writeResult.ok) {
+      if (isMaintenance) {
+        // Fallback to local store
+        const localRec = addLocalMaintenance(fields);
+        return res.status(200).json({
+          id: localRec.id,
+          fields: localRec.fields,
+          targetTable: 'local_maintenance',
+          note: 'Saved to local store'
+        });
+      }
       return res.status(writeResult.status || 500).json(writeResult.data);
+    }
+
+    if (isMaintenance) {
+      addLocalMaintenance(fields, writeResult.data.id);
     }
 
     const imgPayloadPost = fields.image_url || fields.image || fields.Image || fields.photo || fields.picture || fields.go2rtc_link || fields['รูปภาพ'] || fields['ภาพ'] || '';
@@ -1213,6 +1436,12 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Missing record id for PATCH' });
     }
 
+    const isMaintenance = table.toLowerCase().startsWith('maint') || table.toLowerCase().startsWith('repair') || table.toLowerCase().startsWith('hist') || table.toLowerCase().startsWith('purch') || table.toLowerCase().startsWith('service');
+
+    if (isMaintenance) {
+      updateLocalMaintenance(rawId, fields);
+    }
+
     const targetTable = await resolveWorkingTable(baseId, token, table);
     const realRecordId = await findAirtableRecordId(baseId, token, targetTable, rawId);
     const preparedFields = await prepareFieldsForTable(baseId, token, table, targetTable, fields);
@@ -1221,6 +1450,15 @@ module.exports = async (req, res) => {
     const writeResult = await writeAirtableWithRetry(patchUrl, 'PATCH', token, preparedFields);
 
     if (!writeResult.ok) {
+      if (isMaintenance) {
+        const localRec = updateLocalMaintenance(rawId, fields);
+        return res.status(200).json({
+          id: localRec.id,
+          fields: localRec.fields,
+          targetTable: 'local_maintenance',
+          note: 'Updated in local store'
+        });
+      }
       return res.status(writeResult.status || 500).json(writeResult.data);
     }
 
@@ -1248,6 +1486,12 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Missing record id for DELETE' });
     }
 
+    const isMaintenance = table.toLowerCase().startsWith('maint') || table.toLowerCase().startsWith('repair') || table.toLowerCase().startsWith('hist') || table.toLowerCase().startsWith('purch') || table.toLowerCase().startsWith('service');
+
+    if (isMaintenance) {
+      deleteLocalMaintenance(rawId);
+    }
+
     const targetTable = await resolveWorkingTable(baseId, token, table);
     const realRecordId = await findAirtableRecordId(baseId, token, targetTable, rawId);
     const deleteUrl = `${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(targetTable)}/${encodeURIComponent(realRecordId)}`;
@@ -1257,8 +1501,11 @@ module.exports = async (req, res) => {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    const data = await resDelete.json();
+    const data = await resDelete.json().catch(() => ({}));
     if (!resDelete.ok) {
+      if (isMaintenance) {
+        return res.status(200).json({ deleted: true, id: rawId, note: 'Deleted from local store' });
+      }
       return res.status(resDelete.status).json(data);
     }
 
