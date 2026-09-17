@@ -532,10 +532,29 @@ function findMatchingAirtableFieldName(availableFieldNames, candidateAliases) {
   return null;
 }
 
+// Helper: probe primary field name from Airtable by sending empty fields and reading error
+async function probePrimaryField(url, method, token) {
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: { '___probe___': 'test' }, typecast: true })
+    });
+    const data = await res.json().catch(() => ({}));
+    // Airtable returns something like: "Unknown field name: '___probe___'"
+    // or sometimes reveals primary field in other error messages
+    // We can also try sending empty fields to see if it gives us a hint
+    return null;
+  } catch (_) {
+    return null;
+  }
+}
+
 // Helper to write to Airtable with unknown field pruning retry
 async function writeAirtableWithRetry(url, method, token, fields) {
   let payloadFields = { ...fields };
   const debugLog = [];
+  let pendingCodeVal = null;  // Saves asset code value if all code fields get rejected
 
   if (method === 'POST') {
     for (const [k, v] of Object.entries(payloadFields)) {
@@ -546,6 +565,9 @@ async function writeAirtableWithRetry(url, method, token, fields) {
   }
 
   debugLog.push({ attempt: 'initial', fields: Object.keys(payloadFields) });
+
+  // Extract the intended code value upfront for safety
+  pendingCodeVal = payloadFields['asset_code'] || payloadFields['Name'] || payloadFields['Asset Code'] || payloadFields['Asset_Code'] || '';
 
   for (let attempt = 0; attempt < 30; attempt++) {
     const res = await fetch(url, {
@@ -580,15 +602,45 @@ async function writeAirtableWithRetry(url, method, token, fields) {
           else if (rejected === 'X' && !('x' in payloadFields)) payloadFields['x'] = val;
           else if (rejected === 'Y' && !('y' in payloadFields)) payloadFields['y'] = val;
 
-          // If asset_code / code field was rejected because table uses Name as primary field
-          // ALWAYS override Name with the code value (even if Name already exists)
+          // If asset_code field rejected → override Name with code value
           const rejNorm2 = rejected.trim().toLowerCase().replace(/[\s_\-]+/g, '');
           if ((rejNorm2 === 'assetcode' || rejected === 'รหัสทรัพย์สิน' || rejected === 'รหัสอุปกรณ์') && val) {
-            payloadFields['Name'] = val;  // Override Name with asset code value
+            pendingCodeVal = val;
+            payloadFields['Name'] = val;
             debugLog.push({ action: 'overrideNameWithCode', rejected, val });
           }
+
+          // If Name itself is rejected → the primary field has a different name
+          // Save the code value; it will be injected when we discover the primary field name
+          if (rejected === 'Name' || rejected === 'name') {
+            if (val && !pendingCodeVal) pendingCodeVal = val;
+            else if (!pendingCodeVal) pendingCodeVal = val;
+            debugLog.push({ action: 'NameRejected_savingPendingCode', val: pendingCodeVal });
+            // Don't add any replacement yet — wait until Airtable tells us what's valid
+          }
+
           continue;
         }
+      }
+
+      // 1b. If only one field left in payload AND Airtable still says Unknown field,
+      //     means we've exhausted guesses. If pendingCodeVal exists, try sending empty record
+      //     (Airtable will create it with auto-number primary if primary field is auto)
+      if (Object.keys(payloadFields).length === 0 && pendingCodeVal) {
+        // Try a minimal payload with just the code as a free-text note in any field
+        debugLog.push({ action: 'allFieldsRejected_tryingEmpty', pendingCodeVal });
+        // Just proceed with empty fields to create the record
+        const emptyRes = await fetch(url, {
+          method,
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: {}, typecast: true })
+        });
+        const emptyData = await emptyRes.json();
+        if (emptyRes.ok) {
+          debugLog.push({ action: 'createdWithEmptyFields', id: emptyData.id });
+          return { ok: true, data: emptyData, _debug: debugLog, _warning: `ไม่สามารถเขียน asset_code "${pendingCodeVal}" ลง Airtable ได้ เนื่องจากไม่พบคอลัมน์ที่ตรงกัน กรุณาเพิ่มคอลัมน์ "asset_code" ประเภท Single line text ใน Airtable table device` };
+        }
+        return { ok: false, status: emptyRes.status, data: { ...emptyData, _debug: debugLog } };
       }
 
       // 2. Field cannot accept value (e.g. Field "xxx" cannot accept...)
@@ -607,7 +659,6 @@ async function writeAirtableWithRetry(url, method, token, fields) {
         const rejNorm = rejected.trim().toLowerCase().replace(/[\s_\-]+/g, '');
         if (rejNorm === 'assetcode') {
           delete payloadFields[rejected];
-          // Always set Name = code value
           payloadFields['Name'] = val;
           debugLog.push({ action: 'assetcodeCannotAccept_overrideName', rejected, val });
           continue;
