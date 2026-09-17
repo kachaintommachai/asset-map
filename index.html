@@ -1217,30 +1217,7 @@
             lucide.createIcons();
 
             // Check for direct deep-link parameter from QR scan (?asset=... or ?code=... or ?id=...)
-            try {
-                const urlParams = new URLSearchParams(window.location.search);
-                const targetAsset = (urlParams.get('asset') || urlParams.get('code') || urlParams.get('id') || '').trim();
-                if (targetAsset) {
-                    const matchedCam = cameras.find(c => 
-                        String(c.asset_code || '').toLowerCase() === targetAsset.toLowerCase() ||
-                        String(c.id || '').toLowerCase() === targetAsset.toLowerCase() ||
-                        String(c._recordId || '').toLowerCase() === targetAsset.toLowerCase()
-                    );
-                    if (matchedCam) {
-                        if (matchedCam.map_id && String(matchedCam.map_id) !== String(selectedMapId)) {
-                            selectedMapId = String(matchedCam.map_id);
-                            renderMapSelector();
-                            showFloorPlan();
-                            renderCameras();
-                        }
-                        setTimeout(() => {
-                            showCameraDetail(matchedCam);
-                        }, 300);
-                    }
-                }
-            } catch (err) {
-                console.warn('Deep link parse error:', err);
-            }
+            await checkUrlDirectAsset();
         }
 
         function showAirtableErrorBanner(msg) {
@@ -2056,9 +2033,13 @@
         }
 
         function getGroupColor(group) {
-            const groups = [...new Set(getVisibleCameras().map(c => c.group || 'ไม่มีแผนก'))];
+            const list = currentUser ? getVisibleCameras() : (cameras || []);
+            const groups = [...new Set(list.map(c => c.group || c.department || 'ไม่มีแผนก'))];
             const idx = groups.indexOf(group || 'ไม่มีแผนก');
-            return groupColors[idx % groupColors.length];
+            if (idx >= 0 && groupColors[idx % groupColors.length]) {
+                return groupColors[idx % groupColors.length];
+            }
+            return '#10b981';
         }
 
         // ─── DEVICE LIST SIDEBAR ───
@@ -2384,7 +2365,15 @@
                         <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-semibold transition-all mt-3 shadow-md shadow-emerald-600/20">บันทึกการเปลี่ยนแปลง</button>
                     </form>`;
             } else {
+                const scanBanner = !currentUser ? `
+                    <div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs px-3 py-2 rounded-xl flex items-center justify-between mb-3 shadow-sm">
+                        <span class="flex items-center gap-1.5 font-medium"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i> ข้อมูลอุปกรณ์จากการสแกน QR Code</span>
+                        <span class="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-300 font-mono">Scan View</span>
+                    </div>
+                ` : '';
+
                 content.innerHTML = `
+                    ${scanBanner}
                     <div class="text-center mb-4">
                         <div class="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 shadow-lg text-white" style="background:${gColor}">
                             <i data-lucide="${iconName}" class="w-7 h-7"></i>
@@ -2410,9 +2399,12 @@
                         <div class="flex justify-between py-1"><span class="text-slate-400">แผนผังที่ติดตั้ง</span><span class="text-right text-slate-300">${mapLabel || '-'}</span></div>
                     </div>
                     ${imageHtml}
-                    <button type="button" onclick="openAssetQrCode('${cam._recordId || cam.id}')" class="w-full mt-3 bg-slate-700 hover:bg-slate-600 text-emerald-400 hover:text-white py-2 rounded-xl text-xs font-semibold transition-all border border-slate-600 flex items-center justify-center gap-2 shadow-sm">
-                        <i data-lucide="qr-code" class="w-4 h-4"></i> ดู / พิมพ์ QR Code ป้ายทรัพย์สิน (Asset Tag)
-                    </button>`;
+                    <div class="flex gap-2 mt-3">
+                        <button type="button" onclick="openAssetQrCode('${cam._recordId || cam.id}')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-emerald-400 hover:text-white py-2 rounded-xl text-xs font-semibold transition-all border border-slate-600 flex items-center justify-center gap-1.5 shadow-sm">
+                            <i data-lucide="qr-code" class="w-4 h-4"></i> ป้าย QR Tag
+                        </button>
+                    </div>`;
+            }
             }
             openModal('modal-detail');
             lucide.createIcons();
@@ -3746,12 +3738,100 @@
         // ─── QR CODE & PRINTABLE ASSET TAG ───
         let currentQrCam = null;
 
+        function findDeviceByQuery(query) {
+            if (!query || !cameras || cameras.length === 0) return null;
+            const q = String(query).trim().toLowerCase();
+            const qNorm = q.replace(/[\s\.\-_/]/g, '');
+            
+            // 1. Exact match on asset_code, id, account_no, _recordId
+            let match = cameras.find(c => 
+                String(c.asset_code || '').trim().toLowerCase() === q ||
+                String(c.id || '').trim().toLowerCase() === q ||
+                String(c.account_no || '').trim().toLowerCase() === q ||
+                String(c._recordId || '').trim().toLowerCase() === q
+            );
+            if (match) return match;
+
+            // 2. Normalized match (ignoring dots, dashes, spaces)
+            match = cameras.find(c => {
+                const cCodeNorm = String(c.asset_code || '').toLowerCase().replace(/[\s\.\-_/]/g, '');
+                const cIdNorm = String(c.id || '').toLowerCase().replace(/[\s\.\-_/]/g, '');
+                const cAccNorm = String(c.account_no || '').toLowerCase().replace(/[\s\.\-_/]/g, '');
+                return (cCodeNorm && cCodeNorm === qNorm) || (cIdNorm && cIdNorm === qNorm) || (cAccNorm && cAccNorm === qNorm);
+            });
+            if (match) return match;
+
+            // 3. Serial / Name match
+            match = cameras.find(c => 
+                (c.serial && String(c.serial).trim().toLowerCase() === q) ||
+                (c.asset_name && String(c.asset_name).trim().toLowerCase() === q) ||
+                (c.eng_name && String(c.eng_name).trim().toLowerCase() === q)
+            );
+            if (match) return match;
+
+            // 4. Partial match if query is long enough
+            if (q.length >= 3) {
+                match = cameras.find(c => 
+                    (c.asset_code && String(c.asset_code).toLowerCase().includes(q)) ||
+                    (c.id && String(c.id).toLowerCase().includes(q)) ||
+                    (c.asset_name && String(c.asset_name).toLowerCase().includes(q))
+                );
+            }
+            return match || null;
+        }
+
+        async function checkUrlDirectAsset() {
+            try {
+                let targetAsset = '';
+                const urlParams = new URLSearchParams(window.location.search);
+                targetAsset = (urlParams.get('asset') || urlParams.get('code') || urlParams.get('id') || '').trim();
+
+                // Also check hash (e.g. #asset=... or #C38.0960)
+                if (!targetAsset && window.location.hash) {
+                    const hash = window.location.hash.replace(/^#/, '').trim();
+                    if (hash.startsWith('asset=') || hash.startsWith('code=') || hash.startsWith('id=')) {
+                        targetAsset = decodeURIComponent(hash.split('=')[1] || '').trim();
+                    } else if (hash && !hash.includes('/')) {
+                        targetAsset = decodeURIComponent(hash).trim();
+                    }
+                }
+
+                if (!targetAsset) return;
+
+                console.log('[it-asset-map] Detected direct QR asset target:', targetAsset);
+
+                // Fetch data if cameras list is empty (e.g. guest scan before login)
+                if (!cameras || cameras.length === 0) {
+                    await Promise.all([fetchDevices(), fetchMaps()]).catch(e => console.warn('Pre-fetch error for QR scan:', e));
+                }
+
+                const matchedCam = findDeviceByQuery(targetAsset);
+                if (matchedCam) {
+                    console.log('[it-asset-map] QR Matched device:', matchedCam);
+                    if (currentUser && matchedCam.map_id && String(matchedCam.map_id) !== String(selectedMapId)) {
+                        selectedMapId = String(matchedCam.map_id);
+                        renderMapSelector();
+                        showFloorPlan();
+                        renderCameras();
+                    }
+                    setTimeout(() => {
+                        showCameraDetail(matchedCam);
+                    }, 200);
+                } else {
+                    console.warn('[it-asset-map] No device matched for QR scan:', targetAsset);
+                    alert(`ไม่พบข้อมูลอุปกรณ์รหัส "${targetAsset}" ในระบบ`);
+                }
+            } catch (err) {
+                console.error('Error in checkUrlDirectAsset:', err);
+            }
+        }
+
         function openAssetQrCode(camOrId) {
             let cam = null;
             if (typeof camOrId === 'object' && camOrId !== null) {
                 cam = camOrId;
             } else if (typeof camOrId === 'string') {
-                cam = cameras.find(c => String(c._recordId) === camOrId || String(c.id) === camOrId || String(c.asset_code) === camOrId);
+                cam = findDeviceByQuery(camOrId);
             }
             if (!cam) {
                 alert('ไม่พบข้อมูลอุปกรณ์ไอที');
@@ -3759,7 +3839,7 @@
             }
 
             currentQrCam = cam;
-            const assetCode = cam.asset_code || cam.id || '-';
+            const assetCode = cam.asset_code || cam.id || cam.account_no || '-';
             const assetName = cam.asset_name || cam.eng_name || '-';
             const holder = cam.holder || cam.thai_name || '-';
             const dept = cam.department || cam.group || '-';
@@ -3768,9 +3848,13 @@
             const devType = getDeviceType(cam.type);
 
             // Generate deep-link URL pointing to this asset
+            const directUrlKey = cam.asset_code || cam.id || cam.account_no || cam._recordId || '';
             const url = new URL(window.location.href);
             url.search = '';
-            url.searchParams.set('asset', assetCode);
+            url.hash = '';
+            if (directUrlKey) {
+                url.searchParams.set('asset', directUrlKey);
+            }
             const directUrl = url.toString();
 
             // Populate preview tag elements
@@ -3826,6 +3910,7 @@
             const assetCode = currentQrCam.asset_code || currentQrCam.id || 'asset';
             const url = new URL(window.location.href);
             url.search = '';
+            url.hash = '';
             url.searchParams.set('asset', assetCode);
             const directUrl = url.toString();
 
@@ -3856,6 +3941,14 @@
         }
 
         lucide.createIcons();
+
+        // Auto-check QR deep link on startup
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', checkUrlDirectAsset);
+        } else {
+            checkUrlDirectAsset();
+        }
+        window.addEventListener('popstate', checkUrlDirectAsset);
     </script>
 </body>
 </html>
