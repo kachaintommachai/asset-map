@@ -2,6 +2,37 @@
 // Works as drop-in replacement for api.php on Vercel
 
 const AIRTABLE_API_ROOT = 'https://api.airtable.com/v0';
+const fs = require('fs');
+const path = require('path');
+
+const IMAGE_STORE_FILE = '/tmp/asset_images_store.json';
+let inMemoryImages = {};
+
+function loadImageStore() {
+  try {
+    if (fs.existsSync(IMAGE_STORE_FILE)) {
+      const data = fs.readFileSync(IMAGE_STORE_FILE, 'utf8');
+      inMemoryImages = JSON.parse(data || '{}');
+    }
+  } catch (_) {}
+  return inMemoryImages;
+}
+
+function saveImageToStore(key, dataUrl) {
+  if (!key || !dataUrl) return;
+  loadImageStore();
+  const k = String(key).trim();
+  inMemoryImages[k] = dataUrl;
+  try {
+    fs.writeFileSync(IMAGE_STORE_FILE, JSON.stringify(inMemoryImages), 'utf8');
+  } catch (_) {}
+}
+
+function getImageFromStore(key) {
+  if (!key) return '';
+  loadImageStore();
+  return inMemoryImages[String(key).trim()] || '';
+}
 
 function cleanToken(token) {
   let t = (token || '').trim();
@@ -220,8 +251,15 @@ function normalizeFields(table, fields, recordId = '') {
       }
     }
 
-    let rawX = f.x != null && f.x !== '' ? f.x : (f.X != null && f.X !== '' ? f.X : (f.pos_x != null ? f.pos_x : null));
-    let rawY = f.y != null && f.y !== '' ? f.y : (f.Y != null && f.Y !== '' ? f.Y : (f.pos_y != null ? f.pos_y : null));
+    if (!img) {
+      img = getImageFromStore(code) || getImageFromStore(recordId) || getImageFromStore(f.id) || getImageFromStore(f.asset_code) || getImageFromStore(f.account_no) || '';
+    } else {
+      if (code) saveImageToStore(code, img);
+      if (recordId) saveImageToStore(recordId, img);
+    }
+
+    let rawX = f.x != null && f.x !== '' ? f.x : (f.X != null && f.X !== '' ? f.pos_x : null);
+    let rawY = f.y != null && f.y !== '' ? f.y : (f.Y != null && f.Y !== '' ? f.pos_y : null);
     let numX = rawX != null ? parseFloat(rawX) : null;
     let numY = rawY != null ? parseFloat(rawY) : null;
     if (numX != null && isNaN(numX)) numX = null;
@@ -312,6 +350,12 @@ function normalizeFields(table, fields, recordId = '') {
         const num = mName.match(/\d+/);
         rawMapId = num ? num[0] : (recordId || '1');
       }
+    }
+    if (!img) {
+      img = getImageFromStore('map_' + rawMapId) || getImageFromStore('map_' + recordId) || '';
+    } else {
+      saveImageToStore('map_' + rawMapId, img);
+      if (recordId) saveImageToStore('map_' + recordId, img);
     }
     return {
       ...f,
@@ -927,6 +971,29 @@ module.exports = async (req, res) => {
 
   const { token, baseId } = getAirtableConfig();
   const query = req.query || {};
+
+  // Image Storage API (Allows persistent cross-device photo sync)
+  if (query.action === 'save_image' || query.action === 'upload_image') {
+    let body = req.body;
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch (_) { body = {}; }
+    }
+    body = body || {};
+    const key = (query.id || body.id || body.asset_code || body.code || '').trim();
+    const img = (body.image || body.image_url || body.dataUrl || '').trim();
+    if (!key || !img) {
+      return res.status(400).json({ error: 'Missing id or image payload' });
+    }
+    saveImageToStore(key, img);
+    return res.status(200).json({ success: true, id: key });
+  }
+
+  if (query.action === 'get_image') {
+    const key = (query.id || query.asset_code || '').trim();
+    const img = getImageFromStore(key);
+    return res.status(200).json({ id: key, image: img });
+  }
+
   const table = (query.table || '').trim();
 
   // If table is missing
@@ -1123,6 +1190,13 @@ module.exports = async (req, res) => {
       return res.status(writeResult.status || 500).json(writeResult.data);
     }
 
+    const imgPayloadPost = fields.image_url || fields.image || fields.Image || fields.photo || fields.picture || fields.go2rtc_link || fields['รูปภาพ'] || fields['ภาพ'] || '';
+    if (imgPayloadPost) {
+      const codeKey = fields.asset_code || fields.id || fields.account_no || (writeResult.data && writeResult.data.id);
+      if (codeKey) saveImageToStore(codeKey, imgPayloadPost);
+      if (writeResult.data && writeResult.data.id) saveImageToStore(writeResult.data.id, imgPayloadPost);
+    }
+
     return res.status(200).json({
       id: writeResult.data.id,
       fields: normalizeFields(table, { ...(fields || {}), ...(writeResult.data.fields || {}) }, writeResult.data.id),
@@ -1148,6 +1222,14 @@ module.exports = async (req, res) => {
 
     if (!writeResult.ok) {
       return res.status(writeResult.status || 500).json(writeResult.data);
+    }
+
+    const imgPayloadPatch = fields.image_url || fields.image || fields.Image || fields.photo || fields.picture || fields.go2rtc_link || fields['รูปภาพ'] || fields['ภาพ'] || '';
+    if (imgPayloadPatch) {
+      const codeKey = fields.asset_code || fields.id || fields.account_no || rawId || (writeResult.data && writeResult.data.id);
+      if (codeKey) saveImageToStore(codeKey, imgPayloadPatch);
+      if (writeResult.data && writeResult.data.id) saveImageToStore(writeResult.data.id, imgPayloadPatch);
+      if (rawId) saveImageToStore(rawId, imgPayloadPatch);
     }
 
     return res.status(200).json({
