@@ -58,9 +58,14 @@ function saveMaintenanceStore(records) {
 function addLocalMaintenance(fields, customId) {
   const store = loadMaintenanceStore();
   const id = customId || `maint_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const normalized = normalizeFields('maintenance', fields, id);
+  const explicitDate = fields && (fields.date || fields.Date || fields.event_date || fields['วันที่']);
+  if (explicitDate && typeof explicitDate === 'string' && explicitDate.trim().length >= 10) {
+    normalized.date = explicitDate.trim().slice(0, 10);
+  }
   const record = {
     id,
-    fields: normalizeFields('maintenance', fields, id)
+    fields: normalized
   };
   store.unshift(record);
   saveMaintenanceStore(store);
@@ -70,8 +75,13 @@ function addLocalMaintenance(fields, customId) {
 function updateLocalMaintenance(id, fields) {
   const store = loadMaintenanceStore();
   const idx = store.findIndex(r => String(r.id) === String(id));
+  const explicitDate = fields && (fields.date || fields.Date || fields.event_date || fields['วันที่']);
   if (idx !== -1) {
-    store[idx].fields = normalizeFields('maintenance', { ...store[idx].fields, ...(fields || {}) }, id);
+    const updated = normalizeFields('maintenance', { ...store[idx].fields, ...(fields || {}) }, id);
+    if (explicitDate && typeof explicitDate === 'string' && explicitDate.trim().length >= 10) {
+      updated.date = explicitDate.trim().slice(0, 10);
+    }
+    store[idx].fields = updated;
     saveMaintenanceStore(store);
     return store[idx];
   }
@@ -469,10 +479,16 @@ function normalizeFields(table, fields, recordId = '') {
       'ประเภท', 'ประเภทรายการ', 'รายการ'
     ]) || 'ส่งซ่อม';
 
-    const eventDate = extractFieldValue(f, [
-      'date', 'Date', 'event_date', 'service_date', 'purchase_date', 'created_date',
-      'วันที่', 'วันที่ทำรายการ', 'วันที่ซื้อ', 'วันที่ซ่อม'
-    ]) || (new Date()).toISOString().slice(0, 10);
+    let rawDate = extractFieldValue(f, [
+      'date', 'Date', 'event_date', 'Event Date', 'service_date', 'Service Date', 'purchase_date', 'Purchase Date',
+      'วันที่', 'วันที่ทำรายการ', 'วันที่ซื้อ', 'วันที่ซ่อม', 'วันที่บันทึก', 'วันเวลา'
+    ]) || (f.date || f.Date || f.event_date || f['วันที่'] || f['วันที่ทำรายการ'] || f['วันที่ซื้อ'] || f['วันที่ซ่อม'] || '');
+
+    if (rawDate && typeof rawDate === 'string' && rawDate.trim().length >= 10) {
+      rawDate = rawDate.trim().slice(0, 10);
+    }
+
+    const eventDate = rawDate || (new Date()).toISOString().slice(0, 10);
 
     const rawCost = extractFieldValue(f, [
       'cost', 'Cost', 'price', 'Price', 'amount', 'Amount', 'total_cost', 'expense',
@@ -1090,7 +1106,11 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
   if (t.startsWith('maint') || t.startsWith('repair') || t.startsWith('hist') || t.startsWith('purch') || t.startsWith('service')) {
     const assetCode = raw.asset_code || raw.id || raw.code || raw['รหัสทรัพย์สิน'] || raw['รหัสอุปกรณ์'] || '';
     const eventType = raw.type || raw.event_type || raw['ประเภท'] || 'ส่งซ่อม';
-    const eventDate = raw.date || raw.event_date || (new Date()).toISOString().slice(0, 10);
+    let rawDate = raw.date || raw.Date || raw.event_date || raw.service_date || raw.purchase_date || raw['วันที่'] || raw['วันที่ทำรายการ'] || raw['วันที่ซื้อ'] || raw['วันที่ซ่อม'] || '';
+    if (rawDate && typeof rawDate === 'string' && rawDate.trim().length >= 10) {
+      rawDate = rawDate.trim().slice(0, 10);
+    }
+    const eventDate = rawDate || (new Date()).toISOString().slice(0, 10);
     const cost = parseFloat(raw.cost) || 0;
     const vendor = raw.vendor || raw['ผู้ให้บริการ'] || raw['ร้านค้า'] || '';
     const invoiceNo = raw.invoice_no || raw.doc_no || raw['เลขที่เอกสาร'] || '';
@@ -1106,7 +1126,10 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
       const codeCol = findMatchingAirtableFieldName(availableNames, ['asset_code', 'asset code', 'Asset Code', 'Asset_Code', 'code', 'id', 'รหัสทรัพย์สิน', 'รหัสอุปกรณ์']);
       const nameCol = findMatchingAirtableFieldName(availableNames, ['Name', 'name', 'title', 'device_name', 'ชื่ออุปกรณ์', 'ชื่อ']);
       const typeCol = findMatchingAirtableFieldName(availableNames, ['type', 'Type', 'event_type', 'ประเภท', 'ประเภทรายการ']);
-      const dateCol = findMatchingAirtableFieldName(availableNames, ['date', 'Date', 'event_date', 'วันที่', 'วันที่ทำรายการ']);
+      const dateCol = findMatchingAirtableFieldName(availableNames, [
+        'date', 'Date', 'event_date', 'Event Date', 'service_date', 'Service Date', 'purchase_date', 'Purchase Date',
+        'วันที่', 'วันที่ทำรายการ', 'วันที่ซื้อ', 'วันที่ซ่อม', 'วันที่บันทึก', 'วันเวลา', 'Datetime', 'Record Date'
+      ]);
       const costCol = findMatchingAirtableFieldName(availableNames, ['cost', 'Cost', 'price', 'Amount', 'ค่าใช้จ่าย', 'ราคา', 'จำนวนเงิน']);
       const vendorCol = findMatchingAirtableFieldName(availableNames, ['vendor', 'Vendor', 'supplier', 'ผู้ให้บริการ', 'ร้านค้า', 'ช่าง']);
       const invCol = findMatchingAirtableFieldName(availableNames, ['invoice_no', 'doc_no', 'receipt_no', 'เลขที่เอกสาร', 'เลขที่ใบแจ้งซ่อม']);
@@ -1420,9 +1443,13 @@ module.exports = async (req, res) => {
       if (writeResult.data && writeResult.data.id) saveImageToStore(writeResult.data.id, imgPayloadPost);
     }
 
+    const explicitDatePost = fields.date || fields.Date || fields.event_date || fields['วันที่'] || '';
+    const mergedPostFields = { ...(fields || {}), ...(writeResult.data.fields || {}) };
+    if (explicitDatePost) mergedPostFields.date = explicitDatePost;
+
     return res.status(200).json({
       id: writeResult.data.id,
-      fields: normalizeFields(table, { ...(fields || {}), ...(writeResult.data.fields || {}) }, writeResult.data.id),
+      fields: normalizeFields(table, mergedPostFields, writeResult.data.id),
       targetTable: targetTable,
       baseId: baseId,
       _debug: writeResult._debug
@@ -1470,9 +1497,13 @@ module.exports = async (req, res) => {
       if (rawId) saveImageToStore(rawId, imgPayloadPatch);
     }
 
+    const explicitDatePatch = fields.date || fields.Date || fields.event_date || fields['วันที่'] || '';
+    const mergedPatchFields = { ...(fields || {}), ...(writeResult.data.fields || {}) };
+    if (explicitDatePatch) mergedPatchFields.date = explicitDatePatch;
+
     return res.status(200).json({
       id: writeResult.data.id,
-      fields: normalizeFields(table, { ...(fields || {}), ...(writeResult.data.fields || {}) }, writeResult.data.id),
+      fields: normalizeFields(table, mergedPatchFields, writeResult.data.id),
       targetTable: targetTable,
       baseId: baseId,
       _debug: writeResult._debug

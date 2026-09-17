@@ -1872,13 +1872,17 @@
                 const records = await apiGetAll('maintenance');
                 maintenances = records.map(r => {
                     const f = r.fields || {};
+                    let recordDate = String(f.date || f.Date || f.event_date || f['วันที่'] || f['วันที่ทำรายการ'] || f['วันที่ซื้อ'] || f['วันที่ซ่อม'] || '').trim();
+                    if (recordDate.length >= 10) {
+                        recordDate = recordDate.slice(0, 10);
+                    }
                     return {
                         _recordId: String(r.id),
                         id: String(r.id),
                         asset_code: String(f.asset_code || f.code || f.id || '').trim(),
                         device_name: String(f.device_name || f.asset_name || '').trim(),
                         type: String(f.type || f.event_type || 'ส่งซ่อม').trim(),
-                        date: String(f.date || f.event_date || '').trim(),
+                        date: recordDate,
                         cost: parseFloat(f.cost) || 0,
                         vendor: String(f.vendor || '').trim(),
                         invoice_no: String(f.invoice_no || f.doc_no || '').trim(),
