@@ -122,6 +122,15 @@
         .map-radio:checked + label { background: #10b981; color: white; border-color: #10b981; }
         .map-radio + label { cursor: pointer; transition: all 0.15s; }
 
+        /* ─── Desktop Sidebar (ไม่เกิน 20% ของความกว้างหน้าจอ) ─── */
+        @media (min-width: 1024px) {
+            #sidebar {
+                width: 20% !important;
+                max-width: 20% !important;
+                flex-basis: 20% !important;
+            }
+        }
+
         /* ─── Mobile Responsive Enhancements ─── */
         @media (max-width: 1023px) {
             #sidebar {
@@ -286,8 +295,8 @@
             <!-- Sidebar Mobile Backdrop Overlay -->
             <div id="sidebar-backdrop" class="sidebar-backdrop hidden lg:hidden" onclick="toggleMobileSidebar(false)"></div>
 
-            <!-- Sidebar (Drawer on mobile, fixed side panel on desktop) -->
-            <aside id="sidebar" class="no-print bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden shrink-0 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+            <!-- Sidebar (Drawer on mobile, fixed 20% width side panel on desktop) -->
+            <aside id="sidebar" class="no-print bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden shrink-0 lg:w-1/5 lg:max-w-[20%] transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
                 <!-- Mobile Header inside Sidebar with Close Button -->
                 <div class="lg:hidden flex items-center justify-between p-3 border-b border-slate-700 bg-slate-850 shrink-0">
                     <span class="font-bold text-sm text-emerald-400 flex items-center gap-2">
