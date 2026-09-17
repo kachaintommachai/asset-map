@@ -474,9 +474,9 @@ function normalizeFields(table, fields, recordId = '') {
     else if (f['Map ID'] != null && f['Map ID'] !== '') devMapId = String(f['Map ID']);
     else if (f.map_name != null && f.map_name !== '') devMapId = String(f.map_name);
 
-    let rawHolder = extractFieldValue(f, ['holder', 'Holder', 'thai_name', 'user', 'User', 'ผู้ถือครอง', 'ชื่อผู้ใช้']);
+    let holder = extractFieldValue(f, ['holder', 'Holder', 'thai_name', 'user', 'User', 'ผู้ถือครอง', 'ชื่อผู้ใช้']);
     if (Array.isArray(f.holder)) {
-      rawHolder = f.holder.length > 0 ? (typeof f.holder[0] === 'object' && f.holder[0].name ? f.holder[0].name : String(f.holder[0])) : '';
+      holder = f.holder.length > 0 ? (typeof f.holder[0] === 'object' && f.holder[0].name ? f.holder[0].name : String(f.holder[0])) : '';
     }
     let devType = extractFieldValue(f, ['type', 'Type', 'ประเภท']) || 'Other';
     let devStatus = extractFieldValue(f, ['status', 'Status', 'สถานะ']) || 'Active';
@@ -755,9 +755,19 @@ async function fetchAllRecords(baseId, token, candidateTables, sortField, reques
     } while (offset);
 
     if (success) {
-      cachedWorkingTables[requestedTable.toLowerCase()] = tableName;
-      return { ok: true, records, tableName };
+      if (records.length > 0) {
+        cachedWorkingTables[requestedTable.toLowerCase()] = tableName;
+        return { ok: true, records, tableName };
+      }
+      if (!firstAttempt || !firstAttempt.emptySuccess) {
+        firstAttempt = { tableName, emptySuccess: true, records: [] };
+      }
     }
+  }
+
+  if (firstAttempt && firstAttempt.emptySuccess) {
+    cachedWorkingTables[requestedTable.toLowerCase()] = firstAttempt.tableName;
+    return { ok: true, records: [], tableName: firstAttempt.tableName };
   }
 
   // If candidate tables failed, attempt automatic discovery via Airtable base schema
@@ -1615,6 +1625,31 @@ module.exports = async (req, res) => {
         });
       }
 
+      // Fallback for device, map, department, user to bundled dataset
+      const tLow = table.toLowerCase();
+      const csvType = tLow.startsWith('dev') || tLow.startsWith('cam') ? 'device' : (tLow.startsWith('map') ? 'map' : (tLow.startsWith('dept') ? 'department' : (tLow.startsWith('user') ? 'user' : '')));
+      if (csvType) {
+        const csvRecs = loadCsvRecords(csvType);
+        if (csvRecs && csvRecs.length > 0) {
+          let fallbackRecords = csvRecs.map((r, idx) => ({
+            id: r.id || `${csvType}_${idx + 1}`,
+            fields: normalizeFields(csvType, r, r.id || `${csvType}_${idx + 1}`)
+          }));
+          if (csvType === 'user' && query.name && query.password) {
+            const qName = String(query.name).trim().toLowerCase();
+            const qPass = String(query.password);
+            fallbackRecords = fallbackRecords.filter(r => {
+              const f = r.fields || {};
+              return String(f.Name || f.name || '').trim().toLowerCase() === qName && String(f.password || f.Password || '') === qPass;
+            });
+          }
+          return res.status(200).json({
+            records: fallbackRecords,
+            warning: `กำลังแสดงข้อมูลสำรองจากชุดข้อมูลเริ่มต้น (${msg})`
+          });
+        }
+      }
+
       if (err.type === 'BASE_ACCESS_DENIED' || err.type === 'TABLE_NOT_FOUND') {
         msg = err.message;
       } else if (err.type === 'AUTHENTICATION_REQUIRED' || String(err.message).toLowerCase().includes('authentication required')) {
@@ -1629,6 +1664,17 @@ module.exports = async (req, res) => {
       id: r.id,
       fields: normalizeFields(table, r.fields, r.id)
     }));
+
+    // If device table from Airtable had 0 records, fallback to bundled device records
+    if ((table.toLowerCase().startsWith('dev') || table.toLowerCase().startsWith('cam')) && records.length === 0) {
+      const csvRecs = loadCsvRecords('device');
+      if (csvRecs && csvRecs.length > 0) {
+        records = csvRecs.map((r, idx) => ({
+          id: r.id || `device_${idx + 1}`,
+          fields: normalizeFields('device', r, r.id || `device_${idx + 1}`)
+        }));
+      }
+    }
 
     // If maintenance table from Airtable, merge with local store records
     if (table.toLowerCase().startsWith('maint') || table.toLowerCase().startsWith('repair') || table.toLowerCase().startsWith('hist') || table.toLowerCase().startsWith('purch') || table.toLowerCase().startsWith('service')) {
