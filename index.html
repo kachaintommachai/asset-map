@@ -1139,11 +1139,11 @@
                 }
             }
 
-            // 4. Name candidate (ONLY if not department and not asset_name)
+            // 4. Name candidate (ONLY if not department)
             const nameVal = f.Name || f.name;
             if (nameVal != null && String(nameVal).trim() !== '') {
                 const nv = String(nameVal).trim();
-                if ((!deptClean || nv.toLowerCase() !== deptClean) && !isLikelyDepartment(nv) && nv !== f.asset_name && nv !== f.eng_name) {
+                if ((!deptClean || nv.toLowerCase() !== deptClean) && !isLikelyDepartment(nv)) {
                     return nv;
                 }
             }
