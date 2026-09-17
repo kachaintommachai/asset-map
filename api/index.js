@@ -105,7 +105,7 @@ function isLikelyDepartment(str) {
   return false;
 }
 
-function normalizeFields(table, fields) {
+function normalizeFields(table, fields, recordId = '') {
   const t = (table || '').trim().toLowerCase();
   const f = { ...(fields || {}) };
 
@@ -223,6 +223,13 @@ function normalizeFields(table, fields) {
     let rawX = f.x != null && f.x !== '' ? f.x : (f.X != null && f.X !== '' ? f.X : (f.pos_x != null ? f.pos_x : null));
     let rawY = f.y != null && f.y !== '' ? f.y : (f.Y != null && f.Y !== '' ? f.Y : (f.pos_y != null ? f.pos_y : null));
     let numX = rawX != null ? parseFloat(rawX) : null;
+    let numY = rawY != null ? parseFloat(rawY) : null;
+    if (numX != null && isNaN(numX)) numX = null;
+    if (numY != null && isNaN(numY)) numY = null;
+    if (numX != null && numY != null && numX > 0 && numX <= 1 && numY > 0 && numY <= 1) {
+      numX = Math.round(numX * 10000) / 100;
+      numY = Math.round(numY * 10000) / 100;
+    }
 
     let devMapId = '1';
     if (Array.isArray(f.map_id) && f.map_id.length > 0) devMapId = String(f.map_id[0]);
