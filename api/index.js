@@ -184,14 +184,40 @@ function normalizeFields(table, fields) {
     ]) || code;
 
     let img = '';
-    if (Array.isArray(f.image) && f.image.length > 0) {
-      img = f.image[0].url || '';
-    } else if (typeof f.image === 'string') {
-      img = f.image;
-    } else if (f.image_url) {
-      img = f.image_url;
-    } else if (f.go2rtc_link) {
-      img = f.go2rtc_link;
+    const imgCandidates = [
+      'image', 'Image', 'image_url', 'ImageUrl', 'Image_Url', 'Image URL', 'image-url',
+      'picture', 'Picture', 'photo', 'Photo', 'pic', 'Pic', 'img', 'Img',
+      'attachment', 'Attachment', 'attachments', 'Attachments',
+      'รูปภาพ', 'รูป', 'ภาพ', 'ภาพถ่าย', 'ภาพอุปกรณ์', 'รูปอุปกรณ์',
+      'go2rtc_link', 'go2rtc'
+    ];
+    for (const key of imgCandidates) {
+      if (f[key] != null) {
+        const val = f[key];
+        if (Array.isArray(val) && val.length > 0) {
+          const item = val[0];
+          if (typeof item === 'object' && item !== null) {
+            img = item.url || (item.thumbnails && (item.thumbnails.full?.url || item.thumbnails.large?.url)) || '';
+          } else if (typeof item === 'string') {
+            img = item;
+          }
+        } else if (typeof val === 'string' && val.trim()) {
+          img = val.trim();
+        }
+        if (img) break;
+      }
+    }
+    if (!img && typeof f === 'object') {
+      for (const [k, v] of Object.entries(f)) {
+        if (Array.isArray(v) && v.length > 0 && v[0] && typeof v[0] === 'object' && v[0].url) {
+          img = v[0].url;
+          break;
+        }
+        if (typeof v === 'string' && (v.startsWith('data:image/') || (v.startsWith('http') && (k.toLowerCase().includes('pic') || k.toLowerCase().includes('img') || k.toLowerCase().includes('photo') || k.toLowerCase().includes('image') || k.includes('ภาพ') || k.includes('รูป'))))) {
+          img = v.trim();
+          break;
+        }
+      }
     }
 
     let rawX = f.x != null && f.x !== '' ? f.x : (f.X != null && f.X !== '' ? f.X : (f.pos_x != null ? f.pos_x : null));
@@ -743,7 +769,7 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     const serialVal = raw.serial || raw.Serial || raw.serial_number || '';
     const ipVal = raw.ip || raw.IP || '';
     const macVal = raw.mac_address || raw.MAC || raw.mac || '';
-    const imgVal = raw.image_url || raw.image || raw.go2rtc_link || '';
+    const imgVal = raw.image_url || raw.image || raw.Image || raw.photo || raw.picture || raw.go2rtc_link || raw['รูปภาพ'] || raw['ภาพ'] || '';
     const xVal = raw.x != null && raw.x !== '' ? (parseFloat(raw.x) || 0) : null;
     const yVal = raw.y != null && raw.y !== '' ? (parseFloat(raw.y) || 0) : null;
 
@@ -779,7 +805,12 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
       const serialCol = findMatchingAirtableFieldName(availableNames, ['serial', 'Serial', 'serial_number', 'Serial Number']);
       const ipCol = findMatchingAirtableFieldName(availableNames, ['ip', 'IP', 'ip_address']);
       const macCol = findMatchingAirtableFieldName(availableNames, ['mac_address', 'mac', 'MAC']);
-      const imgCol = findMatchingAirtableFieldName(availableNames, ['image_url', 'image', 'go2rtc_link', 'map_pic']);
+      const imgCol = findMatchingAirtableFieldName(availableNames, [
+        'image', 'Image', 'image_url', 'ImageUrl', 'Image_Url', 'Image URL', 'image-url',
+        'picture', 'Picture', 'photo', 'Photo', 'pic', 'Pic', 'img', 'Img',
+        'attachment', 'Attachment', 'attachments', 'Attachments',
+        'รูปภาพ', 'รูป', 'ภาพ', 'ภาพถ่าย', 'ภาพอุปกรณ์', 'go2rtc_link'
+      ]);
       const xCol = findMatchingAirtableFieldName(availableNames, ['x', 'X', 'pos_x']);
       const yCol = findMatchingAirtableFieldName(availableNames, ['y', 'Y', 'pos_y']);
 
@@ -795,7 +826,7 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
       if (serialCol && serialCol !== 'serial' && serialVal) result[serialCol] = serialVal;
       if (ipCol && ipCol !== 'ip' && ipVal) result[ipCol] = ipVal;
       if (macCol && macCol !== 'mac_address' && macVal) result[macCol] = macVal;
-      if (imgCol && imgCol !== 'image_url' && imgVal) result[imgCol] = imgVal;
+      if (imgCol && imgVal) result[imgCol] = imgVal;
       if (xCol && xCol !== 'x' && xVal != null) result[xCol] = xVal;
       if (yCol && yCol !== 'y' && yVal != null) result[yCol] = yVal;
 

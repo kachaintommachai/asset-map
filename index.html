@@ -1383,6 +1383,73 @@
             return `DEV-${idx + 1}`;
         }
 
+        // ─── LOCAL ASSET IMAGE STORAGE CACHE ───
+        const LocalImageStore = {
+            prefix: 'asset_img_',
+            save(key, dataUrl) {
+                if (!key || !dataUrl) return;
+                try {
+                    const cleanKey = String(key).trim();
+                    localStorage.setItem(this.prefix + cleanKey, dataUrl);
+                } catch (e) {
+                    console.warn('LocalStorage quota for image:', e);
+                }
+            },
+            get(key) {
+                if (!key) return '';
+                try {
+                    const cleanKey = String(key).trim();
+                    return localStorage.getItem(this.prefix + cleanKey) || '';
+                } catch (e) {
+                    return '';
+                }
+            },
+            remove(key) {
+                if (!key) return;
+                try {
+                    localStorage.removeItem(this.prefix + String(key).trim());
+                } catch (e) {}
+            }
+        };
+
+        function extractDeviceImage(f) {
+            if (!f || typeof f !== 'object') return '';
+            const imgCandidates = [
+                'image', 'Image', 'image_url', 'ImageUrl', 'Image_Url', 'Image URL', 'image-url',
+                'picture', 'Picture', 'photo', 'Photo', 'pic', 'Pic', 'img', 'Img',
+                'attachment', 'Attachment', 'attachments', 'Attachments',
+                'รูปภาพ', 'รูป', 'ภาพ', 'ภาพถ่าย', 'ภาพอุปกรณ์', 'รูปอุปกรณ์',
+                'go2rtc_link', 'go2rtc'
+            ];
+            for (const key of imgCandidates) {
+                if (f[key] != null) {
+                    const val = f[key];
+                    if (Array.isArray(val) && val.length > 0) {
+                        const item = val[0];
+                        if (typeof item === 'object' && item !== null) {
+                            if (item.url) return item.url;
+                            if (item.thumbnails && (item.thumbnails.full?.url || item.thumbnails.large?.url)) {
+                                return item.thumbnails.full?.url || item.thumbnails.large?.url;
+                            }
+                        } else if (typeof item === 'string' && item.trim()) {
+                            return item.trim();
+                        }
+                    } else if (typeof val === 'string' && val.trim()) {
+                        return val.trim();
+                    }
+                }
+            }
+            for (const [k, v] of Object.entries(f)) {
+                if (Array.isArray(v) && v.length > 0 && v[0] && typeof v[0] === 'object' && v[0].url) {
+                    return v[0].url;
+                }
+                if (typeof v === 'string' && (v.startsWith('data:image/') || (v.startsWith('http') && (k.toLowerCase().includes('pic') || k.toLowerCase().includes('img') || k.toLowerCase().includes('photo') || k.toLowerCase().includes('image') || k.includes('ภาพ') || k.includes('รูป'))))) {
+                    return v.trim();
+                }
+            }
+            return '';
+        }
+
         async function fetchDevices() {
             try {
                 const records = await apiGetAll('device');
@@ -1397,15 +1464,12 @@
                     let assetCode = extractDeviceCode(f, idx, dept);
                     const assetName = f.asset_name || f.Asset_Name || f['Asset Name'] || f.eng_name || (f.Name && !isLikelyDepartment(f.Name) ? f.Name : '') || (f.name && !isLikelyDepartment(f.name) ? f.name : '') || assetCode;
                     const holder = f.holder || f.Holder || f.thai_name || f.user || f.User || '';
-                    let imgUrl = '';
-                    if (Array.isArray(f.image) && f.image.length > 0) {
-                        imgUrl = f.image[0].url || '';
-                    } else if (typeof f.image === 'string') {
-                        imgUrl = f.image;
-                    } else if (f.image_url) {
-                        imgUrl = f.image_url;
-                    } else if (f.go2rtc_link) {
-                        imgUrl = f.go2rtc_link;
+                    let imgUrl = extractDeviceImage(f);
+                    if (!imgUrl) {
+                        imgUrl = LocalImageStore.get(rec.id) || LocalImageStore.get(assetCode) || '';
+                    } else {
+                        LocalImageStore.save(rec.id, imgUrl);
+                        LocalImageStore.save(assetCode, imgUrl);
                     }
 
                     // Map ID extraction (support linked record array, string, number, or field aliases)
@@ -1851,7 +1915,7 @@
                         <div class="text-white">${displayName}</div>
                         <div class="text-[10px] text-slate-300 mt-0.5">${subDetails}</div>
                         <div class="text-[10px] text-slate-400">แผนก: ${cam.group || '-'}</div>
-                        ${cam.image_url ? '<div class="text-[10px] text-emerald-300 mt-1 flex items-center gap-1">📷 มีรูปภาพอุปกรณ์</div>' : ''}
+                        ${(cam.image_url || cam.image || LocalImageStore.get(cam.id) || LocalImageStore.get(cam._recordId) || LocalImageStore.get(cam.asset_code)) ? '<div class="text-[10px] text-emerald-300 mt-1 flex items-center gap-1">📷 มีรูปภาพอุปกรณ์</div>' : ''}
                     </div>
                 `;
                 
@@ -1932,10 +1996,12 @@
                 const iconName = getDeviceIconName(cam.type);
                 const hasPosition = cam.x != null && cam.y != null;
 
+                const hasImage = !!(cam.image_url || cam.image || cam.go2rtc || LocalImageStore.get(cam.id) || LocalImageStore.get(cam._recordId) || LocalImageStore.get(cam.asset_code));
+
                 div.innerHTML = `
                     <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm text-white relative" style="background:${gColor}">
                         <i data-lucide="${iconName}" class="w-4 h-4"></i>
-                        ${cam.image_url ? '<span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 border-2 border-slate-800 rounded-full" title="มีภาพถ่าย"></span>' : ''}
+                        ${hasImage ? '<span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 border-2 border-slate-800 rounded-full" title="มีภาพถ่าย"></span>' : ''}
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-1.5">
@@ -2085,7 +2151,7 @@
 
         // ─── DEVICE IMAGE HTML COMPONENT ───
         function getDeviceImageHtml(cam) {
-            const imgUrl = (cam.image_url || cam.go2rtc || '').trim();
+            const imgUrl = (cam.image_url || cam.go2rtc || cam.image || LocalImageStore.get(cam.id) || LocalImageStore.get(cam._recordId) || LocalImageStore.get(cam.asset_code) || '').trim();
             const devType = getDeviceType(cam.type);
             const iconName = getDeviceIconName(cam.type);
             const hasRealImage = imgUrl && !imgUrl.includes('stream.html');
@@ -2097,7 +2163,7 @@
                             <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
                                 <i data-lucide="image" class="w-3.5 h-3.5 text-emerald-400"></i> ภาพถ่ายอุปกรณ์จริง
                             </span>
-                            <button onclick="openImageViewer('${imgUrl}')" class="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
+                            <button type="button" onclick="openImageViewer('${imgUrl}')" class="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
                                 <i data-lucide="maximize-2" class="w-3 h-3"></i> ขยายภาพ
                             </button>
                         </div>
@@ -2206,7 +2272,7 @@
                                 <i data-lucide="image" class="w-3.5 h-3.5 text-emerald-400"></i> ลิงก์ / ไฟล์ภาพถ่ายอุปกรณ์
                             </label>
                             <div class="flex items-center gap-2">
-                                <input type="text" id="detail-image-url" value="${(cam.image_url || cam.go2rtc || '').replace(/"/g, '&quot;')}" placeholder="URL ภาพอุปกรณ์" class="flex-1 px-2.5 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                                <input type="text" id="detail-image-url" value="${(cam.image_url || cam.go2rtc || cam.image || LocalImageStore.get(cam.id) || LocalImageStore.get(cam._recordId) || '').replace(/"/g, '&quot;')}" placeholder="URL ภาพอุปกรณ์ หรืออัปโหลดไฟล์" class="flex-1 px-2.5 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
                                 <label class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium cursor-pointer transition-all shrink-0 flex items-center gap-1">
                                     <i data-lucide="upload" class="w-3 h-3"></i> อัปโหลดรูป
                                     <input type="file" accept="image/*" class="hidden" onchange="uploadDetailDeviceImage(this, '${cam._recordId}')">
@@ -2259,14 +2325,31 @@
                 const dataUrl = await compressAndReadImage(file, 900, 0.75);
                 const inputUrl = document.getElementById('detail-image-url');
                 if (inputUrl) inputUrl.value = dataUrl;
+                
+                const assetCode = document.getElementById('detail-id')?.value.trim();
+                if (recordId) LocalImageStore.save(recordId, dataUrl);
+                if (assetCode) LocalImageStore.save(assetCode, dataUrl);
+
+                const matchedCam = cameras.find(c => String(c._recordId) === String(recordId) || (assetCode && (String(c.id) === assetCode || String(c.asset_code) === assetCode)));
+                if (matchedCam) {
+                    matchedCam.image_url = dataUrl;
+                    matchedCam.image = dataUrl;
+                    showCameraDetail(matchedCam);
+                    renderCameras();
+                    renderBookmarks();
+                }
+
                 if (recordId && String(recordId).startsWith('rec')) {
                     await apiUpdate('device', recordId, {
                         image_url: dataUrl,
                         image: dataUrl,
+                        Image: dataUrl,
+                        photo: dataUrl,
+                        picture: dataUrl,
                         go2rtc_link: dataUrl
                     });
                     await fetchDevices();
-                    const updatedCam = cameras.find(c => String(c._recordId) === String(recordId));
+                    const updatedCam = cameras.find(c => String(c._recordId) === String(recordId) || (assetCode && (String(c.id) === assetCode || String(c.asset_code) === assetCode)));
                     if (updatedCam) showCameraDetail(updatedCam);
                     renderCameras();
                     renderBookmarks();
@@ -2283,6 +2366,12 @@
             const assetCode = document.getElementById('detail-id').value.trim();
             const assetName = document.getElementById('detail-eng-name').value.trim();
             const holder = document.getElementById('detail-thai-name').value.trim();
+
+            if (imageUrl) {
+                LocalImageStore.save(assetCode, imageUrl);
+                if (recordId) LocalImageStore.save(recordId, imageUrl);
+            }
+
             const fields = {
                 asset_code: assetCode,
                 'Asset Code': assetCode,
@@ -2307,6 +2396,7 @@
                 mac_address: document.getElementById('detail-mac').value.trim(),
                 image_url: imageUrl,
                 image: imageUrl,
+                Image: imageUrl,
                 go2rtc_link: imageUrl
             };
             try {
@@ -2379,7 +2469,7 @@
             bookmarks.forEach(camId => {
                 const cam = cameras.find(c => c.id === camId);
                 if (!cam) return;
-                const imgUrl = (cam.image_url || cam.go2rtc || '').trim();
+                const imgUrl = (cam.image_url || cam.go2rtc || cam.image || LocalImageStore.get(cam.id) || LocalImageStore.get(cam._recordId) || LocalImageStore.get(cam.asset_code) || '').trim();
                 const devType = getDeviceType(cam.type);
                 const iconName = getDeviceIconName(cam.type);
                 const displayName = cam.id + (cam.thai_name ? ' - ' + cam.thai_name : '');
@@ -2450,9 +2540,12 @@
         function openEditDevice(recordId) {
             const cam = cameras.find(c => String(c._recordId) === String(recordId));
             if (!cam) return;
+            const assetCode = cam.asset_code || cam.account_no || cam.id || '';
+            const imgUrl = cam.image_url || cam.go2rtc || cam.image || LocalImageStore.get(cam.id) || LocalImageStore.get(cam._recordId) || LocalImageStore.get(assetCode) || '';
+
             document.getElementById('modal-camera-title').innerHTML = '<i data-lucide="pencil" class="w-5 h-5 text-emerald-400"></i><span>แก้ไขอุปกรณ์ไอที</span>';
             document.getElementById('cam-edit-rec-id').value = recordId;
-            document.getElementById('cam-id').value = cam.asset_code || cam.account_no || cam.id || '';
+            document.getElementById('cam-id').value = assetCode;
             document.getElementById('cam-type').value = getDeviceType(cam.type);
             document.getElementById('cam-brand').value = cam.brand || '';
             document.getElementById('cam-model').value = cam.model || '';
@@ -2463,9 +2556,8 @@
             document.getElementById('cam-thai-name').value = cam.holder || cam.thai_name || '';
             document.getElementById('cam-ip').value = cam.ip || '';
             document.getElementById('cam-mac').value = cam.mac_address || '';
-            document.getElementById('cam-image-url').value = cam.image_url || cam.go2rtc || '';
+            document.getElementById('cam-image-url').value = imgUrl;
             
-            const imgUrl = cam.image_url || cam.go2rtc || '';
             if (imgUrl && !imgUrl.includes('stream.html')) {
                 showDeviceImagePreview(imgUrl);
             } else {
@@ -2577,6 +2669,11 @@
             const devDept = document.getElementById('cam-department').value || '';
             const devMapId = document.getElementById('cam-map-id').value || selectedMapId || '1';
 
+            if (imageUrl) {
+                LocalImageStore.save(assetCode, imageUrl);
+                if (recordId) LocalImageStore.save(recordId, imageUrl);
+            }
+
             const fields = {
                 asset_code: assetCode,
                 'Asset Code': assetCode,
@@ -2605,6 +2702,9 @@
             if (mac) fields.mac_address = mac;
             if (imageUrl) {
                 fields.image_url = imageUrl;
+                fields.image = imageUrl;
+                fields.Image = imageUrl;
+                fields.go2rtc_link = imageUrl;
             }
 
             const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -3019,11 +3119,13 @@
                 const subName = (c.holder || c.thai_name) ? `<span class="text-emerald-300 font-normal">👤 ${c.holder || c.thai_name}</span>` : '';
                 const mainName = c.asset_name || c.eng_name || '-';
 
+                const devImg = c.image_url || c.go2rtc || c.image || LocalImageStore.get(c.id) || LocalImageStore.get(c._recordId) || LocalImageStore.get(c.asset_code) || '';
+
                 return `
                     <tr class="hover:bg-slate-750/70 transition-colors">
                         <td class="py-2.5 px-3 text-center">
-                            ${c.image_url ? `
-                                <img src="${c.image_url}" class="w-8 h-8 rounded-lg object-cover border border-slate-600 cursor-pointer hover:scale-110 transition-transform mx-auto" onclick="openImageViewer('${c.image_url}')" onerror="this.style.display='none'">
+                            ${devImg ? `
+                                <img src="${devImg}" class="w-8 h-8 rounded-lg object-cover border border-slate-600 cursor-pointer hover:scale-110 transition-transform mx-auto" onclick="openImageViewer('${devImg}')" onerror="this.style.display='none'">
                             ` : `
                                 <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white mx-auto shadow-sm" style="background:${gColor}">
                                     <i data-lucide="${iconName}" class="w-4 h-4"></i>
