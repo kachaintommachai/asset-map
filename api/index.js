@@ -284,12 +284,22 @@ function normalizeFields(table, fields) {
 
   if (t === 'map' || t === 'maps') {
     let img = '';
-    if (Array.isArray(f.map_pic) && f.map_pic.length > 0) {
-      img = f.map_pic[0].url || '';
-    } else if (typeof f.map_pic === 'string') {
-      img = f.map_pic;
-    } else if (f.map_url) {
-      img = f.map_url;
+    const mapImgCandidates = ['map_pic', 'map_url', 'image', 'Image', 'picture', 'Picture', 'photo', 'Photo', 'attachment', 'Attachment', 'attachments', 'Attachments', 'ภาพ', 'รูป', 'แปลน', 'ผัง', 'รูปแผนผัง', 'ภาพแผนผัง'];
+    for (const key of mapImgCandidates) {
+      if (f[key] != null) {
+        const val = f[key];
+        if (Array.isArray(val) && val.length > 0) {
+          const item = val[0];
+          if (typeof item === 'object' && item !== null) {
+            img = item.url || (item.thumbnails && (item.thumbnails.full?.url || item.thumbnails.large?.url)) || '';
+          } else if (typeof item === 'string') {
+            img = item;
+          }
+        } else if (typeof val === 'string' && val.trim()) {
+          img = val.trim();
+        }
+        if (img) break;
+      }
     }
     const mapId = f.map_id != null && f.map_id !== '' ? f.map_id : (f['Map ID'] != null ? f['Map ID'] : (f.id != null ? f.id : '1'));
     return {
