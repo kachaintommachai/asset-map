@@ -65,7 +65,7 @@ function getCandidateTables(table) {
   }
   if (lower === 'department' || lower === 'departments') {
     return [
-      'department', 'departments', 'Department', 'Departments', 'department.csv', 'Department.csv',
+      'departments', 'department', 'Departments', 'Department', 'department.csv', 'Department.csv',
       'dept', 'depts', 'แผนก', 'ฝ่าย', 'Table 3', 'Table 1'
     ];
   }
