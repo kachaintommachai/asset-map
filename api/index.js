@@ -1443,12 +1443,39 @@ module.exports = async (req, res) => {
   }
 
 
+  // ─── BATCH INIT: โหลดทุกตารางในครั้งเดียว ───
+  if (query.action === 'init') {
+    const delay = ms => new Promise(r => setTimeout(r, ms));
+    const tables = ['device', 'departments', 'map', 'repair'];
+    const results = {};
+
+    for (let i = 0; i < tables.length; i++) {
+      const tName = tables[i];
+      try {
+        const candidates = getCandidateTables(tName);
+        const result = await fetchAllRecords(baseId, token, candidates, null, tName);
+        if (result.ok) {
+          results[tName] = { records: result.records.map(r => ({ id: r.id, fields: r.fields })) };
+        } else {
+          results[tName] = { records: [], error: result.error?.message || 'Error' };
+        }
+      } catch (err) {
+        results[tName] = { records: [], error: err.message };
+      }
+      // delay 500ms ระหว่างแต่ละตาราง เพื่อไม่เกิน Airtable rate limit
+      if (i < tables.length - 1) await delay(500);
+    }
+
+    return res.status(200).json(results);
+  }
+
   const table = (query.table || '').trim();
 
   // If table is missing
   if (!table) {
     return res.status(400).json({ error: 'Missing required parameter: table' });
   }
+
 
   // Fallback if Airtable credentials are not yet set
   if (!token || !baseId) {

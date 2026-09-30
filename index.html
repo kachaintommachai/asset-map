@@ -1434,15 +1434,47 @@
 
         // ─── INIT ───
         async function initializeApp() {
-            // โหลดทีละตาราง + delay 300ms ระหว่างแต่ละ request
-            // ใช้ .catch() แต่ละตาราง เพื่อให้ render ได้แม้บางตารางโหลดไม่สำเร็จ
-            await fetchDevices().catch(e => console.warn('fetchDevices error:', e));
-            await new Promise(r => setTimeout(r, 300));
-            await fetchDepartments().catch(e => console.warn('fetchDepartments error:', e));
-            await new Promise(r => setTimeout(r, 300));
-            await fetchMaps().catch(e => console.warn('fetchMaps error:', e));
-            await new Promise(r => setTimeout(r, 300));
-            await fetchMaintenances().catch(e => console.warn('fetchMaintenances error:', e));
+            // โหลดทุกตารางในครั้งเดียวผ่าน batch endpoint เพื่อหลีกเลี่ยง Airtable rate limit
+            try {
+                const batchRes = await fetch(`${API_BASE}?action=init`);
+                const batchText = await batchRes.text();
+                let batchData;
+                try { batchData = JSON.parse(batchText); } catch(e) { batchData = {}; }
+
+                // ส่ง records เข้า fetch functions ที่มีอยู่เดิม
+                if (batchData.device && batchData.device.records) {
+                    await fetchDevices(batchData.device.records).catch(e => console.warn('fetchDevices error:', e));
+                } else {
+                    await fetchDevices().catch(e => console.warn('fetchDevices error:', e));
+                }
+
+                if (batchData.departments && batchData.departments.records) {
+                    await fetchDepartments(batchData.departments.records).catch(e => console.warn('fetchDepartments error:', e));
+                } else {
+                    await fetchDepartments().catch(e => console.warn('fetchDepartments error:', e));
+                }
+
+                if (batchData.map && batchData.map.records) {
+                    await fetchMaps(batchData.map.records).catch(e => console.warn('fetchMaps error:', e));
+                } else {
+                    await fetchMaps().catch(e => console.warn('fetchMaps error:', e));
+                }
+
+                if (batchData.repair && batchData.repair.records) {
+                    await fetchMaintenances(batchData.repair.records).catch(e => console.warn('fetchMaintenances error:', e));
+                } else {
+                    await fetchMaintenances().catch(e => console.warn('fetchMaintenances error:', e));
+                }
+            } catch(e) {
+                console.warn('Batch init failed, falling back to individual fetches:', e);
+                await fetchDevices().catch(e => console.warn('fetchDevices error:', e));
+                await new Promise(r => setTimeout(r, 500));
+                await fetchDepartments().catch(e => console.warn('fetchDepartments error:', e));
+                await new Promise(r => setTimeout(r, 500));
+                await fetchMaps().catch(e => console.warn('fetchMaps error:', e));
+                await new Promise(r => setTimeout(r, 500));
+                await fetchMaintenances().catch(e => console.warn('fetchMaintenances error:', e));
+            }
 
             if (cameras.length > 0) {
                 const devDepts = [...new Set(cameras.map(c => c.department || c.group).filter(g => g && g !== 'ไม่มีแผนก'))];
@@ -1676,9 +1708,9 @@
             return '';
         }
 
-        async function fetchDevices() {
+        async function fetchDevices(preloadedRecords) {
             try {
-                const records = await apiGetAll('device');
+                const records = preloadedRecords || await apiGetAll('device');
                 cameras = records.map((rec, idx) => {
                     const f = rec.fields || {};
                     let rawDept = f.department || f.Department || f.dept || f.Dept || f.group || f['แผนก'] || f['ชื่อแผนก'] || f['ฝ่าย'] || '';
@@ -1765,9 +1797,9 @@
         const fetchCameras = fetchDevices;
 
         let departmentRecords = [];
-        async function fetchDepartments() {
+        async function fetchDepartments(preloadedRecords) {
             try {
-                const records = await apiGetAll('department');
+                const records = preloadedRecords || await apiGetAll('department');
                 departmentRecords = records.map(r => {
                     const f = r.fields || {};
                     let name = f.department || f.Department || f.Name || f.name || f.dept || f.Dept || f['แผนก'] || f['ชื่อแผนก'] || '';
@@ -1834,9 +1866,9 @@
             return '';
         }
 
-        async function fetchMaps() {
+        async function fetchMaps(preloadedRecords) {
             try {
-                const records = await apiGetAll('map', { sort: [{ field: 'map_id' }] });
+                const records = preloadedRecords || await apiGetAll('map', { sort: [{ field: 'map_id' }] });
                 maps = records.map((r, idx) => {
                     const f = r.fields || {};
                     let mId = (f.map_id != null && f.map_id !== '') ? String(f.map_id)
@@ -1894,9 +1926,9 @@
         }
 
         // ─── MAINTENANCE & REPAIR HISTORY API & HELPERS ───
-        async function fetchMaintenances() {
+        async function fetchMaintenances(preloadedRecords) {
             try {
-                const records = await apiGetAll('maintenance');
+                const records = preloadedRecords || await apiGetAll('maintenance');
                 maintenances = records.map(r => {
                     const f = r.fields || {};
                     let recordDate = String(f.date || f.Date || f.event_date || f['วันที่'] || f['วันที่ทำรายการ'] || f['วันที่ซื้อ'] || f['วันที่ซ่อม'] || '').trim();
