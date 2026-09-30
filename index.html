@@ -1434,14 +1434,15 @@
 
         // ─── INIT ───
         async function initializeApp() {
-            // โหลดทีละตาราง + delay 300ms ระหว่างแต่ละ request เพื่อไม่เกิน Airtable rate limit (5 req/วินาที)
-            await fetchDevices();
+            // โหลดทีละตาราง + delay 300ms ระหว่างแต่ละ request
+            // ใช้ .catch() แต่ละตาราง เพื่อให้ render ได้แม้บางตารางโหลดไม่สำเร็จ
+            await fetchDevices().catch(e => console.warn('fetchDevices error:', e));
             await new Promise(r => setTimeout(r, 300));
-            await fetchDepartments();
+            await fetchDepartments().catch(e => console.warn('fetchDepartments error:', e));
             await new Promise(r => setTimeout(r, 300));
-            await fetchMaps();
+            await fetchMaps().catch(e => console.warn('fetchMaps error:', e));
             await new Promise(r => setTimeout(r, 300));
-            await fetchMaintenances();
+            await fetchMaintenances().catch(e => console.warn('fetchMaintenances error:', e));
 
             if (cameras.length > 0) {
                 const devDepts = [...new Set(cameras.map(c => c.department || c.group).filter(g => g && g !== 'ไม่มีแผนก'))];
