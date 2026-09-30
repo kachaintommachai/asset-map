@@ -1733,16 +1733,6 @@ module.exports = async (req, res) => {
       fields: normalizeFields(table, r.fields, r.id)
     }));
 
-    // If device table from Airtable had 0 records, fallback to bundled device records
-    if ((table.toLowerCase().startsWith('dev') || table.toLowerCase().startsWith('cam')) && records.length === 0) {
-      const csvRecs = loadCsvRecords('device');
-      if (csvRecs && csvRecs.length > 0) {
-        records = csvRecs.map((r, idx) => ({
-          id: r.id || `device_${idx + 1}`,
-          fields: normalizeFields('device', r, r.id || `device_${idx + 1}`)
-        }));
-      }
-    }
 
     // If maintenance table from Airtable, merge with local store records
     if (table.toLowerCase().startsWith('maint') || table.toLowerCase().startsWith('repair') || table.toLowerCase().startsWith('hist') || table.toLowerCase().startsWith('purch') || table.toLowerCase().startsWith('service')) {
