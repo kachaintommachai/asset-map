@@ -310,53 +310,31 @@ function getAirtableConfig() {
 function getCandidateTables(table) {
   const t = (table || '').trim();
   const lower = t.toLowerCase();
+
+  // ใช้ cachedWorkingTables ก่อนเสมอ (ถ้าเคยพบชื่อที่ถูกต้องแล้ว)
+  if (cachedWorkingTables && cachedWorkingTables[lower]) {
+    return [cachedWorkingTables[lower]];
+  }
+
   if (lower === 'device' || lower === 'devices') {
-    return [
-      'device', 'devices', 'Device', 'Devices', 'device.csv', 'Device.csv',
-      'it_asset', 'it_assets', 'IT_Asset', 'IT_Assets', 'IT Asset', 'IT Assets',
-      'camera', 'cameras', 'Camera', 'Cameras', 'camera.csv', 'Camera.csv',
-      'asset', 'assets', 'Asset', 'Assets', 'asset.csv', 'Asset.csv',
-      'อุปกรณ์', 'ทรัพย์สิน'
-    ];
+    return ['device', 'devices', 'camera', 'cameras', 'asset', 'assets'];
   }
   if (lower === 'camera' || lower === 'cameras') {
-    return [
-      'camera', 'cameras', 'Camera', 'Cameras', 'camera.csv', 'Camera.csv',
-      'device', 'devices', 'Device', 'Devices', 'device.csv', 'Device.csv',
-      'it_asset', 'it_assets', 'IT_Asset', 'IT_Assets',
-      'asset', 'assets', 'Asset', 'Assets', 'asset.csv', 'Asset.csv',
-      'กล้อง', 'อุปกรณ์'
-    ];
+    return ['camera', 'cameras', 'device', 'devices'];
   }
   if (lower === 'map' || lower === 'maps') {
-    return [
-      'map', 'maps', 'Map', 'Maps', 'map.csv', 'Map.csv',
-      'cctv_map', 'asset_map', 'แผนผัง', 'แปลน', 'แผนที่', 'Table 2', 'Table 1'
-    ];
+    return ['map', 'maps'];
   }
   if (lower === 'user' || lower === 'users') {
-    return [
-      'user', 'users', 'User', 'Users', 'user.csv', 'User.csv',
-      'ผู้ใช้', 'ผู้ใช้งาน', 'Table 4', 'Table 1'
-    ];
+    return ['user', 'users'];
   }
   if (lower === 'department' || lower === 'departments') {
-    return [
-      'departments', 'department', 'Departments', 'Department', 'department.csv', 'Department.csv',
-      'dept', 'depts', 'แผนก', 'ฝ่าย', 'Table 3', 'Table 1'
-    ];
+    return ['department', 'departments'];
   }
   if (lower === 'maintenance' || lower === 'maintenances' || lower === 'repair' || lower === 'repairs' || lower === 'asset_history' || lower === 'history' || lower === 'service' || lower === 'services' || lower === 'purchase' || lower === 'purchases') {
-    return [
-      'maintenance', 'maintenances', 'Maintenance', 'Maintenances', 'maintenance.csv', 'Maintenance.csv',
-      'repair', 'repairs', 'Repair', 'Repairs', 'repair.csv', 'Repair.csv',
-      'asset_history', 'history', 'Asset_History', 'Asset History', 'History', 'history.csv',
-      'service', 'services', 'Service', 'Services', 'service.csv',
-      'purchase', 'purchases', 'Purchase', 'Purchases', 'purchase.csv',
-      'ประวัติการซ่อม', 'การซ่อม', 'ประวัติการซื้อ', 'ประวัติอุปกรณ์', 'Table 5', 'Table 1'
-    ];
+    return ['maintenance', 'repair', 'asset_history', 'history', 'service', 'purchase'];
   }
-  return [t, `${t}.csv`];
+  return [t];
 }
 
 function extractFieldValue(fields, candidates) {
@@ -770,6 +748,22 @@ async function fetchAllRecords(baseId, token, candidateTables, sortField, reques
   let lastError = null;
   let firstAttempt = null;
 
+  // ── helper: fetch with 429 retry (exponential backoff) ──────────────
+  async function fetchWithRetry(url, headers, maxRetries = 4) {
+    let delay = 1000; // เริ่มที่ 1 วินาที
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const res = await fetch(url, { headers });
+      if (res.status !== 429) return res;
+      // 429 → รอแล้วลองใหม่
+      const retryAfter = parseInt(res.headers && res.headers.get && res.headers.get('Retry-After') || '0', 10);
+      const waitMs = retryAfter > 0 ? retryAfter * 1000 : delay;
+      await new Promise(r => setTimeout(r, waitMs));
+      delay = Math.min(delay * 2, 16000); // backoff สูงสุด 16 วินาที
+    }
+    // ถ้ายังคง 429 หลังครบ retry ให้คืน response สุดท้าย
+    return fetch(url, { headers });
+  }
+
   for (const tableName of candidateTables) {
     let records = [];
     let offset = null;
@@ -780,11 +774,7 @@ async function fetchAllRecords(baseId, token, candidateTables, sortField, reques
       if (offset) url += `&offset=${encodeURIComponent(offset)}`;
 
       try {
-        const res = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const res = await fetchWithRetry(url, { 'Authorization': `Bearer ${token}` });
 
         const data = await res.json().catch(() => ({}));
 
@@ -796,6 +786,12 @@ async function fetchAllRecords(baseId, token, candidateTables, sortField, reques
           lastError = data.error || { message: `Airtable API error ${res.status}` };
           success = false;
           break;
+        }
+
+        // 429 ยังคงอยู่หลัง retry → หยุดทั้งหมด ไม่ลองตารางอื่นต่อ
+        if (res.status === 429) {
+          lastError = { message: 'Airtable API error 429' };
+          return { ok: false, error: lastError, status: 429 };
         }
 
         if (!res.ok) {
@@ -884,6 +880,8 @@ async function resolveWorkingTable(baseId, token, requestedTable) {
       const res = await fetch(`${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(t)}?pageSize=1`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      // 429 → หยุดวนทันที ไม่ลองตารางอื่น
+      if (res.status === 429) break;
       if (res.ok) {
         cachedWorkingTables[reqKey] = t;
         return t;
