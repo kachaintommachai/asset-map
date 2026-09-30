@@ -316,11 +316,9 @@ function getCandidateTables(table) {
     return [cachedWorkingTables[lower]];
   }
 
-  if (lower === 'device' || lower === 'devices') {
-    return ['device', 'devices', 'camera', 'cameras', 'asset', 'assets'];
-  }
-  if (lower === 'camera' || lower === 'cameras') {
-    return ['camera', 'cameras', 'device', 'devices'];
+  // ชื่อตารางจริงใน Airtable: device, map, user, departments, repair
+  if (lower === 'device' || lower === 'devices' || lower === 'camera' || lower === 'cameras') {
+    return ['device', 'devices', 'camera', 'cameras', 'asset'];
   }
   if (lower === 'map' || lower === 'maps') {
     return ['map', 'maps'];
@@ -329,10 +327,10 @@ function getCandidateTables(table) {
     return ['user', 'users'];
   }
   if (lower === 'department' || lower === 'departments') {
-    return ['department', 'departments'];
+    return ['departments', 'department'];
   }
   if (lower === 'maintenance' || lower === 'maintenances' || lower === 'repair' || lower === 'repairs' || lower === 'asset_history' || lower === 'history' || lower === 'service' || lower === 'services' || lower === 'purchase' || lower === 'purchases') {
-    return ['maintenance', 'repair', 'asset_history', 'history', 'service', 'purchase'];
+    return ['repair', 'maintenance', 'service', 'history'];
   }
   return [t];
 }
