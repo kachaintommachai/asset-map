@@ -1,12 +1,12 @@
 # IT Asset Map - ระบบแผนผังทรัพย์สินสารสนเทศ (IT Asset Mapping System)
 
-ระบบบริหารจัดการและแสดงตำแหน่งทรัพย์สิน/อุปกรณ์ไอที (PC, Notebook, Printer, Server, Network Switch, Router/AP, UPS, Camera ฯลฯ) บนแผนผังอาคารและแผนที่ชั้นต่างๆ พร้อมระบบจัดการสิทธิ์ผู้ใช้งานตามแผนก และรองรับการเชื่อมต่อข้อมูลกับ **Airtable** หรือฐานข้อมูล **MySQL**
+ระบบบริหารจัดการและแสดงตำแหน่งทรัพย์สิน/อุปกรณ์ไอที (PC, Notebook, Printer, Server, Network Switch, Router/AP, UPS, Camera ฯลฯ) บนแผนผังอาคารและแผนที่ชั้นต่างๆ พร้อมระบบจัดการสิทธิ์ผู้ใช้งานตามแผนก และรองรับการเชื่อมต่อข้อมูลกับ **Airtable**
 
 ---
 
 ## 📁 โครงสร้างตารางและไฟล์ข้อมูลสำหรับขึ้น GitHub / Airtable
 
-| ไฟล์ CSV | ตาราง Airtable / MySQL | รายละเอียด | คอลัมน์สำคัญ |
+| ไฟล์ CSV | ตาราง Airtable | รายละเอียด | คอลัมน์สำคัญ |
 |---|---|---|---|
 | **[`device.csv`](file:///home/itcm/Downloads/Project1/asset/asset_map/device.csv)** | `device` (หรือ `cameras`) | ข้อมูลอุปกรณ์และทรัพย์สินไอที | `asset_code`, `asset_name`, `holder`, `type`, `brand`, `model`, `serial`, `department`, `ip`, `mac_address`, `status`, `image`, `map_id`, `x`, `y` |
 | **[`map.csv`](file:///home/itcm/Downloads/Project1/asset/asset_map/map.csv)** | `map` (หรือ `maps`) | แผนผังชั้น/อาคาร/ห้อง | `map_id`, `map_name`, `map_pic` |
@@ -54,23 +54,15 @@
 
 ## 🚀 การติดตั้งและเปิดใช้งานในเครื่อง (Local Setup)
 
-### วิธีที่ 1: รันด้วย PHP Built-in Server
+### รันด้วย PHP Built-in Server
 ```bash
 # เปิดใช้งานเว็บเซิร์ฟเวอร์ที่พอร์ต 3003
 php -S 0.0.0.0:3003
 ```
 เปิดเบราว์เซอร์เข้าที่: `http://localhost:3003`
 
-### วิธีที่ 2: ใช้ฐานข้อมูล MySQL
-1. นำเข้าฐานข้อมูล:
-```bash
-mysql -u root -p < schema.sql
-mysql -u cctv_user -pcctv_pass cctv_monitor < import_data.sql
-```
-2. ตั้งค่าการเชื่อมต่อใน `db_config.php`
-3. รันผ่านเว็บเซิร์ฟเวอร์ Apache / Nginx / PHP-FPM
-
 ---
+
 
 ## ⚡ การ Deploy บน Vercel พร้อมเชื่อมต่อ Airtable
 
@@ -83,11 +75,20 @@ mysql -u cctv_user -pcctv_pass cctv_monitor < import_data.sql
 
 ### 2. ตั้งค่า Environment Variables ใน Vercel
 ก่อนกด Deploy (หรือในหน้า **Settings** > **Environment Variables** ของโปรเจกต์บน Vercel):
+
+**Airtable (จำเป็น):**
 - **`AIRTABLE_TOKEN`**: Personal Access Token จาก [Airtable Create Token](https://airtable.com/create/tokens) (สิทธิ์ `data.records:read` และ `data.records:write`)
 - **`AIRTABLE_BASE_ID`**: รหัส Base ID ของคุณ (ขึ้นต้นด้วย `app...` ดูได้จาก URL ของ Airtable)
 
+**Cloudinary (สำหรับจัดเก็บรูปภาพ):**
+- **`CLOUDINARY_CLOUD_NAME`**: Cloud Name จาก [Cloudinary Dashboard](https://cloudinary.com/console) > Settings
+- **`CLOUDINARY_API_KEY`**: API Key จาก Cloudinary Dashboard > Settings
+- **`CLOUDINARY_API_SECRET`**: API Secret จาก Cloudinary Dashboard > Settings
+
+> รูปภาพทั้งหมดจะถูกอัปโหลดไปยัง Cloudinary โดยอัตโนมัติ จัดเก็บในโฟลเดอร์ `asset_map/devices` และ `asset_map/maps`
+> สมัคร Cloudinary ฟรีได้ที่ https://cloudinary.com (ฟรี 25 GB, ไม่ต้องใส่บัตรเครดิต)
+
 ### 3. Deploy
 - กดปุ่ม **Deploy**
-- เมื่อ Deploy เสร็จสิ้น ระบบจะเชื่อมต่อไปยัง Airtable โดยอัตโนมัติ
+- เมื่อ Deploy เสร็จสิ้น ระบบจะเชื่อมต่อไปยัง Airtable และ Cloudinary โดยอัตโนมัติ
 - บัญชี Admin เริ่มต้น (หากยังไม่ได้สร้างใน Airtable): Username `admin` / Password `cmfsupport`
-

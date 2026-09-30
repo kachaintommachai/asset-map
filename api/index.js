@@ -2,9 +2,70 @@
 // Works as drop-in replacement for api.php on Vercel
 
 const AIRTABLE_API_ROOT = 'https://api.airtable.com/v0';
-const fs = require('fs');
-const path = require('path');
+const fs     = require('fs');
+const path   = require('path');
+const crypto = require('crypto');
 
+// ─── Cloudinary Config & Upload Helper ───
+function getCloudinaryConfig() {
+  return {
+    cloudName: (process.env.CLOUDINARY_CLOUD_NAME || '').trim(),
+    apiKey:    (process.env.CLOUDINARY_API_KEY    || '').trim(),
+    apiSecret: (process.env.CLOUDINARY_API_SECRET || '').trim()
+  };
+}
+
+async function uploadBase64ToCloudinary(dataUrl, folder) {
+  const { cloudName, apiKey, apiSecret } = getCloudinaryConfig();
+  if (!cloudName || !apiKey || !apiSecret) return '';
+
+  // Extract mime and base64 data
+  const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!m) return '';
+  const mimeType = m[1];
+  const base64Data = m[2];
+  const buffer = Buffer.from(base64Data, 'base64');
+
+  const timestamp   = Math.floor(Date.now() / 1000).toString();
+  const folderParam = folder || 'asset_map';
+  const paramsToSign = `folder=${folderParam}&timestamp=${timestamp}${apiSecret}`;
+  const signature   = crypto.createHash('sha256').update(paramsToSign).digest('hex');
+
+  const boundary = `----CloudinaryBoundary${Date.now()}`;
+  const CRLF = '\r\n';
+  const ext  = mimeType.split('/')[1] || 'jpg';
+
+  function field(name, value) {
+    return [`--${boundary}`, `Content-Disposition: form-data; name="${name}"`, '', value].join(CRLF) + CRLF;
+  }
+
+  const preamble = Buffer.from(
+    field('api_key', apiKey) +
+    field('timestamp', timestamp) +
+    field('folder', folderParam) +
+    field('signature', signature) +
+    `--${boundary}${CRLF}Content-Disposition: form-data; name="file"; filename="upload.${ext}"${CRLF}Content-Type: ${mimeType}${CRLF}${CRLF}`
+  );
+  const epilogue = Buffer.from(`${CRLF}--${boundary}--${CRLF}`);
+  const body = Buffer.concat([preamble, buffer, epilogue]);
+
+  try {
+    const res  = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/upload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        'Content-Length': body.length.toString()
+      },
+      body
+    });
+    const data = await res.json().catch(() => ({}));
+    return res.ok ? (data.secure_url || data.url || '') : '';
+  } catch (_) {
+    return '';
+  }
+}
+
+// ─── Image URL Cache (stores Cloudinary URLs or any URL, not Base64) ───
 const IMAGE_STORE_FILE = '/tmp/asset_images_store.json';
 let inMemoryImages = {};
 
@@ -18,11 +79,11 @@ function loadImageStore() {
   return inMemoryImages;
 }
 
-function saveImageToStore(key, dataUrl) {
-  if (!key || !dataUrl) return;
+function saveImageToStore(key, url) {
+  if (!key || !url) return;
   loadImageStore();
   const k = String(key).trim();
-  inMemoryImages[k] = dataUrl;
+  inMemoryImages[k] = url;
   try {
     fs.writeFileSync(IMAGE_STORE_FILE, JSON.stringify(inMemoryImages), 'utf8');
   } catch (_) {}
@@ -1358,7 +1419,7 @@ module.exports = async (req, res) => {
   const { token, baseId } = getAirtableConfig();
   const query = req.query || {};
 
-  // Image Storage API (Allows persistent cross-device photo sync)
+  // Image Storage API — อัปโหลดรูปไปยัง Cloudinary แล้วเก็บ URL
   if (query.action === 'save_image' || query.action === 'upload_image') {
     let body = req.body;
     if (typeof body === 'string') {
@@ -1366,12 +1427,17 @@ module.exports = async (req, res) => {
     }
     body = body || {};
     const key = (query.id || body.id || body.asset_code || body.code || '').trim();
-    const img = (body.image || body.image_url || body.dataUrl || '').trim();
+    let img   = (body.image || body.image_url || body.dataUrl || '').trim();
     if (!key || !img) {
       return res.status(400).json({ error: 'Missing id or image payload' });
     }
+    // ถ้าเป็น Base64 data URL → อัปโหลดไปยัง Cloudinary ก่อน
+    if (img.startsWith('data:')) {
+      const cloudUrl = await uploadBase64ToCloudinary(img, 'asset_map/devices');
+      if (cloudUrl) img = cloudUrl;
+    }
     saveImageToStore(key, img);
-    return res.status(200).json({ success: true, id: key });
+    return res.status(200).json({ success: true, id: key, url: img });
   }
 
   if (query.action === 'get_image') {
@@ -1379,6 +1445,7 @@ module.exports = async (req, res) => {
     const img = getImageFromStore(key);
     return res.status(200).json({ id: key, image: img });
   }
+
 
   const table = (query.table || '').trim();
 
