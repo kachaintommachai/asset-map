@@ -1270,20 +1270,35 @@
             if (options.sort) url += '&sort=' + encodeURIComponent(options.sort[0].field);
             if (options.name) url += '&name=' + encodeURIComponent(options.name);
             if (options.password) url += '&password=' + encodeURIComponent(options.password);
-            const res = await fetch(url);
-            let data;
-            const text = await res.text();
-            try {
-                data = JSON.parse(text);
-            } catch (err) {
-                throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP ${res.status}): ${text.slice(0, 150)}`);
+
+            // Retry with exponential backoff สำหรับ 429 rate limit
+            let delay = 1000;
+            for (let attempt = 0; attempt < 5; attempt++) {
+                const res = await fetch(url);
+                const text = await res.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (err) {
+                    throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP ${res.status}): ${text.slice(0, 150)}`);
+                }
+                // 429 → รอแล้วลองใหม่
+                if (res.status === 429 || (data.error && String(data.error).includes('429'))) {
+                    if (attempt < 4) {
+                        await new Promise(r => setTimeout(r, delay));
+                        delay = Math.min(delay * 2, 16000);
+                        continue;
+                    }
+                }
+                if (data.error && !data.records) {
+                    const errMsg = typeof data.error === 'string' ? data.error : (data.error.message || JSON.stringify(data.error));
+                    throw new Error(errMsg);
+                }
+                return data.records || [];
             }
-            if (data.error && !data.records) {
-                const errMsg = typeof data.error === 'string' ? data.error : (data.error.message || JSON.stringify(data.error));
-                throw new Error(errMsg);
-            }
-            return data.records || [];
+            throw new Error('Airtable API error 429 — เกิน rate limit กรุณารอสักครู่แล้วลองใหม่');
         }
+
 
         async function apiCreate(table, fields) {
             const res = await fetch(`${API_BASE}?table=${encodeURIComponent(table)}`, {
@@ -1419,7 +1434,15 @@
 
         // ─── INIT ───
         async function initializeApp() {
-            await Promise.all([fetchDevices(), fetchDepartments(), fetchMaps(), fetchMaintenances()]);
+            // โหลดทีละตาราง + delay 300ms ระหว่างแต่ละ request เพื่อไม่เกิน Airtable rate limit (5 req/วินาที)
+            await fetchDevices();
+            await new Promise(r => setTimeout(r, 300));
+            await fetchDepartments();
+            await new Promise(r => setTimeout(r, 300));
+            await fetchMaps();
+            await new Promise(r => setTimeout(r, 300));
+            await fetchMaintenances();
+
             if (cameras.length > 0) {
                 const devDepts = [...new Set(cameras.map(c => c.department || c.group).filter(g => g && g !== 'ไม่มีแผนก'))];
                 devDepts.forEach(d => {
@@ -3952,7 +3975,9 @@
                         }
                     }
                 }
-                await Promise.all([fetchDepartments(), fetchDevices()]);
+                await fetchDepartments();
+                await new Promise(r => setTimeout(r, 300));
+                await fetchDevices();
                 renderGroupsList();
                 renderGroupFilter();
                 renderCameraList();
@@ -4579,7 +4604,9 @@
 
                 // Fetch data if cameras list is empty (e.g. guest scan before login)
                 if (!cameras || cameras.length === 0) {
-                    await Promise.all([fetchDevices(), fetchMaps()]).catch(e => console.warn('Pre-fetch error for QR scan:', e));
+                    await fetchDevices().catch(e => console.warn('Pre-fetch error for QR scan:', e));
+                    await new Promise(r => setTimeout(r, 300));
+                    await fetchMaps().catch(e => console.warn('Pre-fetch error for QR scan:', e));
                 }
 
                 const matchedCam = findDeviceByQuery(targetAsset);
