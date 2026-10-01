@@ -368,9 +368,23 @@ function isLikelyDepartment(str) {
   return false;
 }
 
+// ─── Sanitize Field Names (Strip UTF-8 BOM \ufeff and zero-width spaces) ───
+function sanitizeFields(rawFields) {
+  if (!rawFields || typeof rawFields !== 'object') return {};
+  const cleaned = {};
+  for (const [k, v] of Object.entries(rawFields)) {
+    const cleanKey = k.replace(/^[\uFEFF\u200B\s]+|[\uFEFF\u200B\s]+$/g, '').trim();
+    const hasValue = (val) => val !== null && val !== undefined && val !== '';
+    if (!hasValue(cleaned[cleanKey]) || hasValue(v)) {
+      cleaned[cleanKey] = v;
+    }
+  }
+  return cleaned;
+}
+
 function normalizeFields(table, fields, recordId = '') {
   const t = (table || '').trim().toLowerCase();
-  const f = { ...(fields || {}) };
+  const f = sanitizeFields(fields);
 
   if (t === 'device' || t === 'devices' || t === 'camera' || t === 'cameras') {
     // 1. Extract department first so we can protect asset code from department contamination
@@ -625,13 +639,19 @@ function normalizeFields(table, fields, recordId = '') {
   }
 
   if (t === 'user' || t === 'users') {
+    let uDept = f.department || f.Department || f.dept || f.Dept || '';
+    if (Array.isArray(uDept)) {
+      uDept = uDept.map(d => typeof d === 'object' && d ? (d.name || d.text || String(d)) : String(d)).join(', ');
+    }
+    const uName = String(f.Name || f.name || f.username || f.Username || f['\ufeffName'] || '').trim();
     return {
       ...f,
-      Name: f.Name || f.name || f.username || '',
-      password: f.password || f.Password || '',
-      department: f.department || f.Department || '',
-      camera_user: f.camera_user || '',
-      map_user: f.map_user || ''
+      Name: uName,
+      name: uName,
+      password: String(f.password || f.Password || '').trim(),
+      department: String(uDept).trim(),
+      camera_user: String(f.camera_user || '').trim(),
+      map_user: String(f.map_user || '').trim()
     };
   }
 
@@ -799,7 +819,11 @@ async function fetchAllRecords(baseId, token, candidateTables, sortField, reques
         }
 
         if (Array.isArray(data.records)) {
-          records = records.concat(data.records);
+          const sanitizedRecords = data.records.map(r => ({
+            ...r,
+            fields: sanitizeFields(r.fields)
+          }));
+          records = records.concat(sanitizedRecords);
         }
         offset = data.offset || null;
       } catch (err) {
@@ -1455,7 +1479,12 @@ module.exports = async (req, res) => {
         const candidates = getCandidateTables(tName);
         const result = await fetchAllRecords(baseId, token, candidates, null, tName);
         if (result.ok) {
-          results[tName] = { records: result.records.map(r => ({ id: r.id, fields: r.fields })) };
+          results[tName] = {
+            records: result.records.map(r => ({
+              id: r.id,
+              fields: normalizeFields(tName, r.fields, r.id)
+            }))
+          };
         } else {
           results[tName] = { records: [], error: result.error?.message || 'Error' };
         }
@@ -1774,9 +1803,9 @@ module.exports = async (req, res) => {
       const qPass = String(query.password);
       records = records.filter(r => {
         const f = r.fields || {};
-        const rName = String(f.Name || f.name || '').trim().toLowerCase();
-        const rPass = String(f.password || f.Password || '');
-        return rName === qName && rPass === qPass;
+        const rName = String(f.Name || f.name || f.username || f.Username || f['\ufeffName'] || '').trim().toLowerCase();
+        const rPass = String(f.password || f.Password || '').trim();
+        return rName === qName && rPass === qPass.trim();
       });
 
       // Fallback for default admin if no Airtable user matched
