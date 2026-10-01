@@ -2947,19 +2947,43 @@
             const file = input.files[0];
             if (!file) return;
             try {
-                const dataUrl = await compressAndReadImage(file, 900, 0.75);
-                const inputUrl = document.getElementById('detail-image-url');
-                if (inputUrl) inputUrl.value = dataUrl;
-                
                 const assetCode = document.getElementById('detail-id')?.value.trim();
-                if (recordId) LocalImageStore.save(recordId, dataUrl);
-                if (assetCode) LocalImageStore.save(assetCode, dataUrl);
-                await saveImageToRemoteStore(assetCode, dataUrl, recordId);
+                
+                // พยายามอัปโหลดขึ้น Cloudinary ผ่าน /api/upload
+                let finalUrl = '';
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('type', 'device');
+                    if (recordId) formData.append('record_id', recordId);
+
+                    const res = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (res.ok && data.success && data.url) {
+                        finalUrl = data.url;
+                    }
+                } catch (netErr) {
+                    console.warn('Detail image direct upload notice:', netErr);
+                }
+
+                if (!finalUrl) {
+                    finalUrl = await compressAndReadImage(file, 900, 0.75);
+                }
+
+                const inputUrl = document.getElementById('detail-image-url');
+                if (inputUrl) inputUrl.value = finalUrl;
+                
+                if (recordId) LocalImageStore.save(recordId, finalUrl);
+                if (assetCode) LocalImageStore.save(assetCode, finalUrl);
+                await saveImageToRemoteStore(assetCode, finalUrl, recordId);
 
                 const matchedCam = cameras.find(c => String(c._recordId) === String(recordId) || (assetCode && (String(c.id) === assetCode || String(c.asset_code) === assetCode)));
                 if (matchedCam) {
-                    matchedCam.image_url = dataUrl;
-                    matchedCam.image = dataUrl;
+                    matchedCam.image_url = finalUrl;
+                    matchedCam.image = finalUrl;
                     showCameraDetail(matchedCam);
                     renderCameras();
                     renderBookmarks();
@@ -2967,12 +2991,10 @@
 
                 if (recordId && String(recordId).startsWith('rec')) {
                     await apiUpdate('device', recordId, {
-                        image_url: dataUrl,
-                        image: dataUrl,
-                        Image: dataUrl,
-                        photo: dataUrl,
-                        picture: dataUrl,
-                        go2rtc_link: dataUrl
+                        image_url: finalUrl,
+                        image: finalUrl,
+                        Image: finalUrl,
+                        go2rtc_link: finalUrl
                     }).catch(e => console.warn('Airtable image write fallback:', e));
                     await fetchDevices();
                     const updatedCam = cameras.find(c => String(c._recordId) === String(recordId) || (assetCode && (String(c.id) === assetCode || String(c.asset_code) === assetCode)));
@@ -3251,13 +3273,34 @@
             const file = input.files[0];
             if (!file) return;
             const textEl = document.getElementById('cam-upload-text');
-            const originalText = textEl ? textEl.textContent : '';
-            if (textEl) textEl.textContent = 'กำลังแปลงภาพ...';
+            if (textEl) textEl.textContent = 'กำลังอัปโหลด...';
             
             try {
-                const dataUrl = await compressAndReadImage(file, 900, 0.75);
-                document.getElementById('cam-image-url').value = dataUrl;
-                showDeviceImagePreview(dataUrl);
+                // พยายามอัปโหลดขึ้น Cloudinary ผ่าน /api/upload
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('type', 'device');
+
+                let finalUrl = '';
+                try {
+                    const res = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (res.ok && data.success && data.url) {
+                        finalUrl = data.url;
+                    }
+                } catch (netErr) {
+                    console.warn('Direct upload network error:', netErr);
+                }
+
+                if (!finalUrl) {
+                    finalUrl = await compressAndReadImage(file, 900, 0.75);
+                }
+
+                document.getElementById('cam-image-url').value = finalUrl;
+                showDeviceImagePreview(finalUrl);
             } catch (err) {
                 alert('เกิดข้อผิดพลาดในการอัปโหลดภาพ: ' + err.message);
             } finally {
@@ -3903,19 +3946,42 @@
             const status = document.getElementById(`map-upload-status-${recordId}`);
             if (label) label.textContent = file.name;
             if (status) {
-                status.textContent = 'กำลังแปลงภาพ...';
+                status.textContent = 'กำลังอัปโหลดไปยัง Cloudinary...';
                 status.className = 'text-[11px] text-amber-400';
             }
             try {
-                const dataUrl = await compressAndReadImage(file, 1600, 0.82);
-                if (mapId) LocalImageStore.save(`map_${mapId}`, dataUrl);
-                if (recordId) LocalImageStore.save(`map_${recordId}`, dataUrl);
+                // พยายามอัปโหลดขึ้น Cloudinary ผ่าน /api/upload
+                let finalUrl = '';
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('type', 'map');
+                    if (recordId) formData.append('record_id', recordId);
+
+                    const res = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (res.ok && data.success && data.url) {
+                        finalUrl = data.url;
+                    }
+                } catch (netErr) {
+                    console.warn('Map upload notice:', netErr);
+                }
+
+                if (!finalUrl) {
+                    finalUrl = await compressAndReadImage(file, 1600, 0.82);
+                }
+
+                if (mapId) LocalImageStore.save(`map_${mapId}`, finalUrl);
+                if (recordId) LocalImageStore.save(`map_${recordId}`, finalUrl);
 
                 if (recordId && String(recordId).startsWith('rec')) {
                     await apiUpdate('map', recordId, {
-                        map_url: dataUrl,
-                        map_pic: dataUrl,
-                        image: dataUrl
+                        map_url: finalUrl,
+                        map_pic: finalUrl,
+                        image: finalUrl
                     });
                 }
                 if (status) {

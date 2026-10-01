@@ -8,11 +8,16 @@ const crypto = require('crypto');
 
 // ─── Cloudinary Config & Upload Helper ───
 function getCloudinaryConfig() {
-  return {
-    cloudName: (process.env.CLOUDINARY_CLOUD_NAME || '').trim(),
-    apiKey:    (process.env.CLOUDINARY_API_KEY    || '').trim(),
-    apiSecret: (process.env.CLOUDINARY_API_SECRET || '').trim()
-  };
+  let cloudName = (process.env.CLOUDINARY_CLOUD_NAME || '').trim();
+  const apiKey    = (process.env.CLOUDINARY_API_KEY    || '').trim();
+  const apiSecret = (process.env.CLOUDINARY_API_SECRET || '').trim();
+
+  // กรณีผู้ใช้ใส่ cloudName เป็น "asset_map" (ชื่อโฟลเดอร์/โปรเจกต์) ให้ใช้ cloud name จริง "ugkaemul"
+  if (cloudName.toLowerCase() === 'asset_map' || cloudName.toLowerCase() === 'asset-map') {
+    cloudName = 'ugkaemul';
+  }
+
+  return { cloudName, apiKey, apiSecret };
 }
 
 async function uploadBase64ToCloudinary(dataUrl, folder) {
@@ -29,7 +34,7 @@ async function uploadBase64ToCloudinary(dataUrl, folder) {
   const timestamp   = Math.floor(Date.now() / 1000).toString();
   const folderParam = folder || 'asset_map';
   const paramsToSign = `folder=${folderParam}&timestamp=${timestamp}${apiSecret}`;
-  const signature   = crypto.createHash('sha256').update(paramsToSign).digest('hex');
+  const signatureSha1 = crypto.createHash('sha1').update(paramsToSign).digest('hex');
 
   const boundary = `----CloudinaryBoundary${Date.now()}`;
   const CRLF = '\r\n';
@@ -39,18 +44,21 @@ async function uploadBase64ToCloudinary(dataUrl, folder) {
     return [`--${boundary}`, `Content-Disposition: form-data; name="${name}"`, '', value].join(CRLF) + CRLF;
   }
 
-  const preamble = Buffer.from(
-    field('api_key', apiKey) +
-    field('timestamp', timestamp) +
-    field('folder', folderParam) +
-    field('signature', signature) +
-    `--${boundary}${CRLF}Content-Disposition: form-data; name="file"; filename="upload.${ext}"${CRLF}Content-Type: ${mimeType}${CRLF}${CRLF}`
-  );
-  const epilogue = Buffer.from(`${CRLF}--${boundary}--${CRLF}`);
-  const body = Buffer.concat([preamble, buffer, epilogue]);
+  function buildBody(sig) {
+    const preamble = Buffer.from(
+      field('api_key', apiKey) +
+      field('timestamp', timestamp) +
+      field('folder', folderParam) +
+      field('signature', sig) +
+      `--${boundary}${CRLF}Content-Disposition: form-data; name="file"; filename="upload.${ext}"${CRLF}Content-Type: ${mimeType}${CRLF}${CRLF}`
+    );
+    const epilogue = Buffer.from(`${CRLF}--${boundary}--${CRLF}`);
+    return Buffer.concat([preamble, buffer, epilogue]);
+  }
 
   try {
-    const res  = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/upload`, {
+    let body = buildBody(signatureSha1);
+    let res = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/upload`, {
       method: 'POST',
       headers: {
         'Content-Type': `multipart/form-data; boundary=${boundary}`,
@@ -58,7 +66,23 @@ async function uploadBase64ToCloudinary(dataUrl, folder) {
       },
       body
     });
-    const data = await res.json().catch(() => ({}));
+    let data = await res.json().catch(() => ({}));
+
+    // ถ้า SHA-1 ติดเรื่อง signature ให้ลอง SHA-256
+    if (!res.ok && data.error?.message?.toLowerCase().includes('signature')) {
+      const signatureSha256 = crypto.createHash('sha256').update(paramsToSign).digest('hex');
+      body = buildBody(signatureSha256);
+      res = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/upload`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': `multipart/form-data; boundary=${boundary}`,
+          'Content-Length': body.length.toString()
+        },
+        body
+      });
+      data = await res.json().catch(() => ({}));
+    }
+
     return res.ok ? (data.secure_url || data.url || '') : '';
   } catch (_) {
     return '';
@@ -1855,6 +1879,20 @@ module.exports = async (req, res) => {
 
   // ─── POST (Create Record) ───
   if (req.method === 'POST') {
+    // แปลง Base64 image เป็น Cloudinary URL ถ้ามี
+    const imgKeys = ['image_url', 'image', 'Image', 'photo', 'picture', 'map_url', 'map_pic', 'go2rtc_link'];
+    for (const k of imgKeys) {
+      if (fields[k] && typeof fields[k] === 'string' && fields[k].startsWith('data:image/')) {
+        const folder = table.toLowerCase().startsWith('map') ? 'asset_map/maps' : 'asset_map/devices';
+        const cUrl = await uploadBase64ToCloudinary(fields[k], folder);
+        if (cUrl) {
+          fields[k] = cUrl;
+          if (k === 'image_url') { fields.image = cUrl; fields.go2rtc_link = cUrl; }
+          if (k === 'map_url') { fields.map_pic = cUrl; }
+        }
+      }
+    }
+
     const isMaintenance = table.toLowerCase().startsWith('maint') || table.toLowerCase().startsWith('repair') || table.toLowerCase().startsWith('hist') || table.toLowerCase().startsWith('purch') || table.toLowerCase().startsWith('service');
 
     const targetTable = await resolveWorkingTable(baseId, token, table);
@@ -1906,6 +1944,20 @@ module.exports = async (req, res) => {
     const rawId = query.id || body.id;
     if (!rawId) {
       return res.status(400).json({ error: 'Missing record id for PATCH' });
+    }
+
+    // แปลง Base64 image เป็น Cloudinary URL ถ้ามี
+    const imgKeys = ['image_url', 'image', 'Image', 'photo', 'picture', 'map_url', 'map_pic', 'go2rtc_link'];
+    for (const k of imgKeys) {
+      if (fields[k] && typeof fields[k] === 'string' && fields[k].startsWith('data:image/')) {
+        const folder = table.toLowerCase().startsWith('map') ? 'asset_map/maps' : 'asset_map/devices';
+        const cUrl = await uploadBase64ToCloudinary(fields[k], folder);
+        if (cUrl) {
+          fields[k] = cUrl;
+          if (k === 'image_url') { fields.image = cUrl; fields.go2rtc_link = cUrl; }
+          if (k === 'map_url') { fields.map_pic = cUrl; }
+        }
+      }
     }
 
     const isMaintenance = table.toLowerCase().startsWith('maint') || table.toLowerCase().startsWith('repair') || table.toLowerCase().startsWith('hist') || table.toLowerCase().startsWith('purch') || table.toLowerCase().startsWith('service');

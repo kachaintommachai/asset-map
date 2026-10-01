@@ -6,11 +6,16 @@ const AIRTABLE_API_ROOT = 'https://api.airtable.com/v0';
 
 // ─── Cloudinary Config ───
 function getCloudinaryConfig() {
-  return {
-    cloudName: (process.env.CLOUDINARY_CLOUD_NAME || '').trim(),
-    apiKey:    (process.env.CLOUDINARY_API_KEY    || '').trim(),
-    apiSecret: (process.env.CLOUDINARY_API_SECRET || '').trim()
-  };
+  let cloudName = (process.env.CLOUDINARY_CLOUD_NAME || '').trim();
+  const apiKey    = (process.env.CLOUDINARY_API_KEY    || '').trim();
+  const apiSecret = (process.env.CLOUDINARY_API_SECRET || '').trim();
+
+  // กรณีผู้ใช้ใส่ชื่อโปรเจกต์ "asset_map" เป็น cloudName ให้ fallback ไปที่ cloud name จริง "ugkaemul"
+  if (cloudName.toLowerCase() === 'asset_map' || cloudName.toLowerCase() === 'asset-map') {
+    cloudName = 'ugkaemul';
+  }
+
+  return { cloudName, apiKey, apiSecret };
 }
 
 // ─── Upload buffer to Cloudinary (Signed Upload) ───
@@ -22,12 +27,11 @@ async function uploadToCloudinary(buffer, mimeType, folder) {
 
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const folderParam = folder || 'asset_map';
-
-  // Build signature string (sorted params)
   const paramsToSign = `folder=${folderParam}&timestamp=${timestamp}${apiSecret}`;
-  const signature = crypto.createHash('sha256').update(paramsToSign).digest('hex');
 
-  // Build multipart/form-data manually
+  // Cloudinary ค่าเริ่มต้นใช้ SHA-1 signature
+  const signatureSha1 = crypto.createHash('sha1').update(paramsToSign).digest('hex');
+
   const boundary = `----CloudinaryBoundary${Date.now()}`;
   const CRLF = '\r\n';
 
@@ -43,20 +47,22 @@ async function uploadToCloudinary(buffer, mimeType, folder) {
   const ext = (mimeType || 'image/jpeg').split('/')[1] || 'jpg';
   const filename = `upload.${ext}`;
 
-  const preamble = Buffer.from(
-    field('api_key', apiKey) +
-    field('timestamp', timestamp) +
-    field('folder', folderParam) +
-    field('signature', signature) +
-    `--${boundary}${CRLF}` +
-    `Content-Disposition: form-data; name="file"; filename="${filename}"${CRLF}` +
-    `Content-Type: ${mimeType}${CRLF}${CRLF}`
-  );
-  const epilogue = Buffer.from(`${CRLF}--${boundary}--${CRLF}`);
+  function buildBody(sig) {
+    const preamble = Buffer.from(
+      field('api_key', apiKey) +
+      field('timestamp', timestamp) +
+      field('folder', folderParam) +
+      field('signature', sig) +
+      `--${boundary}${CRLF}` +
+      `Content-Disposition: form-data; name="file"; filename="${filename}"${CRLF}` +
+      `Content-Type: ${mimeType}${CRLF}${CRLF}`
+    );
+    const epilogue = Buffer.from(`${CRLF}--${boundary}--${CRLF}`);
+    return Buffer.concat([preamble, buffer, epilogue]);
+  }
 
-  const body = Buffer.concat([preamble, buffer, epilogue]);
-
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/upload`, {
+  let body = buildBody(signatureSha1);
+  let res = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/upload`, {
     method: 'POST',
     headers: {
       'Content-Type': `multipart/form-data; boundary=${boundary}`,
@@ -65,7 +71,22 @@ async function uploadToCloudinary(buffer, mimeType, folder) {
     body
   });
 
-  const data = await res.json().catch(() => ({}));
+  let data = await res.json().catch(() => ({}));
+
+  // ถ้า SHA-1 ติดปัญหา signature ให้ลอง SHA-256
+  if (!res.ok && data.error?.message?.toLowerCase().includes('signature')) {
+    const signatureSha256 = crypto.createHash('sha256').update(paramsToSign).digest('hex');
+    body = buildBody(signatureSha256);
+    res = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/upload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        'Content-Length': body.length.toString()
+      },
+      body
+    });
+    data = await res.json().catch(() => ({}));
+  }
 
   if (!res.ok) {
     throw new Error(data.error?.message || `Cloudinary upload failed (HTTP ${res.status})`);
@@ -177,14 +198,44 @@ async function handler(req, res) {
   }
 
   try {
-    const { fields, file } = await parseMultipart(req);
+    let fileBuffer = null;
+    let fileMime = 'image/jpeg';
+    let recordId = (req.query && req.query.record_id) || '';
+    let uploadType = (req.query && req.query.type) || '';
 
-    if (!file || !file.buffer || file.buffer.length === 0) {
+    const contentType = req.headers['content-type'] || '';
+    if (contentType.includes('application/json')) {
+      const chunks = [];
+      for await (const chunk of req) chunks.push(chunk);
+      const rawText = Buffer.concat(chunks).toString('utf-8');
+      let json = {};
+      try { json = JSON.parse(rawText); } catch (_) {}
+      
+      const dataUrl = json.dataUrl || json.image || json.image_url || '';
+      recordId = recordId || json.record_id;
+      uploadType = uploadType || json.type;
+
+      if (dataUrl && dataUrl.startsWith('data:')) {
+        const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (m) {
+          fileMime = m[1];
+          fileBuffer = Buffer.from(m[2], 'base64');
+        }
+      }
+    } else {
+      const { fields, file } = await parseMultipart(req);
+      if (file && file.buffer) {
+        fileBuffer = file.buffer;
+        fileMime = file.mimeType;
+      }
+      recordId = recordId || fields.record_id;
+      uploadType = uploadType || fields.type;
+    }
+
+    if (!fileBuffer || fileBuffer.length === 0) {
       return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
 
-    const recordId  = fields.record_id || (req.query && req.query.record_id);
-    const uploadType = (req.query && req.query.type) || (fields && fields.type) || '';
     const isMap     = uploadType === 'map' || (req.url && req.url.includes('upload_map'));
     const folder    = isMap ? 'asset_map/maps' : 'asset_map/devices';
 
@@ -193,11 +244,11 @@ async function handler(req, res) {
     const { cloudName } = getCloudinaryConfig();
 
     if (cloudName) {
-      imageUrl = await uploadToCloudinary(file.buffer, file.mimeType, folder);
+      imageUrl = await uploadToCloudinary(fileBuffer, fileMime, folder);
     } else {
       // Fallback: Base64 data URL (when Cloudinary is not configured)
       console.warn('Cloudinary not configured — falling back to Base64 data URL');
-      imageUrl = `data:${file.mimeType};base64,${file.buffer.toString('base64')}`;
+      imageUrl = `data:${fileMime};base64,${fileBuffer.toString('base64')}`;
     }
 
     // ─── Sync URL to Airtable ───
