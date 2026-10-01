@@ -9,28 +9,22 @@ function getCloudinaryConfig() {
   let cloudName = (process.env.CLOUDINARY_CLOUD_NAME || '').trim();
   const apiKey    = (process.env.CLOUDINARY_API_KEY    || '').trim();
   const apiSecret = (process.env.CLOUDINARY_API_SECRET || '').trim();
+  const uploadPreset = (process.env.CLOUDINARY_UPLOAD_PRESET || process.env.CLOUDINARY_PRESET || '').trim();
 
   // กรณีผู้ใช้ใส่ชื่อโปรเจกต์ "asset_map" เป็น cloudName ให้ fallback ไปที่ cloud name จริง "ugkaemul"
   if (cloudName.toLowerCase() === 'asset_map' || cloudName.toLowerCase() === 'asset-map') {
     cloudName = 'ugkaemul';
   }
 
-  return { cloudName, apiKey, apiSecret };
+  return { cloudName, apiKey, apiSecret, uploadPreset };
 }
 
-// ─── Upload buffer to Cloudinary (Signed Upload) ───
+// ─── Upload buffer to Cloudinary ───
 async function uploadToCloudinary(buffer, mimeType, folder) {
-  const { cloudName, apiKey, apiSecret } = getCloudinaryConfig();
-  if (!cloudName || !apiKey || !apiSecret) {
-    throw new Error('Cloudinary credentials not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET.');
+  const { cloudName, apiKey, apiSecret, uploadPreset } = getCloudinaryConfig();
+  if (!cloudName) {
+    throw new Error('Cloudinary cloudName not configured.');
   }
-
-  const timestamp = Math.floor(Date.now() / 1000).toString();
-  const folderParam = folder || 'asset_map';
-  const paramsToSign = `folder=${folderParam}&timestamp=${timestamp}${apiSecret}`;
-
-  // Cloudinary ค่าเริ่มต้นใช้ SHA-1 signature
-  const signatureSha1 = crypto.createHash('sha1').update(paramsToSign).digest('hex');
 
   const boundary = `----CloudinaryBoundary${Date.now()}`;
   const CRLF = '\r\n';
@@ -46,6 +40,42 @@ async function uploadToCloudinary(buffer, mimeType, folder) {
 
   const ext = (mimeType || 'image/jpeg').split('/')[1] || 'jpg';
   const filename = `upload.${ext}`;
+  const epilogue = Buffer.from(`${CRLF}--${boundary}--${CRLF}`);
+
+  // 1. ถ้ามี uploadPreset ให้ลอง Unsigned Upload ก่อน
+  if (uploadPreset) {
+    try {
+      const preambleUnsigned = Buffer.from(
+        field('upload_preset', uploadPreset) +
+        field('folder', folder || 'asset_map') +
+        `--${boundary}${CRLF}Content-Disposition: form-data; name="file"; filename="${filename}"${CRLF}Content-Type: ${mimeType}${CRLF}${CRLF}`
+      );
+      const bodyUnsigned = Buffer.concat([preambleUnsigned, buffer, epilogue]);
+      const resUnsigned = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/upload`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': `multipart/form-data; boundary=${boundary}`,
+          'Content-Length': bodyUnsigned.length.toString()
+        },
+        body: bodyUnsigned
+      });
+      const dataUnsigned = await resUnsigned.json().catch(() => ({}));
+      if (resUnsigned.ok && (dataUnsigned.secure_url || dataUnsigned.url)) {
+        return dataUnsigned.secure_url || dataUnsigned.url;
+      }
+    } catch (_) {}
+  }
+
+  if (!apiKey || !apiSecret) {
+    throw new Error('Cloudinary credentials missing: กรุณาตั้งค่า CLOUDINARY_API_KEY และ CLOUDINARY_API_SECRET หรือ CLOUDINARY_UPLOAD_PRESET ใน Vercel');
+  }
+
+  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const folderParam = folder || 'asset_map';
+  const paramsToSign = `folder=${folderParam}&timestamp=${timestamp}${apiSecret}`;
+
+  // Cloudinary ค่าเริ่มต้นใช้ SHA-1 signature
+  const signatureSha1 = crypto.createHash('sha1').update(paramsToSign).digest('hex');
 
   function buildBody(sig) {
     const preamble = Buffer.from(
@@ -53,11 +83,8 @@ async function uploadToCloudinary(buffer, mimeType, folder) {
       field('timestamp', timestamp) +
       field('folder', folderParam) +
       field('signature', sig) +
-      `--${boundary}${CRLF}` +
-      `Content-Disposition: form-data; name="file"; filename="${filename}"${CRLF}` +
-      `Content-Type: ${mimeType}${CRLF}${CRLF}`
+      `--${boundary}${CRLF}Content-Disposition: form-data; name="file"; filename="${filename}"${CRLF}Content-Type: ${mimeType}${CRLF}${CRLF}`
     );
-    const epilogue = Buffer.from(`${CRLF}--${boundary}--${CRLF}`);
     return Buffer.concat([preamble, buffer, epilogue]);
   }
 
@@ -89,11 +116,16 @@ async function uploadToCloudinary(buffer, mimeType, folder) {
   }
 
   if (!res.ok) {
-    throw new Error(data.error?.message || `Cloudinary upload failed (HTTP ${res.status})`);
+    const rawMsg = data.error?.message || '';
+    if (rawMsg.includes('missing permissions') || rawMsg.includes('actions=["create"]')) {
+      throw new Error('API Key ของ Cloudinary ไม่มีสิทธิ์อัปโหลดรูปภาพ (missing permissions: create) กรุณาใช้ Master API Key & Secret จากหน้า Dashboard ของ Cloudinary หรือสร้าง Upload Preset แบบ Unsigned (ตั้งชื่อ asset_map) แล้วเพิ่มตัวแปร CLOUDINARY_UPLOAD_PRESET ใน Vercel');
+    }
+    throw new Error(rawMsg || `Cloudinary upload failed (HTTP ${res.status})`);
   }
 
   return data.secure_url || data.url || '';
 }
+
 
 // ─── Airtable Config ───
 function cleanToken(token) {

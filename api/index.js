@@ -11,18 +11,19 @@ function getCloudinaryConfig() {
   let cloudName = (process.env.CLOUDINARY_CLOUD_NAME || '').trim();
   const apiKey    = (process.env.CLOUDINARY_API_KEY    || '').trim();
   const apiSecret = (process.env.CLOUDINARY_API_SECRET || '').trim();
+  const uploadPreset = (process.env.CLOUDINARY_UPLOAD_PRESET || process.env.CLOUDINARY_PRESET || '').trim();
 
   // กรณีผู้ใช้ใส่ cloudName เป็น "asset_map" (ชื่อโฟลเดอร์/โปรเจกต์) ให้ใช้ cloud name จริง "ugkaemul"
   if (cloudName.toLowerCase() === 'asset_map' || cloudName.toLowerCase() === 'asset-map') {
     cloudName = 'ugkaemul';
   }
 
-  return { cloudName, apiKey, apiSecret };
+  return { cloudName, apiKey, apiSecret, uploadPreset };
 }
 
 async function uploadBase64ToCloudinary(dataUrl, folder) {
-  const { cloudName, apiKey, apiSecret } = getCloudinaryConfig();
-  if (!cloudName || !apiKey || !apiSecret) return '';
+  const { cloudName, apiKey, apiSecret, uploadPreset } = getCloudinaryConfig();
+  if (!cloudName) return '';
 
   // Extract mime and base64 data
   const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
@@ -31,18 +32,45 @@ async function uploadBase64ToCloudinary(dataUrl, folder) {
   const base64Data = m[2];
   const buffer = Buffer.from(base64Data, 'base64');
 
-  const timestamp   = Math.floor(Date.now() / 1000).toString();
-  const folderParam = folder || 'asset_map';
-  const paramsToSign = `folder=${folderParam}&timestamp=${timestamp}${apiSecret}`;
-  const signatureSha1 = crypto.createHash('sha1').update(paramsToSign).digest('hex');
-
   const boundary = `----CloudinaryBoundary${Date.now()}`;
   const CRLF = '\r\n';
   const ext  = mimeType.split('/')[1] || 'jpg';
+  const epilogue = Buffer.from(`${CRLF}--${boundary}--${CRLF}`);
 
   function field(name, value) {
     return [`--${boundary}`, `Content-Disposition: form-data; name="${name}"`, '', value].join(CRLF) + CRLF;
   }
+
+  // 1. ถ้ามี uploadPreset ให้ลอง Unsigned ก่อน
+  if (uploadPreset) {
+    try {
+      const preambleUnsigned = Buffer.from(
+        field('upload_preset', uploadPreset) +
+        field('folder', folder || 'asset_map') +
+        `--${boundary}${CRLF}Content-Disposition: form-data; name="file"; filename="upload.${ext}"${CRLF}Content-Type: ${mimeType}${CRLF}${CRLF}`
+      );
+      const bodyUnsigned = Buffer.concat([preambleUnsigned, buffer, epilogue]);
+      const resUnsigned = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/upload`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': `multipart/form-data; boundary=${boundary}`,
+          'Content-Length': bodyUnsigned.length.toString()
+        },
+        body: bodyUnsigned
+      });
+      const dataUnsigned = await resUnsigned.json().catch(() => ({}));
+      if (resUnsigned.ok && (dataUnsigned.secure_url || dataUnsigned.url)) {
+        return dataUnsigned.secure_url || dataUnsigned.url;
+      }
+    } catch (_) {}
+  }
+
+  if (!apiKey || !apiSecret) return '';
+
+  const timestamp   = Math.floor(Date.now() / 1000).toString();
+  const folderParam = folder || 'asset_map';
+  const paramsToSign = `folder=${folderParam}&timestamp=${timestamp}${apiSecret}`;
+  const signatureSha1 = crypto.createHash('sha1').update(paramsToSign).digest('hex');
 
   function buildBody(sig) {
     const preamble = Buffer.from(
@@ -52,7 +80,6 @@ async function uploadBase64ToCloudinary(dataUrl, folder) {
       field('signature', sig) +
       `--${boundary}${CRLF}Content-Disposition: form-data; name="file"; filename="upload.${ext}"${CRLF}Content-Type: ${mimeType}${CRLF}${CRLF}`
     );
-    const epilogue = Buffer.from(`${CRLF}--${boundary}--${CRLF}`);
     return Buffer.concat([preamble, buffer, epilogue]);
   }
 
