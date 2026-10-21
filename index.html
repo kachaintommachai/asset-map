@@ -2467,19 +2467,11 @@
                 dot.style.top = cam.y + '%';
                 dot.style.background = gColor;
 
-                const displayName = (cam.eng_name || cam.id) + (cam.thai_name ? ' - ' + cam.thai_name : '');
-                const subDetails = [devType, cam.brand, cam.model, cam.ip].filter(Boolean).join(' | ');
+                const codeLabel = cam.asset_code || cam.id || '';
 
                 dot.innerHTML = `
                     <i data-lucide="${iconName}"></i>
-                    <span class="dot-label">${cam.id || cam.eng_name || ''}</span>
-                    <div class="tooltip">
-                        <div class="font-bold text-emerald-400 text-xs">${cam.id} (${devType})</div>
-                        <div class="text-white">${displayName}</div>
-                        <div class="text-[10px] text-slate-300 mt-0.5">${subDetails}</div>
-                        <div class="text-[10px] text-slate-400">แผนก: ${cam.group || '-'}</div>
-                        ${(cam.image_url || cam.image || LocalImageStore.get(cam.id) || LocalImageStore.get(cam._recordId) || LocalImageStore.get(cam.asset_code)) ? '<div class="text-[10px] text-emerald-300 mt-1 flex items-center gap-1">📷 มีรูปภาพอุปกรณ์</div>' : ''}
-                    </div>
+                    <span class="dot-label">${codeLabel}</span>
                 `;
                 
                 dot.onclick = () => showCameraDetail(cam);
