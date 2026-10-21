@@ -1892,6 +1892,7 @@
         async function fetchMaps(preloadedRecords) {
             try {
                 const records = preloadedRecords || await apiGetAll('map', { sort: [{ field: 'map_id' }] });
+                const seenMapIds = new Set();
                 maps = records.map((r, idx) => {
                     const f = sanitizeFields(r.fields || {});
                     let mId = (f.map_id != null && f.map_id !== '') ? String(f.map_id)
@@ -1900,10 +1901,10 @@
                               : (f.id != null && f.id !== '' && !String(f.id).startsWith('rec')) ? String(f.id)
                               : '';
                     const mName = (f.map_name || f['Map Name'] || f.Name || f.name || '').trim();
-                    if (!mId) {
-                        const num = mName.match(/\d+/);
-                        mId = num ? num[0] : String(r.id || idx + 1);
+                    if (!mId || seenMapIds.has(mId)) {
+                        mId = String(r.id || idx + 1);
                     }
+                    seenMapIds.add(mId);
                     const displayName = mName || `แผนผัง ${mId}`;
 
                     let imgUrl = extractMapImage(f);
@@ -2188,24 +2189,12 @@
             // 1. Direct match on map_id or Airtable record ID
             if (cMap && (cMap === mId || (mRecordId && cMap === mRecordId))) return true;
 
-            // 2. Name match (case-insensitive or partial)
-            if (mName && (cMapLower === mName || (mName.includes(cMapLower) && cMapLower.length > 2))) return true;
+            // 2. Exact or clean name match
+            if (mName && cMapLower && (cMapLower === mName || mName === `แผนผัง ${cMapLower}`)) return true;
 
-            // 3. Numeric match (e.g. "1" matches 1)
-            const numC = parseInt(cMap, 10);
-            const numM = parseInt(mId, 10);
-            if (!isNaN(numC) && !isNaN(numM) && numC === numM) return true;
-
-            // 4. Heuristic name check on cMap
-            if (cMapLower) {
-                if (cMapLower.includes('cm2') && (cMapLower.includes('1') || cMapLower.includes('ชั้น 1')) && mId === '1') return true;
-                if (cMapLower.includes('cm2') && (cMapLower.includes('2') || cMapLower.includes('ชั้น 2')) && mId === '4') return true;
-                if (cMapLower.includes('cm1') && mId === '13') return true;
-            }
-
-            // 5. Default fallback: if device has no map specified or map_id is '0'/'undefined', attach to first map
+            // 3. Fallback for unplaced devices: only if no map specified at all and checking first map
             const isFirstMap = maps[0] && (String(maps[0].map_id) === tId || String(maps[0]._recordId) === tId);
-            if (isFirstMap && (!cMap || cMap === '0' || cMap === 'undefined')) return true;
+            if (isFirstMap && (!cMap || cMap === '0' || cMap === 'undefined' || cMap === 'null')) return true;
 
             return false;
         }

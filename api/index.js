@@ -662,17 +662,10 @@ function normalizeFields(table, fields, recordId = '') {
         if (img) break;
       }
     }
-    let rawMapId = f.map_id != null && f.map_id !== '' ? f.map_id : (f['Map ID'] != null && f['Map ID'] !== '' ? f['Map ID'] : (f.Map_ID != null && f.Map_ID !== '' ? f.Map_ID : (f.id != null && f.id !== '' && !String(f.id).startsWith('rec') ? f.id : (recordId && !String(recordId).startsWith('rec') ? recordId : ''))));
+    let rawMapId = f.map_id != null && f.map_id !== '' ? f.map_id : (f['Map ID'] != null && f['Map ID'] !== '' ? f['Map ID'] : (f.Map_ID != null && f.Map_ID !== '' ? f.Map_ID : (f.id != null && f.id !== '' && !String(f.id).startsWith('rec') ? f.id : (recordId || ''))));
     const mName = String(f.map_name || f['Map Name'] || f.Name || f.name || '').trim();
     if (!rawMapId) {
-      const nameLow = mName.toLowerCase();
-      if (nameLow.includes('cm2') && (nameLow.includes('1') || nameLow.includes('ชั้น 1'))) rawMapId = '1';
-      else if (nameLow.includes('cm2') && (nameLow.includes('2') || nameLow.includes('ชั้น 2'))) rawMapId = '4';
-      else if (nameLow.includes('cm1') || nameLow.includes('13')) rawMapId = '13';
-      else {
-        const num = mName.match(/\d+/);
-        rawMapId = num ? num[0] : (recordId || '1');
-      }
+      rawMapId = recordId || '1';
     }
     if (!img) {
       img = getImageFromStore('map_' + rawMapId) || getImageFromStore('map_' + recordId) || '';
