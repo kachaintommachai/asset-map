@@ -749,7 +749,7 @@ function normalizeFields(table, fields, recordId = '') {
 
     const rawCost = extractFieldValue(f, [
       'cost', 'Cost', 'price', 'Price', 'amount', 'Amount', 'total_cost', 'expense',
-      'ค่าใช้จ่าย', 'ราคา', 'จำนวนเงิน'
+      'Value', 'value', 'มูลค่า', 'ค่าใช้จ่าย', 'ราคา', 'จำนวนเงิน'
     ]);
     let numCost = 0;
     if (rawCost != null && rawCost !== '') {
@@ -1436,7 +1436,7 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
         'date', 'Date', 'event_date', 'Event Date', 'service_date', 'Service Date', 'purchase_date', 'Purchase Date',
         'วันที่', 'วันที่ทำรายการ', 'วันที่ซื้อ', 'วันที่ซ่อม', 'วันที่บันทึก', 'วันเวลา', 'Datetime', 'Record Date'
       ]);
-      const costCol = findMatchingAirtableFieldName(availableNames, ['cost', 'Cost', 'price', 'Amount', 'ค่าใช้จ่าย', 'ราคา', 'จำนวนเงิน']);
+      const costCol = findMatchingAirtableFieldName(availableNames, ['cost', 'Cost', 'price', 'Amount', 'Value', 'value', 'มูลค่า', 'ค่าใช้จ่าย', 'ราคา', 'จำนวนเงิน']);
       const vendorCol = findMatchingAirtableFieldName(availableNames, ['vendor', 'Vendor', 'supplier', 'ผู้ให้บริการ', 'ร้านค้า', 'ช่าง']);
       const invCol = findMatchingAirtableFieldName(availableNames, ['invoice_no', 'doc_no', 'receipt_no', 'เลขที่เอกสาร', 'เลขที่ใบแจ้งซ่อม']);
       const descCol = findMatchingAirtableFieldName(availableNames, ['description', 'Description', 'detail', 'details', 'รายละเอียด', 'หมายเหตุ', 'อาการเสีย']);
