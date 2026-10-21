@@ -1353,7 +1353,9 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
       if ((isCodeProvided || isNameProvided) && primaryField && primaryField.name && !mapped[primaryField.name]) {
         mapped[primaryField.name] = codeVal || nameVal;
       }
-      return mapped;
+      // หาก discoverTableSchema ได้ชื่อคอลัมน์มาไม่ครบ (เช่น ค่าใน 10 เรคอร์ดแรกเป็นค่าว่าง)
+      // ให้เก็บฟิลด์ทั้งหมดที่ผู้ใช้ส่งมาไปด้วย เพื่อให้ writeAirtableWithRetry ส่งต่อไปยัง Airtable
+      return { ...result, ...mapped };
     }
 
     return result;
