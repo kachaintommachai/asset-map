@@ -1457,7 +1457,7 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
       if (primaryField && primaryField.name && !result[primaryField.name]) {
         result[primaryField.name] = nameLabel;
       }
-      return result;
+      return { ...raw, ...result };
     }
 
     return {

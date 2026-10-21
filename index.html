@@ -4425,10 +4425,11 @@
             };
 
             try {
+                let saveRes;
                 if (id) {
-                    await apiUpdate('maintenance', id, payload);
+                    saveRes = await apiUpdate('maintenance', id, payload);
                 } else {
-                    await apiCreate('maintenance', payload);
+                    saveRes = await apiCreate('maintenance', payload);
                 }
                 await fetchMaintenances();
                 renderMaintenanceManagerList();
@@ -4441,7 +4442,8 @@
                 }
 
                 closeModal('modal-maintenance');
-                alert(id ? 'แก้ไขข้อมูลเรียบร้อยแล้ว' : 'บันทึกประวัติการซื้อ/ซ่อมบำรุงเรียบร้อยแล้ว');
+                const targetName = saveRes && saveRes.targetTable ? saveRes.targetTable : 'Airtable (repair)';
+                alert((id ? 'แก้ไขข้อมูลเรียบร้อยแล้ว' : 'บันทึกประวัติการซื้อ/ซ่อมบำรุงเรียบร้อยแล้ว') + `\n(บันทึกไปยัง: ${targetName})`);
             } catch (err) {
                 console.error('Failed to save maintenance:', err);
                 alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
