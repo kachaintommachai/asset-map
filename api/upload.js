@@ -292,7 +292,7 @@ async function handler(req, res) {
         : { image_url: imageUrl, go2rtc_link: imageUrl };
 
       try {
-        await fetch(`${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(tableName)}/${encodeURIComponent(recordId)}`, {
+        let patchRes = await fetch(`${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(tableName)}/${encodeURIComponent(recordId)}`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -300,6 +300,19 @@ async function handler(req, res) {
           },
           body: JSON.stringify({ fields: updatePayload, typecast: true })
         });
+        let patchData = await patchRes.json().catch(() => ({}));
+        // ถ้าขึ้น error Unknown field name ให้ลองส่งเฉพาะฟิลด์ที่รองรับ
+        if (!patchRes.ok && patchData.error?.message?.includes('Unknown field name:')) {
+          const singleField = isMap ? { map_pic: imageUrl } : { image_url: imageUrl };
+          await fetch(`${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(tableName)}/${encodeURIComponent(recordId)}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ fields: singleField, typecast: true })
+          });
+        }
       } catch (err) {
         console.warn('Airtable sync warning:', err);
       }

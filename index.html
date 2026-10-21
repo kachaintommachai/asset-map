@@ -3971,12 +3971,12 @@
 
                 if (mapId) LocalImageStore.save(`map_${mapId}`, finalUrl);
                 if (recordId) LocalImageStore.save(`map_${recordId}`, finalUrl);
+                if (selectedMapId) LocalImageStore.save(`map_${selectedMapId}`, finalUrl);
 
                 if (recordId && String(recordId).startsWith('rec')) {
                     await apiUpdate('map', recordId, {
-                        map_url: finalUrl,
                         map_pic: finalUrl,
-                        image: finalUrl
+                        map_url: finalUrl
                     });
                 }
                 if (status) {
