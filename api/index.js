@@ -662,21 +662,25 @@ function normalizeFields(table, fields, recordId = '') {
         if (img) break;
       }
     }
-    let rawMapId = f.map_id != null && f.map_id !== '' ? f.map_id : (f['Map ID'] != null && f['Map ID'] !== '' ? f['Map ID'] : (f.Map_ID != null && f.Map_ID !== '' ? f.Map_ID : (f.id != null && f.id !== '' && !String(f.id).startsWith('rec') ? f.id : (recordId || ''))));
+    let rawMapId = (f.map_id != null && f.map_id !== '' && !String(f.map_id).startsWith('rec')) ? String(f.map_id)
+                   : (f['Map ID'] != null && f['Map ID'] !== '' && !String(f['Map ID']).startsWith('rec')) ? String(f['Map ID'])
+                   : (f.Map_ID != null && f.Map_ID !== '' && !String(f.Map_ID).startsWith('rec')) ? String(f.Map_ID)
+                   : (f.id != null && f.id !== '' && !String(f.id).startsWith('rec')) ? String(f.id)
+                   : '';
     const mName = String(f.map_name || f['Map Name'] || f.Name || f.name || '').trim();
     if (!rawMapId) {
-      rawMapId = recordId || '1';
+      rawMapId = '';
     }
     if (!img) {
-      img = getImageFromStore('map_' + rawMapId) || getImageFromStore('map_' + recordId) || '';
+      img = (rawMapId ? getImageFromStore('map_' + rawMapId) : '') || getImageFromStore('map_' + recordId) || '';
     } else {
-      saveImageToStore('map_' + rawMapId, img);
+      if (rawMapId) saveImageToStore('map_' + rawMapId, img);
       if (recordId) saveImageToStore('map_' + recordId, img);
     }
     return {
       ...f,
       map_id: String(rawMapId),
-      map_name: mName || `แผนผัง ${rawMapId}`,
+      map_name: mName || (rawMapId ? `แผนผัง ${rawMapId}` : 'แผนผังใหม่'),
       map_url: img,
       map_pic: img
     };
@@ -1134,11 +1138,13 @@ async function writeAirtableWithRetry(url, method, token, fields) {
 
           // If Name itself is rejected → the primary field has a different name
           // Save the code value; it will be injected when we discover the primary field name
-          if (rejected === 'Name' || rejected === 'name') {
-            if (val && !pendingCodeVal) pendingCodeVal = val;
-            else if (!pendingCodeVal) pendingCodeVal = val;
-            debugLog.push({ action: 'NameRejected_savingPendingCode', val: pendingCodeVal });
-            // Don't add any replacement yet — wait until Airtable tells us what's valid
+          // If map_id field rejected -> try aliases
+          const rejNormMap = rejected.trim().toLowerCase().replace(/[\s_\-]+/g, '');
+          if (rejNormMap === 'mapid' || rejected === 'map_id' || rejected === 'Map ID') {
+            if (!('Map ID' in payloadFields) && rejected !== 'Map ID') { payloadFields['Map ID'] = val; continue; }
+            else if (!('Map_ID' in payloadFields) && rejected !== 'Map_ID') { payloadFields['Map_ID'] = val; continue; }
+            else if (!('id' in payloadFields) && rejected !== 'id') { payloadFields['id'] = val; continue; }
+            else if (!('ID' in payloadFields) && rejected !== 'ID') { payloadFields['ID'] = val; continue; }
           }
 
           continue;
@@ -1171,9 +1177,23 @@ async function writeAirtableWithRetry(url, method, token, fields) {
         const rejected = fieldMatch[1];
         const val = payloadFields[rejected];
 
-        // Linked record array conversion
-        if ((rejected.toLowerCase().includes('map') || rejected.toLowerCase().includes('dept')) && typeof val === 'string') {
+        const isMapTable = url.toLowerCase().includes('/map');
+        // Linked record array conversion (DO NOT do this on map table!)
+        if (!isMapTable && (rejected.toLowerCase().includes('map') || rejected.toLowerCase().includes('dept')) && typeof val === 'string') {
           payloadFields[rejected] = [val];
+          continue;
+        }
+
+        // If map_id or any numeric id cannot accept value:
+        // Try Number if string, or String if number
+        if ((rejected.toLowerCase().includes('id') || rejected.toLowerCase().includes('map')) && typeof val === 'string' && /^\d+$/.test(val.trim())) {
+          payloadFields[rejected] = Number(val.trim());
+          debugLog.push({ action: 'cannotAccept_tryNumber', rejected, val: Number(val.trim()) });
+          continue;
+        }
+        if (typeof val === 'number') {
+          payloadFields[rejected] = String(val);
+          debugLog.push({ action: 'cannotAccept_tryString', rejected, val: String(val) });
           continue;
         }
 
@@ -1209,8 +1229,9 @@ async function writeAirtableWithRetry(url, method, token, fields) {
 
       // 4. Linked record error (e.g. Value is not an array of record IDs)
       if (errMsg.toLowerCase().includes('record id') || errMsg.toLowerCase().includes('linked')) {
-        if ('map_id' in payloadFields) { delete payloadFields['map_id']; continue; }
-        if ('map' in payloadFields) { delete payloadFields['map']; continue; }
+        const isMapTable = url.toLowerCase().includes('/map');
+        if (!isMapTable && 'map_id' in payloadFields) { delete payloadFields['map_id']; continue; }
+        if (!isMapTable && 'map' in payloadFields) { delete payloadFields['map']; continue; }
         if ('department' in payloadFields) { delete payloadFields['department']; continue; }
       }
     }
@@ -1377,43 +1398,55 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
 
   if (t.startsWith('map')) {
     const mapName = raw.map_name || raw['Map Name'] || raw.Name || raw.name || '';
-    const mapId = raw.map_id != null && raw.map_id !== '' ? String(raw.map_id) : (raw['Map ID'] != null && raw['Map ID'] !== '' ? String(raw['Map ID']) : (raw.Map_ID != null && raw.Map_ID !== '' ? String(raw.Map_ID) : (raw.id && !String(raw.id).startsWith('rec') ? String(raw.id) : '')));
+    const mapId = raw.map_id != null && raw.map_id !== '' && !String(raw.map_id).startsWith('rec')
+      ? String(raw.map_id)
+      : (raw['Map ID'] != null && raw['Map ID'] !== '' && !String(raw['Map ID']).startsWith('rec')
+        ? String(raw['Map ID'])
+        : (raw.Map_ID != null && raw.Map_ID !== '' && !String(raw.Map_ID).startsWith('rec')
+          ? String(raw.Map_ID)
+          : (raw.id && !String(raw.id).startsWith('rec') ? String(raw.id) : '')));
     const mapPic = raw.map_pic || raw.map_url || raw.image || '';
 
+    const baseResult = {};
+    if (mapName) baseResult.map_name = mapName;
+    if (mapId) {
+      baseResult.map_id = mapId;
+      if (/^\d+$/.test(mapId.trim())) baseResult.map_id = Number(mapId.trim());
+    }
+    if (mapPic) baseResult.map_pic = mapPic;
+
     if (availableNames && availableNames.length > 0) {
-      const result = {};
+      const mapped = {};
       const nameCol = findMatchingAirtableFieldName(availableNames, ['map_name', 'Map Name', 'Name', 'name', 'ชื่อแผนผัง']);
       const idCol = findMatchingAirtableFieldName(availableNames, ['map_id', 'Map ID', 'id', 'ID', 'รหัสแผนผัง']);
       const picCol = findMatchingAirtableFieldName(availableNames, ['map_pic', 'map_url', 'image', 'ภาพ']);
-      if (nameCol && mapName) result[nameCol] = mapName;
+      if (nameCol && mapName) mapped[nameCol] = mapName;
       if (idCol && mapId) {
         const idFieldMeta = schema && schema.fields ? schema.fields.find(f => f.name.toLowerCase() === idCol.toLowerCase()) : null;
         if (idFieldMeta && idFieldMeta.type === 'number') {
-          result[idCol] = Number(mapId) || 0;
+          mapped[idCol] = Number(mapId) || 0;
         } else {
-          result[idCol] = mapId;
+          mapped[idCol] = mapId;
         }
+      } else if (mapId) {
+        // idCol not found in availableNames (e.g. was empty in first records)
+        // Keep map_id so writeAirtableWithRetry will send it to Airtable
+        mapped.map_id = /^\d+$/.test(mapId.trim()) ? Number(mapId.trim()) : mapId;
       }
-      if (picCol && mapPic) result[picCol] = mapPic;
-      if (primaryField && primaryField.name && !result[primaryField.name]) {
+      if (picCol && mapPic) mapped[picCol] = mapPic;
+      if (primaryField && primaryField.name && !mapped[primaryField.name]) {
         if (idCol && primaryField.name.toLowerCase() === idCol.toLowerCase() && mapId) {
-          result[primaryField.name] = mapId;
+          mapped[primaryField.name] = mapId;
+        } else if (nameCol && primaryField.name.toLowerCase() === nameCol.toLowerCase() && mapName) {
+          mapped[primaryField.name] = mapName;
         } else {
-          result[primaryField.name] = mapName || mapId;
+          mapped[primaryField.name] = mapName || mapId;
         }
       }
-      return result;
+      return { ...baseResult, ...mapped };
     }
 
-    const fallback = { ...raw };
-    if (mapName) {
-      fallback.map_name = mapName;
-      fallback.Name = mapName;
-    }
-    if (mapId) {
-      fallback.map_id = mapId;
-    }
-    return fallback;
+    return baseResult;
   }
 
   if (t.startsWith('maint') || t.startsWith('repair') || t.startsWith('hist') || t.startsWith('purch') || t.startsWith('service')) {
