@@ -1638,6 +1638,39 @@ module.exports = async (req, res) => {
     return res.status(200).json({ id: key, image: img });
   }
 
+  // ─── Settings API (Device Types & License Types) ───
+  const SETTINGS_STORE_FILE = '/tmp/asset_settings_store.json';
+  if (query.action === 'save_settings') {
+    let body = req.body;
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch (_) { body = {}; }
+    }
+    body = body || {};
+    try {
+      let existing = {};
+      if (fs.existsSync(SETTINGS_STORE_FILE)) {
+        try { existing = JSON.parse(fs.readFileSync(SETTINGS_STORE_FILE, 'utf8') || '{}'); } catch (_) {}
+      }
+      const updated = { ...existing, ...body, updatedAt: new Date().toISOString() };
+      fs.writeFileSync(SETTINGS_STORE_FILE, JSON.stringify(updated, null, 2), 'utf8');
+      return res.status(200).json({ success: true, settings: updated });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  if (query.action === 'get_settings') {
+    try {
+      let settings = {};
+      if (fs.existsSync(SETTINGS_STORE_FILE)) {
+        try { settings = JSON.parse(fs.readFileSync(SETTINGS_STORE_FILE, 'utf8') || '{}'); } catch (_) {}
+      }
+      return res.status(200).json({ success: true, settings });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
 
   // ─── BATCH INIT: โหลดทุกตารางในครั้งเดียว ───
   if (query.action === 'init') {
