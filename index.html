@@ -678,9 +678,15 @@
             <div class="border-t border-slate-700 pt-4">
                 <h4 class="text-sm font-medium mb-3 text-slate-200">เพิ่มแผนผังใหม่</h4>
                 <form id="add-map-form" class="space-y-2" onsubmit="addMap(event)">
-                    <div>
-                        <label class="text-xs text-slate-400">ชื่อแผนผัง</label>
-                        <input type="text" id="new-map-name" required placeholder="เช่น ห้องเซิร์ฟเวอร์, สำนักงานชั้น 2" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="col-span-1">
+                            <label class="text-xs text-slate-400">รหัสแผนผัง (ID) <span class="text-red-400">*</span></label>
+                            <input type="text" id="new-map-id" required placeholder="กำหนดรหัสเอง" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 font-mono text-center">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs text-slate-400">ชื่อแผนผัง</label>
+                            <input type="text" id="new-map-name" required placeholder="เช่น ห้องเซิร์ฟเวอร์, สำนักงานชั้น 2" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                        </div>
                     </div>
                     <div>
                         <label class="text-xs text-slate-400">ไฟล์ภาพแผนผัง</label>
@@ -3904,9 +3910,18 @@
                         </div>
                         <button onclick="requestDelete('${m._recordId}','map')" class="text-xs bg-red-600/80 hover:bg-red-500 text-white px-2 py-1 rounded transition-all">ลบ</button>
                     </div>
-                    <div class="flex gap-2">
-                        <input type="text" id="map-name-${m._recordId}" value="${m.map_name || ''}" placeholder="ชื่อแผนผัง" class="flex-1 px-2.5 py-1.5 bg-slate-600 border border-slate-500 rounded text-white text-xs focus:outline-none focus:border-emerald-500">
-                        <button onclick="saveMap('${m._recordId}')" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded transition-all shrink-0">บันทึกชื่อ</button>
+                    <div class="flex gap-2 items-center">
+                        <div class="w-24">
+                            <label class="text-[10px] text-slate-400 block mb-0.5">รหัส ID <span class="text-red-400">*</span></label>
+                            <input type="text" id="map-id-${m._recordId}" value="${m.map_id || ''}" placeholder="ID" class="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-white text-xs focus:outline-none focus:border-emerald-500 text-center font-mono">
+                        </div>
+                        <div class="flex-1">
+                            <label class="text-[10px] text-slate-400 block mb-0.5">ชื่อแผนผัง <span class="text-red-400">*</span></label>
+                            <input type="text" id="map-name-${m._recordId}" value="${m.map_name || ''}" placeholder="ชื่อแผนผัง" class="w-full px-2.5 py-1.5 bg-slate-600 border border-slate-500 rounded text-white text-xs focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div class="self-end pb-0.5">
+                            <button onclick="saveMap('${m._recordId}')" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded transition-all shrink-0">บันทึก</button>
+                        </div>
                     </div>
                     <div class="flex items-center gap-2">
                         <label class="flex-1 flex items-center gap-2 px-2.5 py-1.5 bg-slate-600 border border-slate-500 border-dashed rounded cursor-pointer hover:border-emerald-500 transition-all">
@@ -3985,32 +4000,118 @@
         }
 
         async function saveMap(recordId) {
-            const name = document.getElementById(`map-name-${recordId}`).value.trim();
+            const nameInput = document.getElementById(`map-name-${recordId}`);
+            const idInput = document.getElementById(`map-id-${recordId}`);
+            const name = nameInput ? nameInput.value.trim() : '';
+            const newId = idInput ? idInput.value.trim() : '';
+            if (!newId) {
+                alert('กรุณากรอกรหัสแผนผัง (ID)');
+                if (idInput) idInput.focus();
+                return;
+            }
+            if (!name) {
+                alert('กรุณากรอกชื่อแผนผัง');
+                if (nameInput) nameInput.focus();
+                return;
+            }
+
+            // 1. ตรวจสอบกับข้อมูลแผนผังในหน่วยความจำ
+            const localDup = maps.find(m => m._recordId !== recordId && String(m.map_id).trim().toLowerCase() === newId.toLowerCase());
+            if (localDup) {
+                alert(`รหัสแผนผัง ID "${newId}" ซ้ำกับ "${localDup.map_name || 'แผนผัง ' + localDup.map_id}"\nกรุณาแก้ไขรหัสแผนผังก่อนทำการบันทึก`);
+                if (idInput) { idInput.focus(); idInput.select(); }
+                return;
+            }
+
+            // 2. ตรวจสอบกับตาราง Airtable จริงแบบ Real-time ก่อนทำการบันทึก
             try {
-                await apiUpdate('map', recordId, { map_name: name });
+                const latestRecords = await apiGetAll('map');
+                const dbDup = latestRecords.find(r => {
+                    if (r.id === recordId) return false;
+                    const f = r.fields || {};
+                    const curId = String(f.map_id || f['Map ID'] || f.Map_ID || (f.id && !String(f.id).startsWith('rec') ? f.id : '')).trim();
+                    return curId.toLowerCase() === newId.toLowerCase();
+                });
+                if (dbDup) {
+                    const dupName = (dbDup.fields && (dbDup.fields.map_name || dbDup.fields['Map Name'] || dbDup.fields.Name)) || `แผนผัง ${newId}`;
+                    alert(`รหัสแผนผัง "${newId}" มีอยู่ในตาราง Airtable แล้ว (${dupName})\nกรุณาแก้ไขรหัสก่อนบันทึก`);
+                    if (idInput) { idInput.focus(); idInput.select(); }
+                    return;
+                }
+
+                await apiUpdate('map', recordId, { map_id: newId, map_name: name });
                 await fetchMaps();
                 renderMapsList();
                 renderMapSelector();
                 showFloorPlan();
-                alert('บันทึกชื่อแผนผังเรียบร้อย');
-            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+                alert('บันทึกข้อมูลแผนผังเรียบร้อย');
+            } catch (err) {
+                alert('เกิดข้อผิดพลาด: ' + err.message);
+                if (idInput) { idInput.focus(); idInput.select(); }
+            }
         }
 
         async function addMap(e) {
             e.preventDefault();
-            const mapName = document.getElementById('new-map-name').value.trim();
+            const mapIdInput = document.getElementById('new-map-id');
+            const mapId = mapIdInput ? mapIdInput.value.trim() : '';
+            const mapNameInput = document.getElementById('new-map-name');
+            const mapName = mapNameInput ? mapNameInput.value.trim() : '';
             const fileInput = document.getElementById('new-map-file');
             let file = fileInput.files[0];
-            if (!mapName) return;
+
+            if (!mapId) {
+                alert('กรุณากำหนดรหัสแผนผัง (ID)');
+                if (mapIdInput) mapIdInput.focus();
+                return;
+            }
+            if (!mapName) {
+                alert('กรุณากรอกชื่อแผนผัง');
+                if (mapNameInput) mapNameInput.focus();
+                return;
+            }
+
+            // 1. ตรวจสอบรหัสซ้ำกับแผนผังในหน่วยความจำ
+            const localDup = maps.find(m => String(m.map_id).trim().toLowerCase() === mapId.toLowerCase());
+            if (localDup) {
+                alert(`รหัสแผนผัง ID "${mapId}" ซ้ำกับ "${localDup.map_name || 'แผนผัง ' + localDup.map_id}"\nกรุณาแก้ไขรหัสแผนผังก่อนทำการบันทึก`);
+                if (mapIdInput) { mapIdInput.focus(); mapIdInput.select(); }
+                return;
+            }
+
             const btn = e.target.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; btn.textContent = 'กำลังดำเนินการ...'; }
+            if (btn) { btn.disabled = true; btn.textContent = 'กำลังตรวจสอบรหัสในตาราง...'; }
+
             try {
+                // 2. ตรวจสอบรหัสในตาราง Airtable จริงแบบ Real-time ก่อนทำการบันทึก
+                try {
+                    const latestRecords = await apiGetAll('map');
+                    const dbDup = latestRecords.find(r => {
+                        const f = r.fields || {};
+                        const curId = String(f.map_id || f['Map ID'] || f.Map_ID || (f.id && !String(f.id).startsWith('rec') ? f.id : '')).trim();
+                        return curId.toLowerCase() === mapId.toLowerCase();
+                    });
+                    if (dbDup) {
+                        const dupName = (dbDup.fields && (dbDup.fields.map_name || dbDup.fields['Map Name'] || dbDup.fields.Name)) || `แผนผัง ${mapId}`;
+                        alert(`รหัสแผนผัง "${mapId}" มีอยู่ในตารางข้อมูลแล้ว (${dupName})\nกรุณาแก้ไขรหัสแผนผังก่อนทำการบันทึก`);
+                        if (mapIdInput) { mapIdInput.focus(); mapIdInput.select(); }
+                        return;
+                    }
+                } catch (chkErr) {
+                    console.warn('Real-time duplicate check warning:', chkErr);
+                }
+
+                if (btn) { btn.textContent = 'กำลังบันทึกแผนผัง...'; }
                 let mapUrl = '';
                 if (file) {
                     mapUrl = await compressAndReadImage(file, 1600, 0.82);
+                    LocalImageStore.save(`map_${mapId}`, mapUrl);
                     LocalImageStore.save(`map_${mapName}`, mapUrl);
                 }
-                const fields = { map_name: mapName };
+                const fields = {
+                    map_id: String(mapId),
+                    map_name: mapName
+                };
                 if (mapUrl) {
                     fields.map_url = mapUrl;
                     fields.map_pic = mapUrl;
@@ -4023,8 +4124,11 @@
                 renderMapsList();
                 renderMapSelector();
                 populateMapSelects();
-                alert('เพิ่มแผนผังเรียบร้อย');
-            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+                alert(`เพิ่มแผนผัง "${mapName}" (รหัส ID: ${mapId}) เรียบร้อย`);
+            } catch (err) {
+                alert('เกิดข้อผิดพลาด: ' + err.message);
+                if (mapIdInput) { mapIdInput.focus(); mapIdInput.select(); }
+            }
             finally {
                 if (btn) { btn.disabled = false; btn.textContent = 'เพิ่มแผนผัง'; }
             }

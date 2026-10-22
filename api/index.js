@@ -1377,19 +1377,30 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
 
   if (t.startsWith('map')) {
     const mapName = raw.map_name || raw['Map Name'] || raw.Name || raw.name || '';
-    const mapId = raw.map_id || raw['Map ID'] || raw.id || '';
+    const mapId = raw.map_id != null && raw.map_id !== '' ? String(raw.map_id) : (raw['Map ID'] != null && raw['Map ID'] !== '' ? String(raw['Map ID']) : (raw.Map_ID != null && raw.Map_ID !== '' ? String(raw.Map_ID) : (raw.id && !String(raw.id).startsWith('rec') ? String(raw.id) : '')));
     const mapPic = raw.map_pic || raw.map_url || raw.image || '';
 
     if (availableNames && availableNames.length > 0) {
       const result = {};
       const nameCol = findMatchingAirtableFieldName(availableNames, ['map_name', 'Map Name', 'Name', 'name', 'ชื่อแผนผัง']);
-      const idCol = findMatchingAirtableFieldName(availableNames, ['map_id', 'Map ID', 'id', 'ID']);
+      const idCol = findMatchingAirtableFieldName(availableNames, ['map_id', 'Map ID', 'id', 'ID', 'รหัสแผนผัง']);
       const picCol = findMatchingAirtableFieldName(availableNames, ['map_pic', 'map_url', 'image', 'ภาพ']);
       if (nameCol && mapName) result[nameCol] = mapName;
-      if (idCol && mapId) result[idCol] = mapId;
+      if (idCol && mapId) {
+        const idFieldMeta = schema && schema.fields ? schema.fields.find(f => f.name.toLowerCase() === idCol.toLowerCase()) : null;
+        if (idFieldMeta && idFieldMeta.type === 'number') {
+          result[idCol] = Number(mapId) || 0;
+        } else {
+          result[idCol] = mapId;
+        }
+      }
       if (picCol && mapPic) result[picCol] = mapPic;
-      if (primaryField && primaryField.name && !result[primaryField.name] && mapName) {
-        result[primaryField.name] = mapName;
+      if (primaryField && primaryField.name && !result[primaryField.name]) {
+        if (idCol && primaryField.name.toLowerCase() === idCol.toLowerCase() && mapId) {
+          result[primaryField.name] = mapId;
+        } else {
+          result[primaryField.name] = mapName || mapId;
+        }
       }
       return result;
     }
@@ -1398,6 +1409,9 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     if (mapName) {
       fallback.map_name = mapName;
       fallback.Name = mapName;
+    }
+    if (mapId) {
+      fallback.map_id = mapId;
     }
     return fallback;
   }
@@ -1917,6 +1931,33 @@ module.exports = async (req, res) => {
 
     const isMaintenance = table.toLowerCase().startsWith('maint') || table.toLowerCase().startsWith('repair') || table.toLowerCase().startsWith('hist') || table.toLowerCase().startsWith('purch') || table.toLowerCase().startsWith('service');
 
+    if (table.toLowerCase().startsWith('map')) {
+      const mapIdToCreate = String(fields.map_id || fields['Map ID'] || fields.Map_ID || fields.id || '').trim();
+      if (!mapIdToCreate) {
+        return res.status(400).json({ error: 'กรุณาระบุรหัสแผนผัง (map_id)' });
+      }
+      try {
+        const mapTarget = await resolveWorkingTable(baseId, token, table);
+        const fetchRes = await fetch(`${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(mapTarget)}?pageSize=100`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (fetchRes.ok) {
+          const data = await fetchRes.json();
+          const existingRecords = data.records || [];
+          const isDuplicate = existingRecords.some(r => {
+            const f = r.fields || {};
+            const curId = String(f.map_id || f['Map ID'] || f.Map_ID || (f.id && !String(f.id).startsWith('rec') ? f.id : '')).trim();
+            return curId.toLowerCase() === mapIdToCreate.toLowerCase();
+          });
+          if (isDuplicate) {
+            return res.status(400).json({ error: `รหัสแผนผัง "${mapIdToCreate}" มีอยู่ในตารางแล้ว กรุณาแก้ไขรหัสก่อนบันทึก` });
+          }
+        }
+      } catch (checkErr) {
+        console.warn('Map ID duplicate check error on POST:', checkErr);
+      }
+    }
+
     const targetTable = await resolveWorkingTable(baseId, token, table);
     const preparedFields = await prepareFieldsForTable(baseId, token, table, targetTable, fields);
 
@@ -1986,6 +2027,31 @@ module.exports = async (req, res) => {
 
     if (isMaintenance) {
       updateLocalMaintenance(rawId, fields);
+    }
+
+    if (table.toLowerCase().startsWith('map') && (fields.map_id || fields['Map ID'])) {
+      const mapIdToUpdate = String(fields.map_id || fields['Map ID']).trim();
+      try {
+        const mapTarget = await resolveWorkingTable(baseId, token, table);
+        const fetchRes = await fetch(`${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(mapTarget)}?pageSize=100`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (fetchRes.ok) {
+          const data = await fetchRes.json();
+          const existingRecords = data.records || [];
+          const isDuplicate = existingRecords.some(r => {
+            if (r.id === rawId) return false;
+            const f = r.fields || {};
+            const curId = String(f.map_id || f['Map ID'] || f.Map_ID || (f.id && !String(f.id).startsWith('rec') ? f.id : '')).trim();
+            return curId.toLowerCase() === mapIdToUpdate.toLowerCase();
+          });
+          if (isDuplicate) {
+            return res.status(400).json({ error: `รหัสแผนผัง "${mapIdToUpdate}" ซ้ำกับแผนผังอื่นในระบบ กรุณาแก้ไขรหัสก่อนบันทึก` });
+          }
+        }
+      } catch (checkErr) {
+        console.warn('Map ID duplicate check error on PATCH:', checkErr);
+      }
     }
 
     const targetTable = await resolveWorkingTable(baseId, token, table);
