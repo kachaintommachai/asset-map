@@ -473,6 +473,11 @@
                     <select id="dev-mgr-filter-dept" onchange="renderDeviceManagerList()" class="bg-slate-700 border border-slate-600 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
                         <option value="">ทุกแผนก</option>
                     </select>
+                    <select id="dev-mgr-filter-category" onchange="renderDeviceManagerList()" class="bg-slate-700 border border-slate-600 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        <option value="">ทุกหมวดหมู่ (All)</option>
+                        <option value="hardware">Hardware (ฮาร์ดแวร์)</option>
+                        <option value="software">Software (ซอฟต์แวร์)</option>
+                    </select>
                     <select id="dev-mgr-filter-type" onchange="renderDeviceManagerList()" class="bg-slate-700 border border-slate-600 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
                         <option value="">ทุกชนิดอุปกรณ์</option>
                     </select>
@@ -545,10 +550,11 @@
                     </div>
                     <div>
                         <label for="cam-type" class="text-xs text-slate-400 font-medium">ชนิดอุปกรณ์ (Type) *</label>
-                        <select id="cam-type" required class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                        <select id="cam-type" required onchange="handleDeviceTypeChange('cam', this.value)" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
                             <option value="PC">PC (คอมพิวเตอร์ตั้งโต๊ะ)</option>
                             <option value="Notebook">Notebook (โน้ตบุ๊ก)</option>
                             <option value="Printer">Printer (เครื่องพิมพ์)</option>
+                            <option value="MS Office">MS Office (ชุดโปรแกรมสำนักงาน)</option>
                             <option value="Monitor">Monitor (จอภาพ)</option>
                             <option value="Switch">Switch (สวิตช์เครือข่าย)</option>
                             <option value="Server">Server (เซิร์ฟเวอร์)</option>
@@ -603,9 +609,26 @@
                     </div>
                 </div>
 
-                <div>
-                    <label for="cam-map-id" class="text-xs text-slate-400">แผนผังที่ติดตั้ง</label>
-                    <select id="cam-map-id" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label for="cam-category" class="text-xs text-slate-400 font-medium">หมวดหมู่อุปกรณ์ (Category) *</label>
+                        <select id="cam-category" onchange="toggleDeviceCategoryUI('cam', this.value)" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                            <option value="hardware">Hardware (ฮาร์ดแวร์ / เครื่องจริง)</option>
+                            <option value="software">Software (ซอฟต์แวร์ / สิทธิ์ใช้งาน)</option>
+                        </select>
+                    </div>
+                    <div id="cam-map-container">
+                        <label for="cam-map-id" class="text-xs text-slate-400 font-medium">แผนผังที่ติดตั้ง (ผังห้อง) *</label>
+                        <select id="cam-map-id" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
+                    </div>
+                    <div id="cam-license-container" class="hidden">
+                        <label for="cam-license-type" class="text-xs text-slate-400 font-medium">ชนิดสิทธิ์ใช้งาน (License Type) *</label>
+                        <select id="cam-license-type" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-amber-300 font-medium text-sm focus:outline-none focus:border-emerald-500">
+                            <option value="volume">Volume License (ซื้อสิทธิ์ตามจำนวนเครื่อง)</option>
+                            <option value="open">Open License (สิทธิ์แบบเปิด / Commercial)</option>
+                            <option value="free">Free License (ฟรี / Open Source)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1222,14 +1245,15 @@
         let allUsers = [];
 
         // ─── IT DEVICE TYPE ICONS & MAPPINGS ───
-        const DEVICE_TYPES = ['PC', 'Notebook', 'Printer', 'Monitor', 'Switch', 'Server', 'Router', 'UPS', 'Camera', 'Other'];
+        const DEVICE_TYPES = ['PC', 'Notebook', 'Printer', 'MS Office', 'Monitor', 'Switch', 'Server', 'Router', 'UPS', 'Camera', 'Other'];
 
         function getDeviceType(type) {
             const t = (type || '').trim();
             const lower = t.toLowerCase();
+            if (lower.includes('office') || lower.includes('word') || lower.includes('excel') || lower.includes('ms office') || lower.includes('software') || lower.includes('ซอฟต์แวร์')) return 'MS Office';
             if (lower.includes('laptop') || lower.includes('notebook') || lower.includes('โน้ตบุ๊ก') || lower.includes('โน้ตบุ๊ค')) return 'Notebook';
             if (lower.includes('pc') || lower.includes('computer') || lower.includes('คอม')) return 'PC';
-            if (lower.includes('print') || lower.includes('พิมพ์')) return 'Printer';
+            if (lower.includes('print') || lower.includes('พิมพ์') || lower.includes('เครื่องพิมพ์')) return 'Printer';
             if (lower.includes('monit') || lower.includes('screen') || lower.includes('จอ')) return 'Monitor';
             if (lower.includes('switch') || lower.includes('hub') || lower.includes('สวิตช์')) return 'Switch';
             if (lower.includes('serv') || lower.includes('เซิร์ฟ')) return 'Server';
@@ -1245,6 +1269,7 @@
                 case 'PC': return 'monitor';
                 case 'Notebook': return 'laptop';
                 case 'Printer': return 'printer';
+                case 'MS Office': return 'file-text';
                 case 'Monitor': return 'tv';
                 case 'Switch': return 'network';
                 case 'Server': return 'server';
@@ -1255,8 +1280,45 @@
             }
         }
 
+        function getDeviceCategory(dev) {
+            if (dev && dev.category) return String(dev.category).toLowerCase();
+            const t = getDeviceType(typeof dev === 'string' ? dev : (dev?.type || ''));
+            return (t === 'MS Office') ? 'software' : 'hardware';
+        }
+
+        function toggleDeviceCategoryUI(prefix, category) {
+            const isSoftware = (category || '').toLowerCase() === 'software';
+            const mapContainer = document.getElementById(`${prefix}-map-container`);
+            const licenseContainer = document.getElementById(`${prefix}-license-container`);
+            if (mapContainer) {
+                if (isSoftware) {
+                    mapContainer.classList.add('hidden');
+                } else {
+                    mapContainer.classList.remove('hidden');
+                }
+            }
+            if (licenseContainer) {
+                if (isSoftware) {
+                    licenseContainer.classList.remove('hidden');
+                } else {
+                    licenseContainer.classList.add('hidden');
+                }
+            }
+        }
+
+        function handleDeviceTypeChange(prefix, type) {
+            const catSelect = document.getElementById(`${prefix}-category`);
+            if (!catSelect) return;
+            if (type === 'MS Office') {
+                catSelect.value = 'software';
+            } else {
+                catSelect.value = 'hardware';
+            }
+            toggleDeviceCategoryUI(prefix, catSelect.value);
+        }
+
         function getDeviceTypeClass(type) {
-            const devType = getDeviceType(type).toLowerCase();
+            const devType = getDeviceType(type).toLowerCase().replace(/\s+/g, '-');
             return `type-${devType}`;
         }
 
@@ -1784,6 +1846,8 @@
                     }
 
                     const devType = f.type || f.Type || 'Other';
+                    const devCategory = String(f.category || f.Category || f.device_category || (getDeviceType(devType) === 'MS Office' ? 'software' : 'hardware')).toLowerCase();
+                    const devLicenseType = String(f.license_type || f.License_Type || f.license || f.License || f['License Type'] || '').trim();
                     const devStatus = f.status || f.Status || 'Active';
                     const devBrand = f.brand || f.Brand || '';
                     const devModel = f.model || f.Model || '';
@@ -1801,6 +1865,8 @@
                         thai_name: String(holder),
                         holder: String(holder),
                         type: devType,
+                        category: devCategory,
+                        license_type: devLicenseType,
                         brand: devBrand,
                         model: devModel,
                         serial: devSerial,
@@ -2777,6 +2843,8 @@
             const gColor = getGroupColor(cam.group);
             const isAdmin = currentUser && currentUser.isAdmin;
             const devType = getDeviceType(cam.type);
+            const devCategory = getDeviceCategory(cam);
+            const devLicense = cam.license_type || 'volume';
             const iconName = getDeviceIconName(cam.type);
             const imageHtml = getDeviceImageHtml(cam);
             const maintHtml = getDeviceMaintenanceHtml(cam, isAdmin);
@@ -2813,16 +2881,32 @@
                     <form id="detail-form" class="space-y-3" onsubmit="saveDetailEdit(event, '${cam._recordId}')">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div><label class="text-xs text-slate-400">รหัสทรัพย์สิน (Asset Code)</label><input type="text" id="detail-id" value="${cam.asset_code || cam.account_no || cam.id || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono font-semibold focus:outline-none focus:border-emerald-500"></div>
-                            <div><label class="text-xs text-slate-400">ชนิดอุปกรณ์ (Type)</label><select id="detail-type" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">${typeOpts}</select></div>
+                            <div><label class="text-xs text-slate-400">ชนิดอุปกรณ์ (Type)</label><select id="detail-type" onchange="handleDeviceTypeChange('detail', this.value)" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">${typeOpts}</select></div>
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div><label class="text-xs text-slate-400">ยี่ห้อ (Brand)</label><input type="text" id="detail-brand" value="${cam.brand || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
-                            <div><label class="text-xs text-slate-400">รุ่น (Model)</label><input type="text" id="detail-model" value="${cam.model || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
+                            <div><label class="text-xs text-slate-400">หมวดหมู่อุปกรณ์ (Category)</label>
+                                <select id="detail-category" onchange="toggleDeviceCategoryUI('detail', this.value)" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-semibold focus:outline-none focus:border-emerald-500">
+                                    <option value="hardware" ${devCategory === 'hardware' ? 'selected' : ''}>Hardware (ฮาร์ดแวร์ / เครื่องจริง)</option>
+                                    <option value="software" ${devCategory === 'software' ? 'selected' : ''}>Software (ซอฟต์แวร์ / สิทธิ์ใช้งาน)</option>
+                                </select>
+                            </div>
+                            <div><label class="text-xs text-slate-400">แผนก / หน่วยงาน</label><select id="detail-department" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"><option value="">--</option>${deptOpts}</select></div>
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div><label class="text-xs text-slate-400">Serial Number</label><input type="text" id="detail-serial" value="${cam.serial || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
+                            <div id="detail-map-container" class="${devCategory === 'software' ? 'hidden' : ''}">
+                                <label class="text-xs text-slate-400">แผนผังที่ติดตั้ง (ผังห้อง)</label>
+                                <select id="detail-map-id" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">${mapOpts}</select>
+                            </div>
+                            <div id="detail-license-container" class="${devCategory === 'software' ? '' : 'hidden'}">
+                                <label class="text-xs text-slate-400 font-medium text-amber-400">ชนิดสิทธิ์ใช้งาน (License Type)</label>
+                                <select id="detail-license-type" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-amber-300 font-medium text-xs focus:outline-none focus:border-emerald-500">
+                                    <option value="volume" ${devLicense === 'volume' ? 'selected' : ''}>Volume License (ซื้อสิทธิ์ตามจำนวนเครื่อง)</option>
+                                    <option value="open" ${devLicense === 'open' ? 'selected' : ''}>Open License (สิทธิ์แบบเปิด / Commercial)</option>
+                                    <option value="free" ${devLicense === 'free' ? 'selected' : ''}>Free License (ฟรี / Open Source)</option>
+                                </select>
+                            </div>
                             <div><label class="text-xs text-slate-400">สถานะ</label>
                                 <select id="detail-status" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
                                     <option value="Active" ${cam.status==='Active'?'selected':''}>ใช้งานอยู่ (Active)</option>
@@ -2834,19 +2918,21 @@
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div><label class="text-xs text-slate-400">แผนก / หน่วยงาน</label><select id="detail-department" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"><option value="">--</option>${deptOpts}</select></div>
-                            <div><label class="text-xs text-slate-400">แผนผัง</label><select id="detail-map-id" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">${mapOpts}</select></div>
+                            <div><label class="text-xs text-slate-400">ยี่ห้อ (Brand)</label><input type="text" id="detail-brand" value="${cam.brand || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
+                            <div><label class="text-xs text-slate-400">รุ่น (Model)</label><input type="text" id="detail-model" value="${cam.model || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div><label class="text-xs text-slate-400">Serial Number</label><input type="text" id="detail-serial" value="${cam.serial || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
                             <div><label class="text-xs text-slate-400">ชื่อทรัพย์สิน / อุปกรณ์ (Asset Name)</label><input type="text" id="detail-eng-name" value="${cam.asset_name || cam.eng_name || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
-                            <div><label class="text-xs text-slate-400">ผู้ถือครอง / ผู้ใช้งาน (Holder)</label><input type="text" id="detail-thai-name" value="${cam.holder || cam.thai_name || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div><label class="text-xs text-slate-400">ผู้ถือครอง / ผู้ใช้งาน (Holder)</label><input type="text" id="detail-thai-name" value="${cam.holder || cam.thai_name || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
                             <div><label class="text-xs text-slate-400">IP Address</label><input type="text" id="detail-ip" value="${cam.ip || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
-                            <div><label class="text-xs text-slate-400">MAC Address</label><input type="text" id="detail-mac" value="${cam.mac_address || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
                         </div>
+
+                        <div><label class="text-xs text-slate-400">MAC Address</label><input type="text" id="detail-mac" value="${cam.mac_address || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
 
                         <!-- อัปโหลดภาพอุปกรณ์ในหน้าแก้ไข -->
                         <div class="bg-slate-700/60 p-3 rounded-xl border border-slate-600 space-y-2">
@@ -2884,11 +2970,18 @@
                         <div class="flex items-center justify-center gap-2 mt-1">
                             <span class="group-tag inline-block" style="background:${gColor}33;color:${gColor}">${cam.department || '-'}</span>
                             <span class="text-[11px] bg-slate-700 text-emerald-400 px-2 py-0.5 rounded font-medium">${devType}</span>
+                            <span class="text-[11px] ${devCategory === 'software' ? 'bg-cyan-900/60 text-cyan-300 border border-cyan-700/50' : 'bg-slate-700 text-slate-300'} px-2 py-0.5 rounded font-medium">${devCategory === 'software' ? 'Software' : 'Hardware'}</span>
                             <span class="text-[11px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded">${cam.status || 'Active'}</span>
                         </div>
                     </div>
                     <div class="space-y-2 text-xs bg-slate-900/50 p-3 rounded-xl border border-slate-700/60">
                         <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">รหัสทรัพย์สิน (Asset Code)</span><span class="text-right font-mono font-bold text-emerald-400">${cam.asset_code || cam.account_no || cam.id || '-'}</span></div>
+                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">หมวดหมู่อุปกรณ์</span><span class="text-right font-medium ${devCategory === 'software' ? 'text-cyan-400' : 'text-slate-300'}">${devCategory === 'software' ? 'Software (ซอฟต์แวร์)' : 'Hardware (ฮาร์ดแวร์)'}</span></div>
+                        ${devCategory === 'software' ? `
+                            <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">ชนิดสิทธิ์ (License Type)</span><span class="text-right font-semibold text-amber-300 uppercase">${cam.license_type || 'Volume'}</span></div>
+                        ` : `
+                            <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">แผนผังที่ติดตั้ง (ผังห้อง)</span><span class="text-right text-slate-300">${mapLabel || '-'}</span></div>
+                        `}
                         <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">ชื่อทรัพย์สิน / อุปกรณ์</span><span class="text-right font-medium">${cam.asset_name || cam.eng_name || '-'}</span></div>
                         <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">ผู้ถือครอง / ผู้ใช้งาน</span><span class="text-right font-medium text-emerald-300">${cam.holder || cam.thai_name || '-'}</span></div>
                         <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">ชนิดอุปกรณ์</span><span class="text-right font-medium">${devType}</span></div>
@@ -2897,8 +2990,7 @@
                         <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">Serial Number</span><span class="text-right font-mono text-[11px] text-slate-300">${cam.serial || '-'}</span></div>
                         <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">IP Address</span><span class="text-right font-mono text-emerald-400">${cam.ip || '-'}</span></div>
                         <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">MAC Address</span><span class="text-right font-mono text-[11px] text-slate-400">${cam.mac_address || '-'}</span></div>
-                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">แผนก</span><span class="text-right font-medium text-emerald-400">${cam.department || '-'}</span></div>
-                        <div class="flex justify-between py-1"><span class="text-slate-400">แผนผังที่ติดตั้ง</span><span class="text-right text-slate-300">${mapLabel || '-'}</span></div>
+                        <div class="flex justify-between py-1"><span class="text-slate-400">แผนก</span><span class="text-right font-medium text-emerald-400">${cam.department || '-'}</span></div>
                     </div>
                     ${imageHtml}
                     ${maintHtml}
@@ -3003,6 +3095,9 @@
             const assetCode = document.getElementById('detail-id').value.trim();
             const assetName = document.getElementById('detail-eng-name').value.trim();
             const holder = document.getElementById('detail-thai-name').value.trim();
+            const category = document.getElementById('detail-category') ? document.getElementById('detail-category').value : 'hardware';
+            const licenseType = document.getElementById('detail-license-type') ? document.getElementById('detail-license-type').value : '';
+            const devMapId = category === 'software' ? '' : (document.getElementById('detail-map-id') ? document.getElementById('detail-map-id').value : '');
 
             if (imageUrl) {
                 LocalImageStore.save(assetCode, imageUrl);
@@ -3024,12 +3119,13 @@
                 holder: holder,
                 thai_name: holder,
                 type: document.getElementById('detail-type').value,
+                category: category,
+                Category: category,
                 brand: document.getElementById('detail-brand').value.trim(),
                 model: document.getElementById('detail-model').value.trim(),
                 serial: document.getElementById('detail-serial').value.trim(),
                 status: document.getElementById('detail-status').value,
                 department: document.getElementById('detail-department').value,
-                map_id: document.getElementById('detail-map-id').value,
                 ip: document.getElementById('detail-ip').value.trim(),
                 mac_address: document.getElementById('detail-mac').value.trim(),
                 image_url: imageUrl,
@@ -3037,6 +3133,13 @@
                 Image: imageUrl,
                 go2rtc_link: imageUrl
             };
+            if (devMapId) fields.map_id = devMapId;
+            if (category === 'software' && licenseType) {
+                fields.license_type = licenseType;
+                fields.license = licenseType;
+                fields.License = licenseType;
+                fields['License Type'] = licenseType;
+            }
             try {
                 const saveRes = await apiUpdate('device', recordId, fields);
                 await fetchDevices();
@@ -3166,6 +3269,9 @@
             document.getElementById('modal-camera-title').innerHTML = '<i data-lucide="plus-circle" class="w-5 h-5 text-emerald-400"></i><span>เพิ่มอุปกรณ์ไอที</span>';
             document.getElementById('cam-edit-rec-id').value = '';
             document.getElementById('camera-form').reset();
+            if (document.getElementById('cam-category')) document.getElementById('cam-category').value = 'hardware';
+            if (document.getElementById('cam-license-type')) document.getElementById('cam-license-type').value = 'volume';
+            toggleDeviceCategoryUI('cam', 'hardware');
             removeDeviceImagePreview();
             populateDepartmentSelects();
             populateMapSelects();
@@ -3180,11 +3286,15 @@
             if (!cam) return;
             const assetCode = cam.asset_code || cam.account_no || cam.id || '';
             const imgUrl = cam.image_url || cam.go2rtc || cam.image || LocalImageStore.get(cam.id) || LocalImageStore.get(cam._recordId) || LocalImageStore.get(assetCode) || '';
+            const devCat = getDeviceCategory(cam);
 
             document.getElementById('modal-camera-title').innerHTML = '<i data-lucide="pencil" class="w-5 h-5 text-emerald-400"></i><span>แก้ไขอุปกรณ์ไอที</span>';
             document.getElementById('cam-edit-rec-id').value = recordId;
             document.getElementById('cam-id').value = assetCode;
             document.getElementById('cam-type').value = getDeviceType(cam.type);
+            if (document.getElementById('cam-category')) document.getElementById('cam-category').value = devCat;
+            if (document.getElementById('cam-license-type')) document.getElementById('cam-license-type').value = cam.license_type || 'volume';
+            toggleDeviceCategoryUI('cam', devCat);
             document.getElementById('cam-brand').value = cam.brand || '';
             document.getElementById('cam-model').value = cam.model || '';
             document.getElementById('cam-serial').value = cam.serial || '';
@@ -3325,8 +3435,10 @@
             const assetName = document.getElementById('cam-eng-name').value.trim() || assetCode;
             const holder = document.getElementById('cam-thai-name').value.trim();
             const devType = document.getElementById('cam-type').value || 'Other';
+            const category = document.getElementById('cam-category') ? document.getElementById('cam-category').value : 'hardware';
+            const licenseType = document.getElementById('cam-license-type') ? document.getElementById('cam-license-type').value : '';
             const devDept = document.getElementById('cam-department').value || '';
-            const devMapId = document.getElementById('cam-map-id').value || selectedMapId || '1';
+            const devMapId = category === 'software' ? '' : (document.getElementById('cam-map-id').value || selectedMapId || '1');
 
             if (imageUrl) {
                 LocalImageStore.save(assetCode, imageUrl);
@@ -3345,11 +3457,19 @@
                 Name: assetCode,
                 asset_name: assetName,
                 type: devType,
+                category: category,
+                Category: category,
                 status: document.getElementById('cam-status').value || 'Active'
             };
             if (holder) fields.holder = holder;
             if (devDept) fields.department = devDept;
             if (devMapId) fields.map_id = devMapId;
+            if (category === 'software' && licenseType) {
+                fields.license_type = licenseType;
+                fields.license = licenseType;
+                fields.License = licenseType;
+                fields['License Type'] = licenseType;
+            }
             const brand = document.getElementById('cam-brand').value.trim();
             if (brand) fields.brand = brand;
             const model = document.getElementById('cam-model').value.trim();
@@ -3746,6 +3866,7 @@
 
             const searchTerm = (document.getElementById('dev-mgr-search')?.value || '').trim().toLowerCase();
             const filterDept = document.getElementById('dev-mgr-filter-dept')?.value || '';
+            const filterCategory = document.getElementById('dev-mgr-filter-category')?.value || '';
             const filterType = document.getElementById('dev-mgr-filter-type')?.value || '';
             const filterMap = document.getElementById('dev-mgr-filter-map')?.value || '';
             const filterStatus = document.getElementById('dev-mgr-filter-status')?.value || '';
@@ -3771,6 +3892,10 @@
 
             if (filterDept) {
                 list = list.filter(c => c.department === filterDept || c.group === filterDept);
+            }
+
+            if (filterCategory) {
+                list = list.filter(c => getDeviceCategory(c) === filterCategory.toLowerCase());
             }
 
             if (filterType) {
@@ -3806,6 +3931,7 @@
 
             tbody.innerHTML = list.map(c => {
                 const devType = getDeviceType(c.type);
+                const devCat = getDeviceCategory(c);
                 const iconName = getDeviceIconName(c.type);
                 const gColor = getGroupColor(c.group);
                 const curMap = maps.find(m => String(m.map_id) === String(c.map_id) || String(m._recordId) === String(c.map_id));
@@ -3845,7 +3971,10 @@
                             ${subName ? `<div class="text-[11px] mt-0.5">${subName}</div>` : ''}
                         </td>
                         <td class="py-2.5 px-3">
-                            <span class="inline-block bg-slate-700/80 px-1.5 py-0.5 rounded text-[10px] text-slate-300 font-medium">${devType}</span>
+                            <div class="flex items-center gap-1">
+                                <span class="inline-block bg-slate-700/80 px-1.5 py-0.5 rounded text-[10px] text-slate-300 font-medium">${devType}</span>
+                                <span class="inline-block ${devCat === 'software' ? 'bg-cyan-950 text-cyan-300 border border-cyan-800' : 'bg-slate-700/50 text-slate-400'} px-1 py-0.2 rounded text-[9px] font-semibold">${devCat === 'software' ? 'SW' : 'HW'}</span>
+                            </div>
                             <div class="text-[11px] text-slate-400 truncate max-w-[150px] mt-0.5">${brandModel}</div>
                         </td>
                         <td class="py-2.5 px-3 text-slate-300 font-medium">${c.department || '-'}</td>
@@ -3854,11 +3983,18 @@
                             ${c.mac_address ? `<div class="text-[10px] text-slate-500">${c.mac_address}</div>` : ''}
                         </td>
                         <td class="py-2.5 px-3">
-                            <div class="text-slate-200 font-medium">${mapLabel}</div>
-                            ${hasPos ? `
-                                <span class="text-[10px] text-emerald-400 font-mono">📍 X:${c.x}% Y:${c.y}%</span>
+                            ${devCat === 'software' ? `
+                                <div class="text-amber-300 font-semibold text-xs flex items-center gap-1 uppercase">
+                                    <i data-lucide="key" class="w-3.5 h-3.5 text-amber-400"></i> ${c.license_type || 'Volume'}
+                                </div>
+                                <span class="text-[10px] text-slate-500">License (ไม่กำหนดผัง)</span>
                             ` : `
-                                <span class="text-[10px] text-amber-400 font-medium">⚠️ ยังไม่วาง</span>
+                                <div class="text-slate-200 font-medium">${mapLabel}</div>
+                                ${hasPos ? `
+                                    <span class="text-[10px] text-emerald-400 font-mono">📍 X:${c.x}% Y:${c.y}%</span>
+                                ` : `
+                                    <span class="text-[10px] text-amber-400 font-medium">⚠️ ยังไม่วาง</span>
+                                `}
                             `}
                         </td>
                         <td class="py-2.5 px-3 text-center">${statusBadge}</td>

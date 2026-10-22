@@ -581,6 +581,14 @@ function normalizeFields(table, fields, recordId = '') {
       holder = f.holder.length > 0 ? (typeof f.holder[0] === 'object' && f.holder[0].name ? f.holder[0].name : String(f.holder[0])) : '';
     }
     let devType = extractFieldValue(f, ['type', 'Type', 'ประเภท']) || 'Other';
+    let devCategory = extractFieldValue(f, ['category', 'Category', 'device_category', 'หมวดหมู่', 'ประเภทอุปกรณ์']);
+    if (!devCategory) {
+      const devTypeLow = devType.toLowerCase();
+      devCategory = (devTypeLow.includes('office') || devTypeLow.includes('word') || devTypeLow.includes('excel') || devTypeLow.includes('software') || devTypeLow.includes('ซอฟต์แวร์')) ? 'software' : 'hardware';
+    } else {
+      devCategory = devCategory.toLowerCase();
+    }
+    let devLicenseType = extractFieldValue(f, ['license_type', 'license', 'License', 'License Type', 'License_Type', 'licenseType', 'ประเภทสิทธิ์', 'สิทธิ์']) || '';
     let devStatus = extractFieldValue(f, ['status', 'Status', 'สถานะ']) || 'Active';
     let devBrand = extractFieldValue(f, ['brand', 'Brand', 'ยี่ห้อ']);
     let devModel = extractFieldValue(f, ['model', 'Model', 'รุ่น']);
@@ -637,6 +645,8 @@ function normalizeFields(table, fields, recordId = '') {
       image: img,
       image_url: img,
       go2rtc_link: img,
+      category: devCategory,
+      license_type: devLicenseType,
       map_id: String(devMapId),
       x: numX,
       y: numY
@@ -1329,6 +1339,8 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     const isStatusProvided = hasField(['status', 'Status', 'สถานะ']);
     const isDeptProvided = hasField(['department', 'Department', 'dept', 'Dept', 'group', 'แผนก', 'ชื่อแผนก', 'ฝ่าย', 'หน่วยงาน']);
     const isMapProvided = hasField(['map_id', 'Map ID', 'map', 'Map', 'ผัง']);
+    const isCategoryProvided = hasField(['category', 'Category', 'device_category', 'หมวดหมู่', 'ประเภทอุปกรณ์']);
+    const isLicenseProvided = hasField(['license_type', 'license', 'License', 'License Type', 'License_Type', 'licenseType', 'ประเภทสิทธิ์', 'สิทธิ์']);
     const isBrandProvided = hasField(['brand', 'Brand', 'ยี่ห้อ']);
     const isModelProvided = hasField(['model', 'Model', 'รุ่น']);
     const isSerialProvided = hasField(['serial', 'Serial', 'serial_number', 'Serial Number']);
@@ -1342,6 +1354,8 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     const nameVal = isNameProvided ? (raw.asset_name || raw['Asset Name'] || raw.eng_name || raw.Name || raw.name || raw['ชื่ออุปกรณ์'] || raw['ชื่อ'] || codeVal) : '';
     const holderVal = isHolderProvided ? (raw.holder || raw.Holder || raw.thai_name || raw.user || raw['ผู้ถือครอง'] || raw['ชื่อผู้ใช้'] || '') : '';
     const typeVal = isTypeProvided ? (raw.type || raw.Type || raw['ประเภท'] || 'Camera') : '';
+    const categoryVal = isCategoryProvided ? (raw.category || raw.Category || raw.device_category || 'hardware') : '';
+    const licenseVal = isLicenseProvided ? (raw.license_type || raw.license || raw.License || raw['License Type'] || raw.License_Type || '') : '';
     const statusVal = isStatusProvided ? (raw.status || raw.Status || raw['สถานะ'] || 'Active') : '';
     const deptVal = isDeptProvided ? (raw.department || raw.Department || raw.dept || raw['แผนก'] || '') : '';
     const mapVal = isMapProvided ? String(raw.map_id || raw['Map ID'] || raw.map || '1') : '';
@@ -1359,6 +1373,8 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     if (isNameProvided && nameVal) { result.asset_name = nameVal; if (!result.Name) result.Name = nameVal; }
     if (isHolderProvided) result.holder = holderVal;
     if (isTypeProvided) result.type = typeVal;
+    if (isCategoryProvided && categoryVal) result.category = categoryVal;
+    if (isLicenseProvided && licenseVal) result.license_type = licenseVal;
     if (isStatusProvided) result.status = statusVal;
     if (isDeptProvided) result.department = deptVal;
     if (isMapProvided) result.map_id = mapVal;
@@ -1381,6 +1397,8 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
       const deptCol = findMatchingAirtableFieldName(availableNames, ['department', 'Department', 'dept', 'Dept', 'แผนก', 'ชื่อแผนก', 'ฝ่าย']);
       const mapCol = findMatchingAirtableFieldName(availableNames, ['map_id', 'Map ID', 'map', 'Map', 'ผัง']);
       const brandCol = findMatchingAirtableFieldName(availableNames, ['brand', 'Brand', 'ยี่ห้อ']);
+      const categoryCol = findMatchingAirtableFieldName(availableNames, ['category', 'Category', 'device_category', 'หมวดหมู่', 'ประเภทอุปกรณ์']);
+      const licenseCol = findMatchingAirtableFieldName(availableNames, ['license_type', 'license', 'License', 'License Type', 'License_Type', 'licenseType', 'ประเภทสิทธิ์', 'สิทธิ์']);
       const modelCol = findMatchingAirtableFieldName(availableNames, ['model', 'Model', 'รุ่น']);
       const serialCol = findMatchingAirtableFieldName(availableNames, ['serial', 'Serial', 'serial_number', 'Serial Number']);
       const ipCol = findMatchingAirtableFieldName(availableNames, ['ip', 'IP', 'ip_address']);
@@ -1398,6 +1416,8 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
       if (isNameProvided && nameCol && nameVal) mapped[nameCol] = nameVal;
       if (isHolderProvided && holderCol) mapped[holderCol] = holderVal;
       if (isTypeProvided && typeCol) mapped[typeCol] = typeVal;
+      if (isCategoryProvided && categoryCol && categoryVal) mapped[categoryCol] = categoryVal;
+      if (isLicenseProvided && licenseCol && licenseVal) mapped[licenseCol] = licenseVal;
       if (isStatusProvided && statusCol) mapped[statusCol] = statusVal;
       if (isDeptProvided && deptCol) mapped[deptCol] = deptVal;
       if (isMapProvided && mapCol) mapped[mapCol] = mapVal;
