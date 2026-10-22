@@ -1457,21 +1457,21 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
       const idCol = findMatchingAirtableFieldName(availableNames, ['map_id', 'Map ID', 'Map_ID', 'MapId', 'mapId', 'id', 'ID', 'รหัสแผนผัง', 'รหัส']);
       const picCol = findMatchingAirtableFieldName(availableNames, ['map_pic', 'map_url', 'image', 'ภาพ', 'รูปภาพ']);
 
-      if (nameCol && mapName) {
-        mapped[nameCol] = mapName;
-      } else if (mapName) {
-        mapped.map_name = mapName;
-      }
-
       if (idCol && mapId) {
         const idFieldMeta = schema && schema.fields ? schema.fields.find(f => f.name.toLowerCase() === idCol.toLowerCase()) : null;
         if (idFieldMeta && idFieldMeta.type === 'number') {
           mapped[idCol] = Number(mapId) || 0;
         } else {
-          mapped[idCol] = mapId;
+          mapped[idCol] = String(mapId).trim();
         }
       } else if (mapId) {
-        mapped.map_id = /^\d+$/.test(mapId.trim()) ? Number(mapId.trim()) : mapId;
+        mapped.map_id = /^\d+$/.test(mapId.trim()) ? Number(mapId.trim()) : String(mapId).trim();
+      }
+
+      if (nameCol && mapName) {
+        mapped[nameCol] = mapName;
+      } else if (mapName) {
+        mapped.map_name = mapName;
       }
 
       if (picCol && mapPic) {
@@ -1489,7 +1489,7 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
         }
       }
 
-      return mapped;
+      return { ...baseResult, ...mapped };
     }
 
     return baseResult;
