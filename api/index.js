@@ -1080,7 +1080,10 @@ async function probePrimaryField(url, method, token) {
 async function writeAirtableWithRetry(url, method, token, fields) {
   let payloadFields = { ...fields };
   const debugLog = [];
+  const rejectedFields = new Set();
+  const triedTypeConversions = new Set();
   let pendingCodeVal = null;  // Saves asset code value if all code fields get rejected
+  let lastErrMsg = '';
 
   if (method === 'POST') {
     for (const [k, v] of Object.entries(payloadFields)) {
@@ -1095,7 +1098,7 @@ async function writeAirtableWithRetry(url, method, token, fields) {
   // Extract the intended code value upfront for safety
   pendingCodeVal = payloadFields['asset_code'] || payloadFields['Name'] || payloadFields['Asset Code'] || payloadFields['Asset_Code'] || '';
 
-  for (let attempt = 0; attempt < 30; attempt++) {
+  for (let attempt = 0; attempt < 15; attempt++) {
     const res = await fetch(url, {
       method,
       headers: {
@@ -1111,6 +1114,7 @@ async function writeAirtableWithRetry(url, method, token, fields) {
     }
 
     const errMsg = (data.error && typeof data.error.message === 'string') ? data.error.message : '';
+    lastErrMsg = errMsg;
     debugLog.push({ attempt, status: res.status, error: errMsg, fieldsAttempted: Object.keys(payloadFields) });
 
     if (errMsg) {
@@ -1121,37 +1125,50 @@ async function writeAirtableWithRetry(url, method, token, fields) {
           const rejected = match[1];
           const val = payloadFields[rejected];
           delete payloadFields[rejected];
+          rejectedFields.add(rejected);
 
           // If coordinates casing issue
-          if (rejected === 'x' && !('X' in payloadFields)) payloadFields['X'] = val;
-          else if (rejected === 'y' && !('Y' in payloadFields)) payloadFields['Y'] = val;
-          else if (rejected === 'X' && !('x' in payloadFields)) payloadFields['x'] = val;
-          else if (rejected === 'Y' && !('y' in payloadFields)) payloadFields['y'] = val;
+          if (rejected.toLowerCase() === 'x') {
+            const alt = rejected === 'x' ? 'X' : 'x';
+            if (!rejectedFields.has(alt) && !(alt in payloadFields)) {
+              payloadFields[alt] = val;
+              continue;
+            }
+          } else if (rejected.toLowerCase() === 'y') {
+            const alt = rejected === 'y' ? 'Y' : 'y';
+            if (!rejectedFields.has(alt) && !(alt in payloadFields)) {
+              payloadFields[alt] = val;
+              continue;
+            }
+          }
 
           // If asset_code field rejected → override Name with code value
           const rejNorm2 = rejected.trim().toLowerCase().replace(/[\s_\-]+/g, '');
           if ((rejNorm2 === 'assetcode' || rejected === 'รหัสทรัพย์สิน' || rejected === 'รหัสอุปกรณ์') && val) {
             pendingCodeVal = val;
-            payloadFields['Name'] = val;
-            debugLog.push({ action: 'overrideNameWithCode', rejected, val });
+            if (!rejectedFields.has('Name') && !('Name' in payloadFields)) {
+              payloadFields['Name'] = val;
+              debugLog.push({ action: 'overrideNameWithCode', rejected, val });
+            }
           }
 
-          // If Name itself is rejected → the primary field has a different name
-          // Save the code value; it will be injected when we discover the primary field name
-          // If map_id field rejected -> try aliases
+          // If map_id field rejected -> try aliases (once each, avoiding ping-pong)
           const rejNormMap = rejected.trim().toLowerCase().replace(/[\s_\-]+/g, '');
-          if (rejNormMap === 'mapid' || rejected === 'map_id' || rejected === 'Map ID') {
-            if (!('Map ID' in payloadFields) && rejected !== 'Map ID') { payloadFields['Map ID'] = val; continue; }
-            else if (!('Map_ID' in payloadFields) && rejected !== 'Map_ID') { payloadFields['Map_ID'] = val; continue; }
-            else if (!('id' in payloadFields) && rejected !== 'id') { payloadFields['id'] = val; continue; }
-            else if (!('ID' in payloadFields) && rejected !== 'ID') { payloadFields['ID'] = val; continue; }
+          if (rejNormMap === 'mapid' || rejNormMap === 'id' || rejected === 'map_id' || rejected === 'Map ID') {
+            const mapIdCandidates = ['map_id', 'Map ID', 'Map_ID', 'MapId', 'id', 'ID', 'รหัสแผนผัง', 'รหัส'];
+            const nextCandidate = mapIdCandidates.find(c => !rejectedFields.has(c) && !(c in payloadFields));
+            if (nextCandidate) {
+              payloadFields[nextCandidate] = val;
+              debugLog.push({ action: 'tryMapIdAlias', from: rejected, to: nextCandidate, val });
+              continue;
+            }
           }
 
           continue;
         }
       }
 
-      // 1b. If only one field left in payload AND Airtable still says Unknown field,
+      // 1b. If no fields left in payload AND Airtable still says Unknown field,
       //     means we've exhausted guesses. If pendingCodeVal exists, try sending empty record
       //     (Airtable will create it with auto-number primary if primary field is auto)
       if (Object.keys(payloadFields).length === 0 && pendingCodeVal) {
@@ -1180,29 +1197,43 @@ async function writeAirtableWithRetry(url, method, token, fields) {
         const isMapTable = url.toLowerCase().includes('/map');
         // Linked record array conversion (DO NOT do this on map table!)
         if (!isMapTable && (rejected.toLowerCase().includes('map') || rejected.toLowerCase().includes('dept')) && typeof val === 'string') {
-          payloadFields[rejected] = [val];
-          continue;
+          const typeKey = `${rejected}:array`;
+          if (!triedTypeConversions.has(typeKey)) {
+            triedTypeConversions.add(typeKey);
+            payloadFields[rejected] = [val];
+            continue;
+          }
         }
 
         // If map_id or any numeric id cannot accept value:
-        // Try Number if string, or String if number
+        // Try Number if string, or String if number (at most ONCE to prevent ping-pong)
         if ((rejected.toLowerCase().includes('id') || rejected.toLowerCase().includes('map')) && typeof val === 'string' && /^\d+$/.test(val.trim())) {
-          payloadFields[rejected] = Number(val.trim());
-          debugLog.push({ action: 'cannotAccept_tryNumber', rejected, val: Number(val.trim()) });
-          continue;
+          const typeKey = `${rejected}:number`;
+          if (!triedTypeConversions.has(typeKey)) {
+            triedTypeConversions.add(typeKey);
+            payloadFields[rejected] = Number(val.trim());
+            debugLog.push({ action: 'cannotAccept_tryNumber', rejected, val: Number(val.trim()) });
+            continue;
+          }
         }
         if (typeof val === 'number') {
-          payloadFields[rejected] = String(val);
-          debugLog.push({ action: 'cannotAccept_tryString', rejected, val: String(val) });
-          continue;
+          const typeKey = `${rejected}:string`;
+          if (!triedTypeConversions.has(typeKey)) {
+            triedTypeConversions.add(typeKey);
+            payloadFields[rejected] = String(val);
+            debugLog.push({ action: 'cannotAccept_tryString', rejected, val: String(val) });
+            continue;
+          }
         }
 
         // If asset_code was rejected (e.g. user defined column as Number or Formula in Airtable)
         const rejNorm = rejected.trim().toLowerCase().replace(/[\s_\-]+/g, '');
         if (rejNorm === 'assetcode') {
           delete payloadFields[rejected];
-          payloadFields['Name'] = val;
-          debugLog.push({ action: 'assetcodeCannotAccept_overrideName', rejected, val });
+          if (!rejectedFields.has('Name') && !('Name' in payloadFields)) {
+            payloadFields['Name'] = val;
+            debugLog.push({ action: 'assetcodeCannotAccept_overrideName', rejected, val });
+          }
           continue;
         }
         if (rejNorm === 'name') {
@@ -1239,7 +1270,13 @@ async function writeAirtableWithRetry(url, method, token, fields) {
     return { ok: false, status: res.status, data: { ...data, _debug: debugLog } };
   }
 
-  return { ok: false, data: { error: 'Exceeded retry attempts for Airtable write', _debug: debugLog } };
+  return {
+    ok: false,
+    data: {
+      error: `ไม่สามารถบันทึกข้อมูลลง Airtable ได้: ${lastErrMsg || 'เกินจำนวนครั้งที่ลองบันทึกซ้ำ (Exceeded retry attempts)'}`,
+      _debug: debugLog
+    }
+  };
 }
 
 // Helper to find record ID in Airtable if passed ID is not an Airtable rec ID
@@ -1410,17 +1447,22 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     const baseResult = {};
     if (mapName) baseResult.map_name = mapName;
     if (mapId) {
-      baseResult.map_id = mapId;
-      if (/^\d+$/.test(mapId.trim())) baseResult.map_id = Number(mapId.trim());
+      baseResult.map_id = /^\d+$/.test(mapId.trim()) ? Number(mapId.trim()) : mapId;
     }
     if (mapPic) baseResult.map_pic = mapPic;
 
     if (availableNames && availableNames.length > 0) {
       const mapped = {};
-      const nameCol = findMatchingAirtableFieldName(availableNames, ['map_name', 'Map Name', 'Name', 'name', 'ชื่อแผนผัง']);
-      const idCol = findMatchingAirtableFieldName(availableNames, ['map_id', 'Map ID', 'id', 'ID', 'รหัสแผนผัง']);
-      const picCol = findMatchingAirtableFieldName(availableNames, ['map_pic', 'map_url', 'image', 'ภาพ']);
-      if (nameCol && mapName) mapped[nameCol] = mapName;
+      const nameCol = findMatchingAirtableFieldName(availableNames, ['map_name', 'Map Name', 'Map_Name', 'Name', 'name', 'ชื่อแผนผัง', 'ชื่อ', 'แผนผัง']);
+      const idCol = findMatchingAirtableFieldName(availableNames, ['map_id', 'Map ID', 'Map_ID', 'MapId', 'mapId', 'id', 'ID', 'รหัสแผนผัง', 'รหัส']);
+      const picCol = findMatchingAirtableFieldName(availableNames, ['map_pic', 'map_url', 'image', 'ภาพ', 'รูปภาพ']);
+
+      if (nameCol && mapName) {
+        mapped[nameCol] = mapName;
+      } else if (mapName) {
+        mapped.map_name = mapName;
+      }
+
       if (idCol && mapId) {
         const idFieldMeta = schema && schema.fields ? schema.fields.find(f => f.name.toLowerCase() === idCol.toLowerCase()) : null;
         if (idFieldMeta && idFieldMeta.type === 'number') {
@@ -1429,21 +1471,25 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
           mapped[idCol] = mapId;
         }
       } else if (mapId) {
-        // idCol not found in availableNames (e.g. was empty in first records)
-        // Keep map_id so writeAirtableWithRetry will send it to Airtable
         mapped.map_id = /^\d+$/.test(mapId.trim()) ? Number(mapId.trim()) : mapId;
       }
-      if (picCol && mapPic) mapped[picCol] = mapPic;
+
+      if (picCol && mapPic) {
+        mapped[picCol] = mapPic;
+      } else if (mapPic) {
+        mapped.map_pic = mapPic;
+      }
+
       if (primaryField && primaryField.name && !mapped[primaryField.name]) {
-        if (idCol && primaryField.name.toLowerCase() === idCol.toLowerCase() && mapId) {
-          mapped[primaryField.name] = mapId;
-        } else if (nameCol && primaryField.name.toLowerCase() === nameCol.toLowerCase() && mapName) {
-          mapped[primaryField.name] = mapName;
+        const primLower = primaryField.name.toLowerCase();
+        if (primLower.includes('id') || primLower.includes('code') || primLower.includes('รหัส')) {
+          mapped[primaryField.name] = mapId || mapName;
         } else {
           mapped[primaryField.name] = mapName || mapId;
         }
       }
-      return { ...baseResult, ...mapped };
+
+      return mapped;
     }
 
     return baseResult;
