@@ -1021,6 +1021,15 @@ async function discoverTableSchema(baseId, token, targetTable) {
             Object.keys(r.fields).forEach(k => names.add(k));
           }
         });
+        // Ensure standard fields are always included in fieldList so mapping doesn't fail when fields are empty in records
+        const tLower = targetTable.toLowerCase();
+        if (tLower.startsWith('map')) {
+          ['map_id', 'Map ID', 'map_name', 'map_pic'].forEach(f => {
+            if (!Array.from(names).some(n => n.toLowerCase().replace(/[\s_\-]+/g, '') === f.toLowerCase().replace(/[\s_\-]+/g, ''))) {
+              names.add(f);
+            }
+          });
+        }
         const fieldList = Array.from(names);
         if (fieldList.length > 0) {
           const schema = {
@@ -1154,8 +1163,8 @@ async function writeAirtableWithRetry(url, method, token, fields) {
 
           // If map_id field rejected -> try aliases (once each, avoiding ping-pong)
           const rejNormMap = rejected.trim().toLowerCase().replace(/[\s_\-]+/g, '');
-          if (rejNormMap === 'mapid' || rejNormMap === 'id' || rejected === 'map_id' || rejected === 'Map ID') {
-            const mapIdCandidates = ['map_id', 'Map ID', 'Map_ID', 'MapId', 'id', 'ID', 'รหัสแผนผัง', 'รหัส'];
+          if (rejNormMap === 'mapid' || rejNormMap === 'id' || rejected.toLowerCase().includes('map_id') || rejected === 'Map ID') {
+            const mapIdCandidates = ['map_id', 'Map ID', 'Map_ID', 'MapId', 'id', 'ID', 'Name', 'name', 'รหัสแผนผัง', 'รหัส'];
             const nextCandidate = mapIdCandidates.find(c => !rejectedFields.has(c) && !(c in payloadFields));
             if (nextCandidate) {
               payloadFields[nextCandidate] = val;
@@ -1436,18 +1445,19 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
   if (t.startsWith('map')) {
     const mapName = raw.map_name || raw['Map Name'] || raw.Name || raw.name || '';
     const mapId = raw.map_id != null && raw.map_id !== '' && !String(raw.map_id).startsWith('rec')
-      ? String(raw.map_id)
+      ? String(raw.map_id).trim()
       : (raw['Map ID'] != null && raw['Map ID'] !== '' && !String(raw['Map ID']).startsWith('rec')
-        ? String(raw['Map ID'])
+        ? String(raw['Map ID']).trim()
         : (raw.Map_ID != null && raw.Map_ID !== '' && !String(raw.Map_ID).startsWith('rec')
-          ? String(raw.Map_ID)
-          : (raw.id && !String(raw.id).startsWith('rec') ? String(raw.id) : '')));
+          ? String(raw.Map_ID).trim()
+          : (raw.id && !String(raw.id).startsWith('rec') ? String(raw.id).trim() : '')));
     const mapPic = raw.map_pic || raw.map_url || raw.image || '';
 
     const baseResult = {};
     if (mapName) baseResult.map_name = mapName;
     if (mapId) {
-      baseResult.map_id = /^\d+$/.test(mapId.trim()) ? Number(mapId.trim()) : mapId;
+      baseResult.map_id = mapId;
+      baseResult['Map ID'] = mapId;
     }
     if (mapPic) baseResult.map_pic = mapPic;
 
@@ -1459,13 +1469,13 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
 
       if (idCol && mapId) {
         const idFieldMeta = schema && schema.fields ? schema.fields.find(f => f.name.toLowerCase() === idCol.toLowerCase()) : null;
-        if (idFieldMeta && idFieldMeta.type === 'number') {
-          mapped[idCol] = Number(mapId) || 0;
+        if (idFieldMeta && idFieldMeta.type === 'number' && /^\d+$/.test(mapId)) {
+          mapped[idCol] = Number(mapId);
         } else {
-          mapped[idCol] = String(mapId).trim();
+          mapped[idCol] = mapId;
         }
       } else if (mapId) {
-        mapped.map_id = /^\d+$/.test(mapId.trim()) ? Number(mapId.trim()) : String(mapId).trim();
+        mapped.map_id = mapId;
       }
 
       if (nameCol && mapName) {
@@ -1484,8 +1494,11 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
         const primLower = primaryField.name.toLowerCase();
         if (primLower.includes('id') || primLower.includes('code') || primLower.includes('รหัส')) {
           mapped[primaryField.name] = mapId || mapName;
-        } else {
+        } else if (primLower.includes('name') || primLower.includes('ชื่อ')) {
           mapped[primaryField.name] = mapName || mapId;
+        } else {
+          // If first column / primary field is unclassified, map map_id if present
+          mapped[primaryField.name] = mapId || mapName;
         }
       }
 
