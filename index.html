@@ -157,13 +157,6 @@
                 display: block !important;
                 background: transparent !important;
             }
-            @page label-a4-portrait {
-                size: A4 portrait;
-                margin: 8mm 6mm;
-            }
-            body.print-labels-mode {
-                page: label-a4-portrait;
-            }
             .a4-label-page {
                 width: 198mm;
                 height: 281mm;
@@ -6066,9 +6059,19 @@
         }
 
         function printAssetQrTag() {
+            const pageSizeStyle = document.getElementById('page-size-style');
+            const prevStyle = pageSizeStyle ? pageSizeStyle.textContent : null;
+            if (pageSizeStyle) {
+                pageSizeStyle.textContent = '@page { size: auto portrait; margin: 0; }';
+            }
             document.body.classList.add('print-qr-mode');
             const cleanup = () => {
                 document.body.classList.remove('print-qr-mode');
+                if (pageSizeStyle && prevStyle !== null) {
+                    pageSizeStyle.textContent = prevStyle;
+                } else if (typeof setPaperSize === 'function') {
+                    setPaperSize(paperSize);
+                }
                 window.removeEventListener('afterprint', cleanup);
             };
             window.addEventListener('afterprint', cleanup);
@@ -6260,9 +6263,26 @@
         }
 
         function executeBatchPrint() {
+            // Force @page to A4 portrait specifically for label printing
+            let pageSizeStyle = document.getElementById('page-size-style');
+            if (!pageSizeStyle) {
+                pageSizeStyle = document.createElement('style');
+                pageSizeStyle.id = 'page-size-style';
+                document.head.appendChild(pageSizeStyle);
+            }
+            const prevContent = pageSizeStyle.textContent;
+            pageSizeStyle.textContent = '@page { size: A4 portrait !important; margin: 8mm 6mm !important; }';
+
             document.body.classList.add('print-labels-mode');
+
             const cleanup = () => {
                 document.body.classList.remove('print-labels-mode');
+                // Restore original map page size (e.g. A4-landscape)
+                if (typeof setPaperSize === 'function') {
+                    setPaperSize(paperSize);
+                } else if (prevContent) {
+                    pageSizeStyle.textContent = prevContent;
+                }
                 window.removeEventListener('afterprint', cleanup);
             };
             window.addEventListener('afterprint', cleanup);
