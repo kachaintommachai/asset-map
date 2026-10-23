@@ -1643,6 +1643,39 @@
         let sites = [];
         let siteRecords = [];
         let maintenances = []; // เก็บประวัติการซื้อและการซ่อมบำรุง
+
+        // ─── SORT HELPER (A-Z, ก-ฮ, 0-9) ───
+        function sortNatural(arr, keyExtractor = (x) => x) {
+            if (!Array.isArray(arr)) return [];
+            return [...arr].sort((a, b) => {
+                const valA = String(keyExtractor(a) ?? '').trim();
+                const valB = String(keyExtractor(b) ?? '').trim();
+                return valA.localeCompare(valB, 'th', { numeric: true, sensitivity: 'base' });
+            });
+        }
+
+        // เรียง options ภายใน <select> โดยคง option แรกไว้ถ้าเป็น placeholder (value="")
+        function sortSelectOptions(selectEl, keepFirst = true) {
+            const el = typeof selectEl === 'string' ? document.getElementById(selectEl) : selectEl;
+            if (!el || !el.options || el.options.length <= 1) return;
+            const curVal = el.value;
+            const opts = Array.from(el.options);
+            let first = null;
+            let toSort = opts;
+            if (keepFirst && opts.length > 0 && (opts[0].value === '' || opts[0].disabled || opts[0].textContent.includes('--') || opts[0].textContent.includes('ทุก'))) {
+                first = opts[0];
+                toSort = opts.slice(1);
+            }
+            toSort.sort((a, b) => {
+                const valA = String(a.textContent || a.value || '').trim();
+                const valB = String(b.textContent || b.value || '').trim();
+                return valA.localeCompare(valB, 'th', { numeric: true, sensitivity: 'base' });
+            });
+            el.innerHTML = '';
+            if (first) el.appendChild(first);
+            toSort.forEach(o => el.appendChild(o));
+            if (curVal !== undefined && curVal !== null) el.value = curVal;
+        }
         let currentUser = null;
         let selectedMapId = null;
         let selectedSiteFilter = '';
@@ -1757,8 +1790,9 @@
                     });
 
                     if (unifiedList.length > 0) {
-                        customDeviceTypes = unifiedList;
-                        customLicenseTypes = unifiedList;
+                        const sortedUnified = sortNatural(unifiedList, d => d.label || d.name);
+                        customDeviceTypes = sortedUnified;
+                        customLicenseTypes = sortedUnified;
                         localStorage.setItem('it_asset_device_types', JSON.stringify(customDeviceTypes));
                         localStorage.setItem('it_asset_license_types', JSON.stringify(customLicenseTypes));
                     }
@@ -1789,6 +1823,7 @@
             if (!customDeviceTypes || customDeviceTypes.length === 0) {
                 customDeviceTypes = JSON.parse(JSON.stringify(DEFAULT_DEVICE_TYPES));
             }
+            customDeviceTypes = sortNatural(customDeviceTypes, d => d.label || d.name);
 
             try {
                 const storedLic = localStorage.getItem('it_asset_license_types');
@@ -1804,6 +1839,7 @@
             if (!customLicenseTypes || customLicenseTypes.length === 0) {
                 customLicenseTypes = JSON.parse(JSON.stringify(DEFAULT_LICENSE_TYPES));
             }
+            customLicenseTypes = sortNatural(customLicenseTypes, l => l.name || l.key);
 
             refreshDeviceTypesGlobal();
         }
@@ -1816,12 +1852,12 @@
                     if (data && data.success && data.settings) {
                         let updated = false;
                         if (Array.isArray(data.settings.device_types) && data.settings.device_types.length > 0) {
-                            customDeviceTypes = data.settings.device_types;
+                            customDeviceTypes = sortNatural(data.settings.device_types, d => d.label || d.name);
                             localStorage.setItem('it_asset_device_types', JSON.stringify(customDeviceTypes));
                             updated = true;
                         }
                         if (Array.isArray(data.settings.license_types) && data.settings.license_types.length > 0) {
-                            customLicenseTypes = data.settings.license_types;
+                            customLicenseTypes = sortNatural(data.settings.license_types, l => l.name || l.key);
                             localStorage.setItem('it_asset_license_types', JSON.stringify(customLicenseTypes));
                             updated = true;
                         }
@@ -2002,15 +2038,18 @@
         }
 
         function populateAllTypeAndLicenseSelects() {
+            const sortedTypes = sortNatural(customDeviceTypes, d => d.label || d.name);
+            const sortedLicenses = sortNatural(customLicenseTypes, l => l.name || l.key);
+
             // Update #cam-type
             const camType = document.getElementById('cam-type');
             if (camType) {
                 const cur = camType.value;
-                camType.innerHTML = customDeviceTypes.map(d => {
+                camType.innerHTML = sortedTypes.map(d => {
                     const tag = (d.category || 'hardware') === 'software' ? ' [Software]' : '';
                     return `<option value="${d.name}">${d.label || d.name}${tag}</option>`;
                 }).join('');
-                if (cur && customDeviceTypes.some(d => d.name === cur)) camType.value = cur;
+                if (cur && sortedTypes.some(d => d.name === cur)) camType.value = cur;
             }
 
             // Update #dev-mgr-filter-type
@@ -2018,8 +2057,16 @@
             if (mgrType) {
                 const cur = mgrType.value;
                 mgrType.innerHTML = '<option value="">ทุกชนิดอุปกรณ์</option>' +
-                    customDeviceTypes.map(d => `<option value="${d.name}">${d.label || d.name}</option>`).join('');
+                    sortedTypes.map(d => `<option value="${d.name}">${d.label || d.name}</option>`).join('');
                 if (cur) mgrType.value = cur;
+            }
+
+            // Update #cam-license-type
+            const camLic = document.getElementById('cam-license-type');
+            if (camLic && sortedLicenses.length > 0) {
+                const curLic = camLic.value;
+                camLic.innerHTML = sortedLicenses.map(l => `<option value="${l.key || l.name}">${l.name} (${l.desc || l.key || ''})</option>`).join('');
+                if (curLic && sortedLicenses.some(l => (l.key === curLic || l.name === curLic))) camLic.value = curLic;
             }
         }
 
@@ -2573,6 +2620,7 @@
                         departmentRecords.push({ _recordId: `local_${departmentRecords.length}`, department: d });
                     }
                 });
+                departments = sortNatural(departments);
             }
             if (maps.length > 0 && !selectedMapId) selectedMapId = String(maps[0].map_id);
             renderMapSelector();
@@ -2585,6 +2633,12 @@
             populateSiteSelects();
             populateMapSelects();
             renderBookmarks();
+
+            // เรียงข้อมูลตัวเลือกใน Dropdown แบบคงที่ (Static Selects) ทุกฟอร์มตาม A-Z, ก-ฮ, 0-9
+            ['dev-mgr-filter-category', 'dev-mgr-filter-status', 'type-filter-category', 'new-type-category', 'new-type-icon', 'maint-mgr-filter-type', 'maint-mgr-filter-status', 'maint-form-type', 'maint-form-status', 'cam-status', 'cam-category'].forEach(id => {
+                sortSelectOptions(id, true);
+            });
+
             lucide.createIcons();
 
             // Check for direct deep-link parameter from QR scan (?asset=... or ?code=... or ?id=...)
@@ -2915,7 +2969,7 @@
                         department: String(name || '').trim()
                     };
                 }).filter(r => r.department);
-                departments = [...new Set(departmentRecords.map(r => r.department))];
+                departments = sortNatural([...new Set(departmentRecords.map(r => r.department))]);
                 if (departments.length > 0) hideAirtableErrorBanner();
             } catch (err) {
                 console.error('Failed to fetch departments:', err);
@@ -2925,16 +2979,16 @@
             if (departments.length === 0 && cameras && cameras.length > 0) {
                 const devDepts = [...new Set(cameras.map(c => c.department || c.group).filter(g => g && g !== 'ไม่มีแผนก'))];
                 if (devDepts.length > 0) {
-                    departments = devDepts;
-                    departmentRecords = devDepts.map((d, i) => ({ _recordId: `local_${i}`, department: d }));
+                    departments = sortNatural(devDepts);
+                    departmentRecords = departments.map((d, i) => ({ _recordId: `local_${i}`, department: d }));
                 }
             }
 
             // Fallback 2: Default standard department list
             if (departments.length === 0) {
                 const defaults = ['บุคคลฯ', 'ผลิต', 'รับวัตถุดิบ', 'สโตร์ฯ', 'เครื่องกล', 'เทคโนโลยีสารสนเทศ', 'แพคกิ้ง', 'สิ่งแวดล้อม', 'ห้องปฏิบัติการ'];
-                departments = defaults;
-                departmentRecords = defaults.map((d, i) => ({ _recordId: `local_${i}`, department: d }));
+                departments = sortNatural(defaults);
+                departmentRecords = departments.map((d, i) => ({ _recordId: `local_${i}`, department: d }));
             }
         }
 
@@ -2953,7 +3007,7 @@
                         name: String(name || '').trim()
                     };
                 }).filter(r => r.name);
-                sites = [...new Set(siteRecords.map(r => r.name))];
+                sites = sortNatural([...new Set(siteRecords.map(r => r.name))]);
             } catch (err) {
                 console.error('Failed to fetch sites:', err);
             }
@@ -2964,8 +3018,8 @@
                 const mapSites = (maps || []).map(m => m.site).filter(Boolean);
                 const combined = [...new Set([...devSites, ...mapSites])];
                 if (combined.length > 0) {
-                    sites = combined;
-                    siteRecords = combined.map((s, idx) => ({ _recordId: `local_site_${idx}`, name: s }));
+                    sites = sortNatural(combined);
+                    siteRecords = sites.map((s, idx) => ({ _recordId: `local_site_${idx}`, name: s }));
                 }
             }
             populateSiteSelects();
@@ -3093,17 +3147,18 @@
                         map_pic: imgUrl
                     };
                 });
+                maps = sortNatural(maps, m => m.map_name || m.map_id);
                 if (maps.length > 0) hideAirtableErrorBanner();
                 console.log(`[it-asset-map] Loaded ${maps.length} maps:`, maps);
             } catch (err) {
                 console.error('Failed to fetch maps:', err);
                 showAirtableErrorBanner(err.message);
                 if (maps.length === 0) {
-                    maps = [
+                    maps = sortNatural([
                         { _recordId: '1', map_id: '1', map_name: 'CM2 ชั้น 1', map_url: DEFAULT_MAP_IMAGES['1'], map_pic: DEFAULT_MAP_IMAGES['1'] },
                         { _recordId: '4', map_id: '4', map_name: 'CM2 ชั้น 2', map_url: DEFAULT_MAP_IMAGES['4'], map_pic: DEFAULT_MAP_IMAGES['4'] },
                         { _recordId: '13', map_id: '13', map_name: 'CM1', map_url: DEFAULT_MAP_IMAGES['13'], map_pic: DEFAULT_MAP_IMAGES['13'] }
-                    ];
+                    ], m => m.map_name || m.map_id);
                 }
             }
         }
@@ -3988,11 +4043,11 @@
             const mapLabel = currentMapLabel ? (currentMapLabel.map_name || `แผนผัง ${currentMapLabel.map_id}`) : (cam.map_id || '-');
 
             if (isAdmin) {
-                let deptOpts = departments.map(d => `<option value="${d}" ${cam.department === d ? 'selected' : ''}>${d}</option>`).join('');
-                let siteOpts = sites.map(s => `<option value="${s}" ${cam.site === s ? 'selected' : ''}>${s}</option>`).join('');
-                let mapOpts = maps.map(m => `<option value="${m.map_id}" ${(String(m.map_id) === String(cam.map_id) || String(m._recordId) === String(cam.map_id)) ? 'selected' : ''}>${m.map_name || 'แผนผัง ' + m.map_id}</option>`).join('');
-                let typeOpts = customDeviceTypes.map(t => `<option value="${t.name}" ${devType === t.name ? 'selected' : ''}>${t.label || t.name}</option>`).join('');
-                let licenseOpts = customLicenseTypes.map(l => `<option value="${l.key}" ${String(devLicense).toLowerCase() === l.key.toLowerCase() ? 'selected' : ''}>${l.name} (${l.desc || l.key})</option>`).join('');
+                let deptOpts = sortNatural(departments).map(d => `<option value="${d}" ${cam.department === d ? 'selected' : ''}>${d}</option>`).join('');
+                let siteOpts = sortNatural(sites).map(s => `<option value="${s}" ${cam.site === s ? 'selected' : ''}>${s}</option>`).join('');
+                let mapOpts = sortNatural(maps, m => m.map_name || m.map_id).map(m => `<option value="${m.map_id}" ${(String(m.map_id) === String(cam.map_id) || String(m._recordId) === String(cam.map_id)) ? 'selected' : ''}>${m.map_name || 'แผนผัง ' + m.map_id}</option>`).join('');
+                let typeOpts = sortNatural(customDeviceTypes, t => t.label || t.name).map(t => `<option value="${t.name}" ${devType === t.name ? 'selected' : ''}>${t.label || t.name}</option>`).join('');
+                let licenseOpts = sortNatural(customLicenseTypes, l => l.name || l.key).map(l => `<option value="${l.key}" ${String(devLicense).toLowerCase() === l.key.toLowerCase() ? 'selected' : ''}>${l.name} (${l.desc || l.key})</option>`).join('');
 
                 content.innerHTML = `
                     <div class="flex items-center justify-between mb-4 border-b border-slate-700 pb-3">
@@ -4154,6 +4209,8 @@
                     </div>`;
             }
             openModal('modal-detail');
+            sortSelectOptions('detail-status', false);
+            sortSelectOptions('detail-category', false);
             lucide.createIcons();
         }
 
@@ -4920,8 +4977,7 @@
             const u = allUsers.find(u => String(u._recordId) === String(recordId));
             if (!u) return;
             const current = parseSites(u.site);
-            const options = [...sites];
-            current.forEach(s => { if (!options.includes(s)) options.push(s); });
+            const options = sortNatural([...new Set([...sites, ...current])]);
             document.getElementById('user-sites-rec-id').value = recordId;
             document.getElementById('user-sites-name').textContent = `ผู้ใช้: ${userName}`;
             if (options.length === 0) {
@@ -4952,8 +5008,8 @@
             const u = allUsers.find(u => String(u._recordId) === String(recordId));
             if (!u) return;
             const current = parseDepartments(u.department);
-            const options = ['admin', ...departments.filter(d => d !== 'admin')];
-            current.forEach(d => { if (!options.includes(d)) options.push(d); });
+            const allDepts = [...new Set([...departments, ...current])].filter(d => d !== 'admin');
+            const options = ['admin', ...sortNatural(allDepts)];
             document.getElementById('user-depts-rec-id').value = recordId;
             document.getElementById('user-depts-name').textContent = `ผู้ใช้: ${userName}`;
             document.getElementById('user-depts-list').innerHTML = options.map(d => `
@@ -4970,7 +5026,8 @@
             const current = parseMapUser(u.map_user);
             document.getElementById('user-maps-rec-id').value = recordId;
             document.getElementById('user-maps-subtitle').textContent = `ผู้ใช้: ${userName}`;
-            document.getElementById('user-maps-list').innerHTML = maps.map(m => {
+            const sortedMaps = sortNatural(maps, m => m.map_name || m.map_id);
+            document.getElementById('user-maps-list').innerHTML = sortedMaps.map(m => {
                 const mapIdStr = String(m.map_id);
                 const checked = current.includes(mapIdStr);
                 const label = m.map_name || `แผนผัง ${m.map_id}`;
@@ -5123,7 +5180,7 @@
             if (typeSel) {
                 const cur = typeSel.value;
                 typeSel.innerHTML = '<option value="">ทุกชนิดอุปกรณ์</option>';
-                DEVICE_TYPES.forEach(t => {
+                sortNatural(DEVICE_TYPES).forEach(t => {
                     const opt = document.createElement('option');
                     opt.value = t;
                     opt.textContent = t;
@@ -5136,7 +5193,7 @@
             if (mapSel) {
                 const cur = mapSel.value;
                 mapSel.innerHTML = '<option value="">ทุกแผนผัง</option>';
-                maps.forEach(m => {
+                sortNatural(maps, m => m.map_name || m.map_id).forEach(m => {
                     const opt = document.createElement('option');
                     opt.value = m.map_id;
                     opt.textContent = m.map_name || `แผนผัง ${m.map_id}`;
@@ -5879,7 +5936,8 @@
             const sel = document.getElementById('maint-form-device-select');
             if (!sel) return;
             sel.innerHTML = '<option value="">-- เลือกอุปกรณ์ในระบบ --</option>';
-            cameras.forEach(c => {
+            const sortedCameras = sortNatural(cameras, c => c.asset_code || c.id || '');
+            sortedCameras.forEach(c => {
                 const opt = document.createElement('option');
                 const code = c.asset_code || c.id || '';
                 opt.value = code;
