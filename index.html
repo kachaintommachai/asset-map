@@ -494,6 +494,10 @@
                         <option value="Repair">ส่งซ่อม (Repair)</option>
                         <option value="Inactive">ปลดประจำการ (Inactive)</option>
                     </select>
+                    <select id="dev-mgr-sort" onchange="renderDeviceManagerList()" class="bg-slate-700 border border-slate-600 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        <option value="code-asc">รหัสทรัพย์สิน (A → Z)</option>
+                        <option value="code-desc">รหัสทรัพย์สิน (Z → A)</option>
+                    </select>
                 </div>
             </div>
 
@@ -504,7 +508,12 @@
                         <thead class="bg-slate-900/90 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-700 sticky top-0 backdrop-blur-sm z-10">
                             <tr>
                                 <th class="py-3 px-3 w-12 text-center">รูป</th>
-                                <th class="py-3 px-3">รหัสทรัพย์สิน</th>
+                                <th class="py-3 px-3 cursor-pointer select-none hover:text-white transition-colors" onclick="toggleDeviceManagerCodeSort()" title="คลิกเพื่อสลับการจัดเรียง A-Z / Z-A">
+                                    <div class="inline-flex items-center gap-1">
+                                        <span>รหัสทรัพย์สิน</span>
+                                        <i id="dev-mgr-sort-icon" data-lucide="arrow-up-a-z" class="w-3.5 h-3.5 text-emerald-400"></i>
+                                    </div>
+                                </th>
                                 <th class="py-3 px-3">ชื่ออุปกรณ์ / ผู้ถือครอง</th>
                                 <th class="py-3 px-3">ชนิด & ยี่ห้อ</th>
                                 <th class="py-3 px-3">แผนก</th>
@@ -4571,6 +4580,14 @@
             }
         }
 
+        function toggleDeviceManagerCodeSort() {
+            const sortSel = document.getElementById('dev-mgr-sort');
+            if (sortSel) {
+                sortSel.value = sortSel.value === 'code-desc' ? 'code-asc' : 'code-desc';
+            }
+            renderDeviceManagerList();
+        }
+
         function renderDeviceManagerList() {
             const tbody = document.getElementById('dev-mgr-tbody');
             if (!tbody) return;
@@ -4619,6 +4636,22 @@
 
             if (filterStatus) {
                 list = list.filter(c => (c.status || 'Active').toLowerCase() === filterStatus.toLowerCase());
+            }
+
+            const sortOrder = document.getElementById('dev-mgr-sort')?.value || 'code-asc';
+
+            // Sorting by Asset Code (A-Z / Z-A)
+            list.sort((a, b) => {
+                const valA = String(a.asset_code || a.account_no || a.id || '').trim();
+                const valB = String(b.asset_code || b.account_no || b.id || '').trim();
+                const cmp = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+                return sortOrder === 'code-desc' ? -cmp : cmp;
+            });
+
+            // Update sort icon if present
+            const sortIcon = document.getElementById('dev-mgr-sort-icon');
+            if (sortIcon) {
+                sortIcon.setAttribute('data-lucide', sortOrder === 'code-desc' ? 'arrow-down-z-a' : 'arrow-up-a-z');
             }
 
             // Update badge & footer count
