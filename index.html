@@ -399,6 +399,16 @@
                     </button>
                 </div>
 
+                <!-- Site Selector (Filter by Site) -->
+                <div id="sidebar-site-filter-container" class="p-3 border-b border-slate-700 shrink-0">
+                    <label for="sidebar-filter-site" class="text-xs text-slate-400 font-medium uppercase tracking-wider flex items-center justify-between mb-1.5">
+                        <span class="flex items-center gap-1"><i data-lucide="building-2" class="w-3.5 h-3.5 text-cyan-400"></i> ไซต์ / สาขา (Site)</span>
+                    </label>
+                    <select id="sidebar-filter-site" onchange="handleSidebarSiteFilterChange(this.value)" class="w-full bg-slate-700 border border-slate-600 text-slate-200 text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 cursor-pointer">
+                        <option value="">ทุกไซต์ (All Sites)</option>
+                    </select>
+                </div>
+
                 <!-- Map Selector -->
                 <div class="p-3 border-b border-slate-700 shrink-0">
                     <label class="text-xs text-slate-400 font-medium uppercase tracking-wider flex items-center justify-between">
@@ -560,6 +570,9 @@
                     <input type="text" id="dev-mgr-search" oninput="renderDeviceManagerList()" placeholder="ค้นหารหัส, ชื่ออุปกรณ์, ผู้ถือครอง, IP, Serial..." class="w-full pl-9 pr-3 py-2 bg-slate-700/90 border border-slate-600 rounded-xl text-white text-xs placeholder-slate-400 focus:outline-none focus:border-emerald-500">
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
+                    <select id="dev-mgr-filter-site" onchange="renderDeviceManagerList()" class="bg-slate-700 border border-slate-600 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        <option value="">ทุกไซต์ (All Sites)</option>
+                    </select>
                     <select id="dev-mgr-filter-dept" onchange="renderDeviceManagerList()" class="bg-slate-700 border border-slate-600 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
                         <option value="">ทุกแผนก</option>
                     </select>
@@ -607,6 +620,7 @@
                                 <th class="py-3 px-3">ชื่ออุปกรณ์ / ผู้ถือครอง</th>
                                 <th class="py-3 px-3">ชนิด & ยี่ห้อ</th>
                                 <th class="py-3 px-3">แผนก</th>
+                                <th class="py-3 px-3">ไซต์ (Site)</th>
                                 <th class="py-3 px-3">IP / MAC</th>
                                 <th class="py-3 px-3">แผนผัง / พิกัด</th>
                                 <th class="py-3 px-3 text-center">สถานะ</th>
@@ -706,9 +720,15 @@
                     </div>
                 </div>
 
-                <div>
-                    <label for="cam-department" class="text-xs text-slate-400">แผนก / หน่วยงานที่ใช้งาน</label>
-                    <select id="cam-department" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label for="cam-department" class="text-xs text-slate-400">แผนก / หน่วยงานที่ใช้งาน</label>
+                        <select id="cam-department" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
+                    </div>
+                    <div>
+                        <label for="cam-site" class="text-xs text-slate-400">ไซต์ / สาขาที่ตั้ง (Site)</label>
+                        <select id="cam-site" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -930,6 +950,10 @@
                         </div>
                     </div>
                     <div>
+                        <label class="text-xs text-slate-400">ไซต์ / สาขา (Site)</label>
+                        <select id="new-map-site" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
+                    </div>
+                    <div>
                         <label class="text-xs text-slate-400">ไฟล์ภาพแผนผัง</label>
                         <label class="flex items-center gap-2 mt-1 px-3 py-2 bg-slate-700 border border-slate-600 border-dashed rounded-lg cursor-pointer hover:border-emerald-500 transition-all">
                             <i data-lucide="upload" class="w-4 h-4 text-slate-400"></i>
@@ -955,7 +979,7 @@
             <div class="border-t border-slate-700 pt-4">
                 <h4 class="text-sm font-medium mb-3 text-slate-200">เพิ่มผู้ใช้ใหม่</h4>
                 <form id="add-user-form" class="space-y-2" onsubmit="addUser(event)">
-                    <div class="grid grid-cols-3 gap-2">
+                    <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="text-xs text-slate-400">ชื่อผู้ใช้</label>
                             <input type="text" id="new-user-name" required class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
@@ -969,16 +993,38 @@
                                 </button>
                             </div>
                         </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div>
                             <label class="text-xs text-slate-400">แผนก (เลือกได้หลายแผนก)</label>
                             <select id="new-user-dept" multiple size="4" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
+                            <p class="text-[10px] text-slate-500 mt-0.5">กด Ctrl/Cmd เพื่อเลือกหลายแผนก</p>
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400">ไซต์ / สาขาที่เข้าถึงได้ (เลือกได้หลายไซต์)</label>
+                            <select id="new-user-site" multiple size="4" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
+                            <p class="text-[10px] text-slate-500 mt-0.5">* ไม่เลือก = ดูได้ทุกไซต์</p>
                         </div>
                     </div>
-                    <p class="text-[11px] text-slate-500">กด Ctrl (หรือ Cmd) เพื่อเลือกหลายแผนก</p>
-                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-medium transition-all">เพิ่มผู้ใช้</button>
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-medium transition-all mt-2">เพิ่มผู้ใช้</button>
                 </form>
             </div>
             <button onclick="closeModal('modal-users')" class="w-full mt-3 bg-slate-600 hover:bg-slate-500 text-white py-2 rounded-lg text-sm font-medium transition-all">ปิด</button>
+        </div>
+    </div>
+
+    <!-- User Sites Modal -->
+    <div id="modal-user-sites" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
+        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-sm mx-4 border border-slate-700 shadow-2xl">
+            <h3 class="text-lg font-semibold mb-1">🏢 ไซต์ / สาขาที่ดูได้</h3>
+            <p id="user-sites-name" class="text-xs text-slate-400 mb-3"></p>
+            <input type="hidden" id="user-sites-rec-id">
+            <div id="user-sites-list" class="space-y-1 max-h-64 overflow-y-auto mb-4"></div>
+            <p class="text-[11px] text-slate-400 mb-4">* ไม่เลือกเลย = สามารถดูได้ทุกไซต์</p>
+            <div class="flex gap-2">
+                <button onclick="saveUserSites()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-medium transition-all">บันทึก</button>
+                <button onclick="closeModal('modal-user-sites')" class="flex-1 bg-slate-600 hover:bg-slate-500 text-white py-2 rounded-lg text-sm font-medium transition-all">ยกเลิก</button>
+            </div>
         </div>
     </div>
 
@@ -1594,9 +1640,12 @@
         let cameras = []; // เก็บอุปกรณ์ทั้งหมด (รักษาตัวแปรชื่อเดิม cameras เพื่อ backward compatibility)
         let maps = [];
         let departments = [];
+        let sites = [];
+        let siteRecords = [];
         let maintenances = []; // เก็บประวัติการซื้อและการซ่อมบำรุง
         let currentUser = null;
         let selectedMapId = null;
+        let selectedSiteFilter = '';
         let activeGroups = new Set();
         let selectedTypeFilter = 'ALL';
         let dragTarget = null;
@@ -1611,6 +1660,12 @@
         ];
         let currentZoom = 100;
         let allUsers = [];
+
+        function parseSites(value) {
+            if (!value) return [];
+            if (Array.isArray(value)) return value.map(v => typeof v === 'object' && v.name ? v.name : String(v).trim()).filter(Boolean);
+            return String(value).split(/[,;]+/).map(s => s.trim()).filter(Boolean);
+        }
 
         function escapeHtml(str) {
             if (str == null) return '';
@@ -2386,6 +2441,8 @@
                         name: userName,
                         department: user.department || '',
                         departments: depts,
+                        site: user.site || '',
+                        sites: parseSites(user.site),
                         isAdmin: depts.includes('admin') || (userName || '').toLowerCase() === 'admin',
                         allowedMaps: parseMapUser(user.map_user),
                         extraCameras: parseCameraUser(user.camera_user)
@@ -2393,8 +2450,9 @@
                     document.getElementById('login-screen').classList.add('hidden');
                     document.getElementById('app').classList.remove('hidden');
                     document.getElementById('user-display').textContent = currentUser.name;
-                    document.getElementById('dept-display').textContent = currentUser.isAdmin ? '(Admin)'
-                        : `(${currentUser.departments.join(', ')}${currentUser.extraCameras.length ? ` +${currentUser.extraCameras.length} อุปกรณ์นอกแผนก` : ''})`;
+                    const siteText = currentUser.sites.length ? ` [ไซต์: ${currentUser.sites.join(', ')}]` : '';
+                    document.getElementById('dept-display').textContent = (currentUser.isAdmin ? '(Admin)'
+                        : `(${currentUser.departments.join(', ')}${currentUser.extraCameras.length ? ` +${currentUser.extraCameras.length} อุปกรณ์นอกแผนก` : ''})`) + siteText;
                     
                     const adminBtn = document.getElementById('admin-menu-btn');
                     const sideAdminBtn = document.getElementById('sidebar-admin-dev-btn');
@@ -2481,6 +2539,12 @@
                     await fetchTypesFromTable().catch(e => console.warn('fetchTypes error:', e));
                 }
 
+                if (batchData.site && batchData.site.records) {
+                    await fetchSites(batchData.site.records).catch(e => console.warn('fetchSites error:', e));
+                } else {
+                    await fetchSites().catch(e => console.warn('fetchSites error:', e));
+                }
+
                 if (batchData.repair && batchData.repair.records) {
                     await fetchMaintenances(batchData.repair.records).catch(e => console.warn('fetchMaintenances error:', e));
                 } else {
@@ -2493,6 +2557,8 @@
                 await fetchDevices().catch(e => console.warn('fetchDevices error:', e));
                 await new Promise(r => setTimeout(r, 500));
                 await fetchDepartments().catch(e => console.warn('fetchDepartments error:', e));
+                await new Promise(r => setTimeout(r, 500));
+                await fetchSites().catch(e => console.warn('fetchSites error:', e));
                 await new Promise(r => setTimeout(r, 500));
                 await fetchMaps().catch(e => console.warn('fetchMaps error:', e));
                 await new Promise(r => setTimeout(r, 500));
@@ -2516,6 +2582,7 @@
             renderCameraList();
             renderGroupFilter();
             populateDepartmentSelects();
+            populateSiteSelects();
             populateMapSelects();
             renderBookmarks();
             lucide.createIcons();
@@ -2787,6 +2854,11 @@
                     const devSerial = f.serial || f.Serial || f.serial_number || '';
                     const devIp = f.ip || f.IP || f.ip_address || '';
                     const devMac = f.mac_address || f.MAC || f.mac || '';
+                    let devSite = f.site || f.Site || f.site_name || f['สถานที่'] || f['สาขา'] || f['ไซต์'] || '';
+                    if (Array.isArray(devSite)) {
+                        devSite = devSite.length > 0 ? (typeof devSite[0] === 'object' && devSite[0].name ? devSite[0].name : String(devSite[0])) : '';
+                    }
+                    devSite = String(devSite || '').trim();
 
                     return {
                         _recordId: String(rec.id),
@@ -2807,6 +2879,7 @@
                         serial: devSerial,
                         department: dept,
                         group: dept || 'ไม่มีแผนก',
+                        site: devSite,
                         ip: devIp,
                         mac_address: devMac,
                         status: devStatus,
@@ -2863,6 +2936,84 @@
                 departments = defaults;
                 departmentRecords = defaults.map((d, i) => ({ _recordId: `local_${i}`, department: d }));
             }
+        }
+
+        async function fetchSites(preloadedRecords) {
+            try {
+                const records = preloadedRecords || await apiGetAll('site');
+                siteRecords = (records || []).map(r => {
+                    const f = sanitizeFields(r.fields || {});
+                    let name = f.name || f.Name || f.site || f.Site || f['ไซต์'] || f['สาขา'] || f['สถานที่'] || '';
+                    if (!name && typeof f === 'object') {
+                        const vals = Object.values(f).filter(v => typeof v === 'string' && v.trim() && !v.startsWith('http') && !v.startsWith('rec'));
+                        if (vals.length > 0) name = vals[0];
+                    }
+                    return {
+                        _recordId: String(r.id),
+                        name: String(name || '').trim()
+                    };
+                }).filter(r => r.name);
+                sites = [...new Set(siteRecords.map(r => r.name))];
+            } catch (err) {
+                console.error('Failed to fetch sites:', err);
+            }
+
+            // Fallback: Extract from devices and maps if site table is empty
+            if (sites.length === 0) {
+                const devSites = (cameras || []).map(c => c.site).filter(Boolean);
+                const mapSites = (maps || []).map(m => m.site).filter(Boolean);
+                const combined = [...new Set([...devSites, ...mapSites])];
+                if (combined.length > 0) {
+                    sites = combined;
+                    siteRecords = combined.map((s, idx) => ({ _recordId: `local_site_${idx}`, name: s }));
+                }
+            }
+            populateSiteSelects();
+        }
+
+        function populateSiteSelects() {
+            // Dropdowns that use site list
+            const selectIds = [
+                { id: 'new-user-site', isUser: true },
+                { id: 'cam-site', isFilter: false, placeholder: '-- เลือกไซต์ / สาขา --' },
+                { id: 'detail-site', isFilter: false, placeholder: '-- เลือกไซต์ / สาขา --' },
+                { id: 'new-map-site', isFilter: false, placeholder: '-- เลือกไซต์ (ถ้ามี) --' },
+                { id: 'dev-mgr-filter-site', isFilter: true, placeholder: 'ทุกไซต์ (All Sites)' },
+                { id: 'sidebar-filter-site', isFilter: true, placeholder: 'ทุกไซต์ (All Sites)' }
+            ];
+
+            selectIds.forEach(cfg => {
+                const sel = document.getElementById(cfg.id);
+                if (!sel) return;
+                const curVal = sel.value;
+                if (cfg.isUser) {
+                    sel.innerHTML = '';
+                    sites.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s;
+                        opt.textContent = s;
+                        sel.appendChild(opt);
+                    });
+                } else if (cfg.isFilter) {
+                    sel.innerHTML = `<option value="">${cfg.placeholder}</option>`;
+                    sites.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s;
+                        opt.textContent = s;
+                        sel.appendChild(opt);
+                    });
+                    sel.value = curVal || '';
+                } else {
+                    sel.innerHTML = `<option value="">${cfg.placeholder}</option>`;
+                    sites.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s;
+                        opt.textContent = s;
+                        sel.appendChild(opt);
+                    });
+                    sel.value = curVal || '';
+                }
+            });
         }
 
         // ─── DEFAULT BUILT-IN FLOOR PLANS ───
@@ -2927,10 +3078,17 @@
                         LocalImageStore.save(`map_${r.id}`, imgUrl);
                     }
 
+                    let mapSite = f.site || f.Site || f.site_name || f['สถานที่'] || f['สาขา'] || f['ไซต์'] || '';
+                    if (Array.isArray(mapSite)) {
+                        mapSite = mapSite.length > 0 ? (typeof mapSite[0] === 'object' && mapSite[0].name ? mapSite[0].name : String(mapSite[0])) : '';
+                    }
+                    mapSite = String(mapSite || '').trim();
+
                     return {
                         _recordId: String(r.id),
                         map_id: String(mId),
                         map_name: displayName,
+                        site: mapSite,
                         map_url: imgUrl,
                         map_pic: imgUrl
                     };
@@ -3170,10 +3328,20 @@
         }
 
         function getVisibleMaps() {
-            if (!currentUser || currentUser.isAdmin || !currentUser.allowedMaps || currentUser.allowedMaps.length === 0) {
-                return maps;
+            let list = maps;
+            // 1. กรองตาม Site ของผู้ใช้ (ถ้าไม่ใช่ Admin และมีการกำหนด site)
+            if (currentUser && !currentUser.isAdmin && currentUser.sites && currentUser.sites.length > 0) {
+                list = list.filter(m => !m.site || currentUser.sites.includes(m.site));
             }
-            return maps.filter(m => currentUser.allowedMaps.includes(String(m.map_id)) || currentUser.allowedMaps.includes(String(m._recordId)));
+            // 2. กรองตามตัวเลือก Site Filter บนแถบควบคุม/Sidebar (ถ้ามีเลือกไว้)
+            if (selectedSiteFilter) {
+                list = list.filter(m => !m.site || m.site === selectedSiteFilter);
+            }
+            // 3. กรองตาม allowedMaps เดิม
+            if (!currentUser || currentUser.isAdmin || !currentUser.allowedMaps || currentUser.allowedMaps.length === 0) {
+                return list;
+            }
+            return list.filter(m => currentUser.allowedMaps.includes(String(m.map_id)) || currentUser.allowedMaps.includes(String(m._recordId)));
         }
 
         // Helper: Test if a device belongs to a given map
@@ -3248,6 +3416,7 @@
                 btn.innerHTML = `
                     <i data-lucide="map" class="w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-slate-400'}"></i>
                     <span>${label}</span>
+                    ${m.site ? `<span class="text-[9px] bg-slate-700 text-cyan-300 px-1 py-0.2 rounded">${m.site}</span>` : ''}
                     <span class="${isSelected ? 'bg-emerald-700 text-emerald-100' : 'bg-slate-700 text-slate-400'} text-[10px] px-1.5 py-0.2 rounded-full font-semibold">${devCount}</span>
                 `;
                 btn.onclick = (e) => {
@@ -3274,6 +3443,25 @@
             }
         }
 
+        function handleSidebarSiteFilterChange(siteVal) {
+            selectedSiteFilter = siteVal || '';
+            const visibleMaps = getVisibleMaps();
+            if (visibleMaps.length > 0) {
+                if (!visibleMaps.some(m => String(m.map_id) === String(selectedMapId) || String(m._recordId) === String(selectedMapId))) {
+                    selectedMapId = String(visibleMaps[0].map_id);
+                }
+            } else {
+                selectedMapId = null;
+            }
+            activeGroups.clear();
+            renderMapSelector();
+            showFloorPlan();
+            renderTypeFilter();
+            renderCameras();
+            renderCameraList();
+            renderGroupFilter();
+        }
+
         // ─── DEVICE FILTERING ───
         function parseCameraUser(value) {
             if (!value) return [];
@@ -3290,12 +3478,22 @@
         function getVisibleCameras() {
             if (!currentUser) return [];
             let cams = cameras.filter(c => isCameraOnMap(c, selectedMapId));
+            // กรองตามสิทธิ์ Site ของผู้ใช้
+            if (!currentUser.isAdmin && currentUser.sites && currentUser.sites.length > 0) {
+                cams = cams.filter(c => !c.site || currentUser.sites.includes(c.site));
+            }
+            // กรองตามสิทธิ์แผนกเดิม
             if (!currentUser.isAdmin) cams = cams.filter(c => currentUser.departments.includes(c.department) || isExtraCamera(c));
             return cams;
         }
 
         function getFilteredCameras() {
             let list = getVisibleCameras();
+
+            // กรองตาม Site ที่เลือกไว้ใน Filter
+            if (selectedSiteFilter) {
+                list = list.filter(c => !c.site || c.site === selectedSiteFilter);
+            }
             
             // กรองตามแผนก
             if (activeGroups.size > 0) {
@@ -3791,6 +3989,7 @@
 
             if (isAdmin) {
                 let deptOpts = departments.map(d => `<option value="${d}" ${cam.department === d ? 'selected' : ''}>${d}</option>`).join('');
+                let siteOpts = sites.map(s => `<option value="${s}" ${cam.site === s ? 'selected' : ''}>${s}</option>`).join('');
                 let mapOpts = maps.map(m => `<option value="${m.map_id}" ${(String(m.map_id) === String(cam.map_id) || String(m._recordId) === String(cam.map_id)) ? 'selected' : ''}>${m.map_name || 'แผนผัง ' + m.map_id}</option>`).join('');
                 let typeOpts = customDeviceTypes.map(t => `<option value="${t.name}" ${devType === t.name ? 'selected' : ''}>${t.label || t.name}</option>`).join('');
                 let licenseOpts = customLicenseTypes.map(l => `<option value="${l.key}" ${String(devLicense).toLowerCase() === l.key.toLowerCase() ? 'selected' : ''}>${l.name} (${l.desc || l.key})</option>`).join('');
@@ -3841,6 +4040,18 @@
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div><label class="text-xs text-slate-400">ไซต์ / สาขาที่ตั้ง (Site)</label><select id="detail-site" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"><option value="">-- ไม่ระบุไซต์ --</option>${siteOpts}</select></div>
+                            <div><label class="text-xs text-slate-400">สถานะ</label>
+                                <select id="detail-status" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                                    <option value="Active" ${cam.status==='Active'?'selected':''}>ใช้งานอยู่ (Active)</option>
+                                    <option value="Spare" ${cam.status==='Spare'?'selected':''}>สำรอง (Spare)</option>
+                                    <option value="Repair" ${cam.status==='Repair'?'selected':''}>ซ่อมบำรุง (Repair)</option>
+                                    <option value="Retired" ${cam.status==='Retired'?'selected':''}>จำหน่ายออก (Retired)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div id="detail-map-container" class="${devCategory === 'software' ? 'hidden' : ''}">
                                 <label class="text-xs text-slate-400">แผนผังที่ติดตั้ง (ผังห้อง)</label>
                                 <select id="detail-map-id" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">${mapOpts}</select>
@@ -3854,14 +4065,6 @@
                                 </div>
                                 <select id="detail-license-type" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-amber-300 font-medium text-xs focus:outline-none focus:border-emerald-500">
                                     ${licenseOpts}
-                                </select>
-                            </div>
-                            <div><label class="text-xs text-slate-400">สถานะ</label>
-                                <select id="detail-status" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
-                                    <option value="Active" ${cam.status==='Active'?'selected':''}>ใช้งานอยู่ (Active)</option>
-                                    <option value="Spare" ${cam.status==='Spare'?'selected':''}>สำรอง (Spare)</option>
-                                    <option value="Repair" ${cam.status==='Repair'?'selected':''}>ซ่อมบำรุง (Repair)</option>
-                                    <option value="Retired" ${cam.status==='Retired'?'selected':''}>จำหน่ายออก (Retired)</option>
                                 </select>
                             </div>
                         </div>
@@ -3939,7 +4142,8 @@
                             <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">IP Address</span><span class="text-right font-mono text-emerald-400">${cam.ip || '-'}</span></div>
                             <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">MAC Address</span><span class="text-right font-mono text-[11px] text-slate-400">${cam.mac_address || '-'}</span></div>
                         `}
-                        <div class="flex justify-between py-1"><span class="text-slate-400">แผนก</span><span class="text-right font-medium text-emerald-400">${cam.department || '-'}</span></div>
+                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">แผนก</span><span class="text-right font-medium text-emerald-400">${cam.department || '-'}</span></div>
+                        <div class="flex justify-between py-1"><span class="text-slate-400">ไซต์ / สาขา (Site)</span><span class="text-right font-medium text-cyan-300">${cam.site || '-'}</span></div>
                     </div>
                     ${imageHtml}
                     ${maintHtml}
@@ -4075,6 +4279,7 @@
                 serial: document.getElementById('detail-serial').value.trim(),
                 status: document.getElementById('detail-status').value,
                 department: document.getElementById('detail-department').value,
+                site: document.getElementById('detail-site') ? document.getElementById('detail-site').value.trim() : '',
                 ip: category === 'software' ? '' : document.getElementById('detail-ip').value.trim(),
                 mac_address: category === 'software' ? '' : document.getElementById('detail-mac').value.trim(),
                 image_url: imageUrl,
@@ -4082,6 +4287,7 @@
                 Image: imageUrl,
                 go2rtc_link: imageUrl
             };
+            if (fields.site) fields.site = fields.site;
             if (devMapId) fields.map_id = devMapId;
             if (category === 'software' && licenseType) {
                 fields.license_type = licenseType;
@@ -4224,6 +4430,7 @@
             toggleDeviceCategoryUI('cam', 'hardware');
             removeDeviceImagePreview();
             populateDepartmentSelects();
+            populateSiteSelects();
             populateMapSelects();
             if (selectedMapId) document.getElementById('cam-map-id').value = selectedMapId;
             openModal('modal-camera');
@@ -4265,8 +4472,10 @@
             }
 
             populateDepartmentSelects();
+            populateSiteSelects();
             populateMapSelects();
             document.getElementById('cam-department').value = cam.department || '';
+            if (document.getElementById('cam-site')) document.getElementById('cam-site').value = cam.site || '';
             const curMapObj = maps.find(m => String(m.map_id) === String(cam.map_id) || String(m._recordId) === String(cam.map_id));
             document.getElementById('cam-map-id').value = curMapObj ? curMapObj.map_id : (cam.map_id || '');
             openModal('modal-camera');
@@ -4390,6 +4599,7 @@
             const category = document.getElementById('cam-category') ? document.getElementById('cam-category').value : 'hardware';
             const licenseType = document.getElementById('cam-license-type') ? document.getElementById('cam-license-type').value : '';
             const devDept = document.getElementById('cam-department').value || '';
+            const devSite = document.getElementById('cam-site') ? document.getElementById('cam-site').value.trim() : '';
             const devMapId = category === 'software' ? '' : (document.getElementById('cam-map-id').value || selectedMapId || '1');
 
             if (imageUrl) {
@@ -4424,6 +4634,7 @@
             }
             if (holder) fields.holder = holder;
             if (devDept) fields.department = devDept;
+            if (devSite) fields.site = devSite;
             if (devMapId) fields.map_id = devMapId;
             if (category === 'software' && licenseType) {
                 fields.license_type = licenseType;
@@ -4639,7 +4850,8 @@
                     password: r.fields.password || '',
                     department: r.fields.department || '',
                     camera_user: r.fields.camera_user || '',
-                    map_user: r.fields.map_user || ''
+                    map_user: r.fields.map_user || '',
+                    site: r.fields.site || r.fields.Site || ''
                 }));
             } catch (err) { console.error('Failed to fetch users:', err); }
         }
@@ -4647,6 +4859,7 @@
         async function openUserManager() {
             await fetchAllUsers();
             populateDepartmentSelects();
+            populateSiteSelects();
             renderUsersList();
             openModal('modal-users');
         }
@@ -4660,15 +4873,21 @@
                 const extras = parseCameraUser(u.camera_user);
                 const depts = parseDepartments(u.department);
                 const userMaps = parseMapUser(u.map_user);
+                const userSites = parseSites(u.site);
                 const mapNames = userMaps.length ? maps.filter(m => userMaps.includes(String(m.map_id))).map(m => m.map_name || ('แผนผัง ' + m.map_id)).join(', ') : 'ทุกแผนผัง';
+                const siteNames = userSites.length ? userSites.join(', ') : 'ทุกไซต์';
                 div.innerHTML = `
                     <div class="flex-1 min-w-0">
-                        <div class="text-sm font-semibold text-white">${u.name}</div>
+                        <div class="text-sm font-semibold text-white flex items-center gap-2">
+                            <span>${u.name}</span>
+                            ${u.site ? `<span class="text-[10px] bg-cyan-900/60 text-cyan-300 border border-cyan-700/50 px-1.5 py-0.2 rounded font-normal">🏢 ${siteNames}</span>` : '<span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.2 rounded font-normal">🏢 ทุกไซต์</span>'}
+                        </div>
                         <div class="text-xs text-slate-300 truncate" title="แผนก: ${depts.join(', ')}">แผนก: ${depts.join(', ') || '-'}</div>
                         <div class="text-[11px] text-emerald-400 truncate">🗺️ แผนผัง: ${mapNames}</div>
                         ${extras.length ? `<div class="text-[11px] text-amber-400 truncate">+ อุปกรณ์นอกแผนก: ${extras.join(', ')}</div>` : ''}
                     </div>
                     <button onclick="editUserDepartments('${u._recordId}','${u.name}')" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded transition-all">แผนก</button>
+                    <button onclick="editUserSites('${u._recordId}','${u.name}')" class="text-xs bg-cyan-700/80 hover:bg-cyan-600 text-white px-2 py-1 rounded transition-all">ไซต์</button>
                     <button onclick="editUserMaps('${u._recordId}','${u.name}')" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded transition-all">แผนผัง</button>
                     <button onclick="changePassword('${u._recordId}','${u.name}')" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded transition-all">รหัสผ่าน</button>
                     <button onclick="requestDelete('${u._recordId}','user')" class="text-xs bg-red-600/80 hover:bg-red-500 text-white px-2 py-1 rounded transition-all">ลบ</button>
@@ -4682,14 +4901,50 @@
             const name = document.getElementById('new-user-name').value.trim();
             const pass = document.getElementById('new-user-pass').value;
             const depts = getSelectedDepartments('new-user-dept');
+            const siteSel = document.getElementById('new-user-site');
+            const pickedSites = siteSel ? Array.from(siteSel.selectedOptions).map(o => o.value).filter(Boolean) : [];
             if (!name || !pass) return;
             if (depts.length === 0) { alert('กรุณาเลือกแผนกอย่างน้อย 1 แผนก'); return; }
             try {
-                await apiCreate('user', { Name: name, password: pass, department: depts.join(',') });
+                const payload = { Name: name, password: pass, department: depts.join(',') };
+                if (pickedSites.length > 0) payload.site = pickedSites.join(',');
+                await apiCreate('user', payload);
                 document.getElementById('add-user-form').reset();
                 await fetchAllUsers();
                 renderUsersList();
                 alert('เพิ่มผู้ใช้เรียบร้อย');
+            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+        }
+
+        function editUserSites(recordId, userName) {
+            const u = allUsers.find(u => String(u._recordId) === String(recordId));
+            if (!u) return;
+            const current = parseSites(u.site);
+            const options = [...sites];
+            current.forEach(s => { if (!options.includes(s)) options.push(s); });
+            document.getElementById('user-sites-rec-id').value = recordId;
+            document.getElementById('user-sites-name').textContent = `ผู้ใช้: ${userName}`;
+            if (options.length === 0) {
+                document.getElementById('user-sites-list').innerHTML = '<p class="text-xs text-slate-400 p-2">ยังไม่มีข้อมูลในตาราง site (กรุณาเพิ่มข้อมูลในตาราง site ก่อน หรือพิมพ์ชื่อ site ใน Airtable)</p>';
+            } else {
+                document.getElementById('user-sites-list').innerHTML = options.map(s => `
+                    <label class="flex items-center gap-2 px-3 py-2 bg-slate-700 rounded-lg cursor-pointer hover:bg-slate-600">
+                        <input type="checkbox" value="${s}" ${current.includes(s) ? 'checked' : ''} class="user-site-cb accent-emerald-500">
+                        <span class="text-sm text-slate-200">🏢 ${s}</span>
+                    </label>`).join('');
+            }
+            openModal('modal-user-sites');
+        }
+
+        async function saveUserSites() {
+            const recordId = document.getElementById('user-sites-rec-id').value;
+            const picked = Array.from(document.querySelectorAll('.user-site-cb:checked')).map(cb => cb.value);
+            try {
+                await apiUpdate('user', recordId, { site: picked.join(',') });
+                await fetchAllUsers();
+                renderUsersList();
+                closeModal('modal-user-sites');
+                alert('บันทึกสิทธิ์ไซต์เรียบร้อย');
             } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
         }
 
@@ -4904,6 +5159,7 @@
             if (!tbody) return;
 
             const searchTerm = (document.getElementById('dev-mgr-search')?.value || '').trim().toLowerCase();
+            const filterSite = document.getElementById('dev-mgr-filter-site')?.value || '';
             const filterDept = document.getElementById('dev-mgr-filter-dept')?.value || '';
             const filterCategory = document.getElementById('dev-mgr-filter-category')?.value || '';
             const filterType = document.getElementById('dev-mgr-filter-type')?.value || '';
@@ -4921,12 +5177,17 @@
                     (c.holder || '').toLowerCase().includes(searchTerm) ||
                     (c.thai_name || '').toLowerCase().includes(searchTerm) ||
                     (c.department || '').toLowerCase().includes(searchTerm) ||
+                    (c.site || '').toLowerCase().includes(searchTerm) ||
                     (c.ip || '').toLowerCase().includes(searchTerm) ||
                     (c.mac_address || '').toLowerCase().includes(searchTerm) ||
                     (c.brand || '').toLowerCase().includes(searchTerm) ||
                     (c.model || '').toLowerCase().includes(searchTerm) ||
                     (c.serial || '').toLowerCase().includes(searchTerm)
                 );
+            }
+
+            if (filterSite) {
+                list = list.filter(c => (c.site || '') === filterSite);
             }
 
             if (filterDept) {
@@ -5042,6 +5303,9 @@
                             <div class="text-[11px] text-slate-400 truncate max-w-[150px] mt-0.5">${brandModel}</div>
                         </td>
                         <td class="py-2.5 px-3 text-slate-300 font-medium">${c.department || '-'}</td>
+                        <td class="py-2.5 px-3">
+                            ${c.site ? `<span class="bg-cyan-900/60 text-cyan-300 border border-cyan-700/50 px-1.5 py-0.5 rounded text-[10px] font-medium whitespace-nowrap">🏢 ${c.site}</span>` : '<span class="text-slate-500 text-[11px]">-</span>'}
+                        </td>
                         <td class="py-2.5 px-3 font-mono text-[11px] text-slate-300">
                             <div>${c.ip || '-'}</div>
                             ${c.mac_address ? `<div class="text-[10px] text-slate-500">${c.mac_address}</div>` : ''}
@@ -5118,6 +5382,13 @@
                         <div class="flex-1">
                             <label class="text-[10px] text-slate-400 block mb-0.5">ชื่อแผนผัง <span class="text-red-400">*</span></label>
                             <input type="text" id="map-name-${m._recordId}" value="${m.map_name || ''}" placeholder="ชื่อแผนผัง" class="w-full px-2.5 py-1.5 bg-slate-600 border border-slate-500 rounded text-white text-xs focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div class="w-32">
+                            <label class="text-[10px] text-slate-400 block mb-0.5">ไซต์ / สาขา</label>
+                            <select id="map-site-${m._recordId}" class="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-white text-xs focus:outline-none focus:border-emerald-500">
+                                <option value="">-- ไม่ระบุ --</option>
+                                ${sites.map(s => `<option value="${s}" ${m.site === s ? 'selected' : ''}>${s}</option>`).join('')}
+                            </select>
                         </div>
                         <div class="self-end pb-0.5">
                             <button onclick="saveMap('${m._recordId}')" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded transition-all shrink-0">บันทึก</button>
@@ -5202,8 +5473,10 @@
         async function saveMap(recordId) {
             const nameInput = document.getElementById(`map-name-${recordId}`);
             const idInput = document.getElementById(`map-id-${recordId}`);
+            const siteSel = document.getElementById(`map-site-${recordId}`);
             const name = nameInput ? nameInput.value.trim() : '';
             const newId = idInput ? idInput.value.trim() : '';
+            const siteVal = siteSel ? siteSel.value.trim() : '';
             if (!newId) {
                 alert('กรุณากรอกรหัสแผนผัง (ID)');
                 if (idInput) idInput.focus();
@@ -5239,7 +5512,7 @@
                     return;
                 }
 
-                await apiUpdate('map', recordId, { map_id: newId, map_name: name });
+                await apiUpdate('map', recordId, { map_id: newId, map_name: name, site: siteVal });
                 await fetchMaps();
                 renderMapsList();
                 renderMapSelector();
@@ -5257,6 +5530,8 @@
             const mapId = mapIdInput ? mapIdInput.value.trim() : '';
             const mapNameInput = document.getElementById('new-map-name');
             const mapName = mapNameInput ? mapNameInput.value.trim() : '';
+            const mapSiteInput = document.getElementById('new-map-site');
+            const mapSite = mapSiteInput ? mapSiteInput.value.trim() : '';
             const fileInput = document.getElementById('new-map-file');
             let file = fileInput.files[0];
 
@@ -5312,6 +5587,7 @@
                     map_id: String(mapId),
                     map_name: mapName
                 };
+                if (mapSite) fields.site = mapSite;
                 if (mapUrl) {
                     fields.map_url = mapUrl;
                     fields.map_pic = mapUrl;
@@ -6463,6 +6739,7 @@
 
         function getFilteredDevicesForPrint() {
             const searchTerm = (document.getElementById('dev-mgr-search')?.value || '').trim().toLowerCase();
+            const filterSite = document.getElementById('dev-mgr-filter-site')?.value || '';
             const filterDept = document.getElementById('dev-mgr-filter-dept')?.value || '';
             const filterCategory = document.getElementById('dev-mgr-filter-category')?.value || '';
             const filterType = document.getElementById('dev-mgr-filter-type')?.value || '';
@@ -6480,12 +6757,17 @@
                     (c.holder || '').toLowerCase().includes(searchTerm) ||
                     (c.thai_name || '').toLowerCase().includes(searchTerm) ||
                     (c.department || '').toLowerCase().includes(searchTerm) ||
+                    (c.site || '').toLowerCase().includes(searchTerm) ||
                     (c.ip || '').toLowerCase().includes(searchTerm) ||
                     (c.mac_address || '').toLowerCase().includes(searchTerm) ||
                     (c.brand || '').toLowerCase().includes(searchTerm) ||
                     (c.model || '').toLowerCase().includes(searchTerm) ||
                     (c.serial || '').toLowerCase().includes(searchTerm)
                 );
+            }
+
+            if (filterSite) {
+                list = list.filter(c => (c.site || '') === filterSite);
             }
 
             if (filterDept) {
@@ -6520,6 +6802,7 @@
                 list,
                 filters: {
                     searchTerm,
+                    filterSite,
                     filterDept,
                     filterCategory,
                     filterType,
@@ -6535,6 +6818,9 @@
 
             if (filters.searchTerm) {
                 badges.push(`คำค้น: <strong>"${filters.searchTerm}"</strong>`);
+            }
+            if (filters.filterSite) {
+                badges.push(`ไซต์: <strong>${filters.filterSite}</strong>`);
             }
             if (filters.filterDept) {
                 badges.push(`แผนก: <strong>${filters.filterDept}</strong>`);
@@ -6573,7 +6859,7 @@
             if (list.length === 0) {
                 rowsHTML = `
                     <tr>
-                        <td colspan="8" style="text-align:center; padding:24px; color:#64748b; font-style:italic;">
+                        <td colspan="9" style="text-align:center; padding:24px; color:#64748b; font-style:italic;">
                             ไม่พบข้อมูลอุปกรณ์ตามเงื่อนไขที่ระบุ
                         </td>
                     </tr>
@@ -6606,6 +6892,7 @@
                                 <div style="font-size:8pt; color:#64748b;">${brandModel}</div>
                             </td>
                             <td style="border:1px solid #cbd5e1; padding:5px 8px; font-size:9pt; color:#334155;">${c.department || '-'}</td>
+                            <td style="border:1px solid #cbd5e1; padding:5px 8px; font-size:9pt; color:#0284c7; white-space:nowrap;">${c.site || '-'}</td>
                             <td style="border:1px solid #cbd5e1; padding:5px 8px; font-family:monospace; font-size:8.5pt; color:#334155; white-space:nowrap;">
                                 <div>${c.ip || '-'}</div>
                                 ${c.mac_address ? `<div style="font-size:7.5pt; color:#64748b;">${c.mac_address}</div>` : ''}
@@ -6652,10 +6939,11 @@
                                 <th style="border:1px solid #0f766e; padding:7px 6px; text-align:center; width:35px;">#</th>
                                 <th style="border:1px solid #0f766e; padding:7px 8px; width:110px;">รหัสทรัพย์สิน</th>
                                 <th style="border:1px solid #0f766e; padding:7px 8px;">ชื่ออุปกรณ์ / ผู้ถือครอง</th>
-                                <th style="border:1px solid #0f766e; padding:7px 8px; width:140px;">ชนิด & ยี่ห้อ/รุ่น</th>
-                                <th style="border:1px solid #0f766e; padding:7px 8px; width:100px;">แผนก</th>
-                                <th style="border:1px solid #0f766e; padding:7px 8px; width:110px;">IP / MAC</th>
-                                <th style="border:1px solid #0f766e; padding:7px 8px; width:100px;">แผนผัง / ที่ตั้ง</th>
+                                <th style="border:1px solid #0f766e; padding:7px 8px; width:130px;">ชนิด & ยี่ห้อ/รุ่น</th>
+                                <th style="border:1px solid #0f766e; padding:7px 8px; width:95px;">แผนก</th>
+                                <th style="border:1px solid #0f766e; padding:7px 8px; width:90px;">ไซต์ (Site)</th>
+                                <th style="border:1px solid #0f766e; padding:7px 8px; width:105px;">IP / MAC</th>
+                                <th style="border:1px solid #0f766e; padding:7px 8px; width:95px;">แผนผัง / ที่ตั้ง</th>
                                 <th style="border:1px solid #0f766e; padding:7px 6px; text-align:center; width:65px;">สถานะ</th>
                             </tr>
                         </thead>

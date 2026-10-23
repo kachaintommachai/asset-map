@@ -3,5 +3,6 @@ module.exports = {
   device: [],
   map: [],
   user: [],
-  department: []
+  department: [],
+  site: []
 };

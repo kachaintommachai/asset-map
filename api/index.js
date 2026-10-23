@@ -228,7 +228,9 @@ function getCsvFilePath(tableName) {
     department: 'department.csv',
     departments: 'department.csv',
     user: 'user.csv',
-    users: 'user.csv'
+    users: 'user.csv',
+    site: 'site.csv',
+    sites: 'site.csv'
   };
   const filename = fileMap[t] || `${t}.csv`;
   const candidates = [
@@ -281,7 +283,9 @@ function loadCsvRecords(tableName) {
     department: 'department',
     departments: 'department',
     user: 'user',
-    users: 'user'
+    users: 'user',
+    site: 'site',
+    sites: 'site'
   };
   const targetKey = keyMap[t] || t;
   if (bundledCsvData && Array.isArray(bundledCsvData[targetKey]) && bundledCsvData[targetKey].length > 0) {
@@ -385,6 +389,9 @@ function getCandidateTables(table) {
   }
   if (lower === 'type' || lower === 'types' || lower === 'device_type' || lower === 'device_types') {
     return ['type', 'types', 'device_type', 'device_types'];
+  }
+  if (lower === 'site' || lower === 'sites') {
+    return ['site', 'sites'];
   }
   return [t];
 }
@@ -656,6 +663,7 @@ function normalizeFields(table, fields, recordId = '') {
       category: devCategory,
       license_type: devLicenseType,
       map_id: String(devMapId),
+      site: extractFieldValue(f, ['site', 'Site', 'site_name', 'สถานที่', 'สาขา', 'ไซต์']),
       x: numX,
       y: numY
     };
@@ -700,7 +708,8 @@ function normalizeFields(table, fields, recordId = '') {
       map_id: String(rawMapId),
       map_name: mName || (rawMapId ? `แผนผัง ${rawMapId}` : 'แผนผังใหม่'),
       map_url: img,
-      map_pic: img
+      map_pic: img,
+      site: extractFieldValue(f, ['site', 'Site', 'site_name', 'สถานที่', 'สาขา', 'ไซต์'])
     };
   }
 
@@ -709,6 +718,10 @@ function normalizeFields(table, fields, recordId = '') {
     if (Array.isArray(uDept)) {
       uDept = uDept.map(d => typeof d === 'object' && d ? (d.name || d.text || String(d)) : String(d)).join(', ');
     }
+    let uSite = f.site || f.Site || f.sites || f.Sites || '';
+    if (Array.isArray(uSite)) {
+      uSite = uSite.map(s => typeof s === 'object' && s ? (s.name || s.text || String(s)) : String(s)).join(', ');
+    }
     const uName = String(f.Name || f.name || f.username || f.Username || f['\ufeffName'] || '').trim();
     return {
       ...f,
@@ -716,8 +729,23 @@ function normalizeFields(table, fields, recordId = '') {
       name: uName,
       password: String(f.password || f.Password || '').trim(),
       department: String(uDept).trim(),
+      site: String(uSite).trim(),
       camera_user: String(f.camera_user || '').trim(),
       map_user: String(f.map_user || '').trim()
+    };
+  }
+
+  if (t === 'site' || t === 'sites') {
+    let siteName = f.name || f.Name || f.site || f.Site || f['ชื่อไซต์'] || f['สถานที่'] || '';
+    if (!siteName && typeof f === 'object') {
+      const vals = Object.values(f).filter(v => typeof v === 'string' && v.trim() && !v.startsWith('http') && !v.startsWith('rec'));
+      if (vals.length > 0) siteName = vals[0];
+    }
+    return {
+      ...f,
+      name: String(siteName).trim(),
+      Name: String(siteName).trim(),
+      site: String(siteName).trim()
     };
   }
 
@@ -1366,6 +1394,7 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     const isTypeIdProvided = hasField(['type_ID', 'type_id', 'Type_ID', 'Type ID', 'type ID', 'Type_Id', 'typeId', 'TypeId']);
     const isStatusProvided = hasField(['status', 'Status', 'สถานะ']);
     const isDeptProvided = hasField(['department', 'Department', 'dept', 'Dept', 'group', 'แผนก', 'ชื่อแผนก', 'ฝ่าย', 'หน่วยงาน']);
+    const isSiteProvided = hasField(['site', 'Site', 'sites', 'Sites', 'site_name', 'สถานที่', 'สาขา', 'ไซต์']);
     const isMapProvided = hasField(['map_id', 'Map ID', 'map', 'Map', 'ผัง']);
     const isCategoryProvided = hasField(['category', 'Category', 'device_category', 'หมวดหมู่', 'ประเภทอุปกรณ์']);
     const isLicenseProvided = hasField(['license_type', 'license', 'License', 'License Type', 'License_Type', 'licenseType', 'ประเภทสิทธิ์', 'สิทธิ์']);
@@ -1387,6 +1416,7 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     const licenseVal = isLicenseProvided ? (raw.license_type || raw.license || raw.License || raw['License Type'] || raw.License_Type || '') : '';
     const statusVal = isStatusProvided ? (raw.status || raw.Status || raw['สถานะ'] || 'Active') : '';
     const deptVal = isDeptProvided ? (raw.department || raw.Department || raw.dept || raw['แผนก'] || '') : '';
+    const siteVal = isSiteProvided ? (raw.site || raw.Site || raw.sites || raw.Sites || raw.site_name || raw['สถานที่'] || raw['สาขา'] || raw['ไซต์'] || '') : '';
     const mapVal = isMapProvided ? String(raw.map_id || raw['Map ID'] || raw.map || '1') : '';
     const brandVal = isBrandProvided ? (raw.brand || raw.Brand || raw['ยี่ห้อ'] || '') : '';
     const modelVal = isModelProvided ? (raw.model || raw.Model || raw['รุ่น'] || '') : '';
@@ -1407,6 +1437,7 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     if (isLicenseProvided && licenseVal) result.license_type = licenseVal;
     if (isStatusProvided) result.status = statusVal;
     if (isDeptProvided) result.department = deptVal;
+    if (isSiteProvided) result.site = siteVal;
     if (isMapProvided) result.map_id = mapVal;
     if (isBrandProvided) result.brand = brandVal;
     if (isModelProvided) result.model = modelVal;
@@ -1426,6 +1457,7 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
       const typeIdCol = findMatchingAirtableFieldName(availableNames, ['type_ID', 'type_id', 'Type_ID', 'Type ID', 'type ID', 'Type_Id', 'typeId', 'TypeId']);
       const statusCol = findMatchingAirtableFieldName(availableNames, ['status', 'Status', 'สถานะ']);
       const deptCol = findMatchingAirtableFieldName(availableNames, ['department', 'Department', 'dept', 'Dept', 'แผนก', 'ชื่อแผนก', 'ฝ่าย']);
+      const siteCol = findMatchingAirtableFieldName(availableNames, ['site', 'Site', 'sites', 'Sites', 'site_name', 'สถานที่', 'สาขา', 'ไซต์']);
       const mapCol = findMatchingAirtableFieldName(availableNames, ['map_id', 'Map ID', 'map', 'Map', 'ผัง']);
       const brandCol = findMatchingAirtableFieldName(availableNames, ['brand', 'Brand', 'ยี่ห้อ']);
       const categoryCol = findMatchingAirtableFieldName(availableNames, ['category', 'Category', 'device_category', 'หมวดหมู่', 'ประเภทอุปกรณ์']);
@@ -1452,6 +1484,7 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
       if (isLicenseProvided && licenseCol && licenseVal) mapped[licenseCol] = licenseVal;
       if (isStatusProvided && statusCol) mapped[statusCol] = statusVal;
       if (isDeptProvided && deptCol) mapped[deptCol] = deptVal;
+      if (isSiteProvided && siteCol) mapped[siteCol] = siteVal;
       if (isMapProvided && mapCol) mapped[mapCol] = mapVal;
       if (isBrandProvided && brandCol) mapped[brandCol] = brandVal;
       if (isModelProvided && modelCol) mapped[modelCol] = modelVal;
@@ -1504,6 +1537,7 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
           ? String(raw.Map_ID).trim()
           : (raw.id && !String(raw.id).startsWith('rec') ? String(raw.id).trim() : '')));
     const mapPic = raw.map_pic || raw.map_url || raw.image || '';
+    const mapSite = raw.site || raw.Site || raw.sites || raw.Sites || raw.site_name || raw['สถานที่'] || raw['สาขา'] || raw['ไซต์'] || '';
 
     const baseResult = {};
     if (mapName) baseResult.map_name = mapName;
@@ -1512,12 +1546,14 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
       baseResult['Map ID'] = mapId;
     }
     if (mapPic) baseResult.map_pic = mapPic;
+    if (mapSite) baseResult.site = mapSite;
 
     if (availableNames && availableNames.length > 0) {
       const mapped = {};
       const nameCol = findMatchingAirtableFieldName(availableNames, ['map_name', 'Map Name', 'Map_Name', 'Name', 'name', 'ชื่อแผนผัง', 'ชื่อ', 'แผนผัง']);
       const idCol = findMatchingAirtableFieldName(availableNames, ['map_id', 'Map ID', 'Map_ID', 'MapId', 'mapId', 'id', 'ID', 'รหัสแผนผัง', 'รหัส']);
       const picCol = findMatchingAirtableFieldName(availableNames, ['map_pic', 'map_url', 'image', 'ภาพ', 'รูปภาพ']);
+      const siteCol = findMatchingAirtableFieldName(availableNames, ['site', 'Site', 'sites', 'Sites', 'site_name', 'สถานที่', 'สาขา', 'ไซต์']);
 
       if (idCol && mapId) {
         const idFieldMeta = schema && schema.fields ? schema.fields.find(f => f.name.toLowerCase() === idCol.toLowerCase()) : null;
@@ -1540,6 +1576,12 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
         mapped[picCol] = mapPic;
       } else if (mapPic) {
         mapped.map_pic = mapPic;
+      }
+
+      if (siteCol && mapSite) {
+        mapped[siteCol] = mapSite;
+      } else if (mapSite) {
+        mapped.site = mapSite;
       }
 
       if (primaryField && primaryField.name && !mapped[primaryField.name]) {
@@ -1662,6 +1704,62 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     return baseResult;
   }
 
+  if (t === 'user' || t === 'users') {
+    const uName = raw.Name || raw.name || raw.username || raw.Username || '';
+    const uPass = raw.password || raw.Password || '';
+    const uDept = raw.department || raw.Department || raw.dept || '';
+    const uSite = raw.site || raw.Site || raw.sites || raw.Sites || '';
+    const uCam = raw.camera_user || '';
+    const uMap = raw.map_user || '';
+
+    const baseResult = { ...raw };
+    if (uName) baseResult.Name = uName;
+    if (uPass) baseResult.password = uPass;
+    if (uDept) baseResult.department = uDept;
+    if (uSite) baseResult.site = uSite;
+    if (uCam !== undefined) baseResult.camera_user = uCam;
+    if (uMap !== undefined) baseResult.map_user = uMap;
+
+    if (availableNames && availableNames.length > 0) {
+      const mapped = {};
+      const nameCol = findMatchingAirtableFieldName(availableNames, ['Name', 'name', 'username', 'Username', 'ชื่อ', 'ชื่อผู้ใช้']);
+      const passCol = findMatchingAirtableFieldName(availableNames, ['password', 'Password', 'pass', 'รหัสผ่าน']);
+      const deptCol = findMatchingAirtableFieldName(availableNames, ['department', 'Department', 'dept', 'Dept', 'แผนก']);
+      const siteCol = findMatchingAirtableFieldName(availableNames, ['site', 'Site', 'sites', 'Sites', 'site_name', 'สถานที่', 'สาขา', 'ไซต์']);
+      const camCol = findMatchingAirtableFieldName(availableNames, ['camera_user', 'Camera User', 'camera', 'Camera']);
+      const mapCol = findMatchingAirtableFieldName(availableNames, ['map_user', 'Map User', 'map', 'Map']);
+
+      if (nameCol && uName) mapped[nameCol] = uName;
+      if (passCol && uPass) mapped[passCol] = uPass;
+      if (deptCol && uDept !== undefined) mapped[deptCol] = uDept;
+      if (siteCol && uSite !== undefined) mapped[siteCol] = uSite;
+      if (camCol && uCam !== undefined) mapped[camCol] = uCam;
+      if (mapCol && uMap !== undefined) mapped[mapCol] = uMap;
+
+      if (primaryField && primaryField.name && !mapped[primaryField.name] && uName) {
+        mapped[primaryField.name] = uName;
+      }
+      return { ...baseResult, ...mapped };
+    }
+    return baseResult;
+  }
+
+  if (t === 'site' || t === 'sites') {
+    const siteName = raw.name || raw.Name || raw.site || raw.Site || raw['ชื่อไซต์'] || raw['สถานที่'] || '';
+    const baseResult = { name: siteName, Name: siteName, site: siteName };
+
+    if (availableNames && availableNames.length > 0) {
+      const mapped = {};
+      const nameCol = findMatchingAirtableFieldName(availableNames, ['name', 'Name', 'site', 'Site', 'site_name', 'ชื่อ', 'ชื่อไซต์', 'สถานที่', 'สาขา']);
+      if (nameCol && siteName) mapped[nameCol] = siteName;
+      if (primaryField && primaryField.name && !mapped[primaryField.name] && siteName) {
+        mapped[primaryField.name] = siteName;
+      }
+      return { ...baseResult, ...mapped };
+    }
+    return baseResult;
+  }
+
   return raw;
 }
 
@@ -1743,7 +1841,7 @@ module.exports = async (req, res) => {
   // ─── BATCH INIT: โหลดทุกตารางในครั้งเดียว ───
   if (query.action === 'init') {
     const delay = ms => new Promise(r => setTimeout(r, ms));
-    const tables = ['device', 'departments', 'map', 'repair', 'type'];
+    const tables = ['device', 'departments', 'map', 'repair', 'type', 'site'];
     const results = {};
 
     for (let i = 0; i < tables.length; i++) {
@@ -2018,9 +2116,9 @@ module.exports = async (req, res) => {
         });
       }
 
-      // Fallback for device, map, department, user to bundled dataset
+      // Fallback for device, map, department, user, site to bundled dataset
       const tLow = table.toLowerCase();
-      const csvType = tLow.startsWith('dev') || tLow.startsWith('cam') ? 'device' : (tLow.startsWith('map') ? 'map' : (tLow.startsWith('dept') ? 'department' : (tLow.startsWith('user') ? 'user' : '')));
+      const csvType = tLow.startsWith('dev') || tLow.startsWith('cam') ? 'device' : (tLow.startsWith('map') ? 'map' : (tLow.startsWith('dept') ? 'department' : (tLow.startsWith('user') ? 'user' : (tLow.startsWith('site') ? 'site' : ''))));
       if (csvType) {
         const csvRecs = loadCsvRecords(csvType);
         if (csvRecs && csvRecs.length > 0) {
@@ -2347,7 +2445,7 @@ module.exports = async (req, res) => {
     try {
       const qTable = (req && req.query && req.query.table) || '';
       const tLow = qTable.toLowerCase();
-      const csvType = tLow.startsWith('dev') || tLow.startsWith('cam') ? 'device' : (tLow.startsWith('map') ? 'map' : (tLow.startsWith('dept') ? 'department' : (tLow.startsWith('user') ? 'user' : (tLow.startsWith('maint') ? 'maintenance' : ''))));
+      const csvType = tLow.startsWith('dev') || tLow.startsWith('cam') ? 'device' : (tLow.startsWith('map') ? 'map' : (tLow.startsWith('dept') ? 'department' : (tLow.startsWith('user') ? 'user' : (tLow.startsWith('site') ? 'site' : (tLow.startsWith('maint') ? 'maintenance' : '')))));
       if (req && req.method === 'GET' && csvType) {
         if (csvType === 'maintenance') {
           return res.status(200).json({ records: loadMaintenanceStore(), warning: 'Emergency local store mode: ' + fatalError.message });
