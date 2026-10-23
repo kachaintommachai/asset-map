@@ -6263,33 +6263,113 @@
         }
 
         function executeBatchPrint() {
-            // Force @page to A4 portrait specifically for label printing
-            let pageSizeStyle = document.getElementById('page-size-style');
-            if (!pageSizeStyle) {
-                pageSizeStyle = document.createElement('style');
-                pageSizeStyle.id = 'page-size-style';
-                document.head.appendChild(pageSizeStyle);
+            const printContent = document.getElementById('labels-print-container');
+            if (!printContent || !printContent.innerHTML.trim()) {
+                alert('ไม่พบข้อมูลป้ายสำหรับพิมพ์');
+                return;
             }
-            const prevContent = pageSizeStyle.textContent;
-            pageSizeStyle.textContent = '@page { size: A4 portrait !important; margin: 8mm 6mm !important; }';
 
-            document.body.classList.add('print-labels-mode');
+            // Remove any existing print iframe
+            let oldIframe = document.getElementById('batch-print-iframe');
+            if (oldIframe) oldIframe.remove();
 
-            const cleanup = () => {
-                document.body.classList.remove('print-labels-mode');
-                // Restore original map page size (e.g. A4-landscape)
-                if (typeof setPaperSize === 'function') {
-                    setPaperSize(paperSize);
-                } else if (prevContent) {
-                    pageSizeStyle.textContent = prevContent;
-                }
-                window.removeEventListener('afterprint', cleanup);
-            };
-            window.addEventListener('afterprint', cleanup);
+            // Create invisible iframe for isolated, clean printing
+            const iframe = document.createElement('iframe');
+            iframe.id = 'batch-print-iframe';
+            iframe.style.position = 'fixed';
+            iframe.style.right = '0';
+            iframe.style.bottom = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = '0';
+            iframe.style.visibility = 'hidden';
+            document.body.appendChild(iframe);
+
+            const doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write(`
+                <!DOCTYPE html>
+                <html lang="th">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>พิมพ์ป้ายทรัพย์สินไอที (A4 แนวตั้ง)</title>
+                    <link rel="stylesheet" href="asset/vendor/fonts/font.css">
+                    <style>
+                        * {
+                            box-sizing: border-box;
+                            font-family: 'IBM Plex Sans Thai', sans-serif;
+                            margin: 0;
+                            padding: 0;
+                        }
+                        @page {
+                            size: A4 portrait;
+                            margin: 8mm 6mm;
+                        }
+                        html, body {
+                            background: #fff;
+                            color: #000;
+                            width: 100%;
+                            height: auto;
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
+                        }
+                        .a4-label-page {
+                            width: 198mm;
+                            height: 281mm;
+                            max-height: 281mm;
+                            box-sizing: border-box;
+                            display: grid !important;
+                            grid-template-columns: repeat(2, 95mm);
+                            grid-template-rows: repeat(5, 52mm);
+                            column-gap: 6mm;
+                            row-gap: 4mm;
+                            padding: 2mm 0;
+                            margin: 0 auto;
+                            page-break-after: always;
+                            break-after: page;
+                            background: #fff !important;
+                        }
+                        .a4-label-page:last-child {
+                            page-break-after: avoid;
+                            break-after: avoid;
+                        }
+                        .asset-print-label-item {
+                            width: 95mm;
+                            height: 52mm;
+                            max-width: 95mm;
+                            max-height: 52mm;
+                            border: 1.5px solid #000 !important;
+                            border-radius: 6px;
+                            padding: 2.5mm 3mm;
+                            box-sizing: border-box;
+                            background: #fff !important;
+                            color: #000 !important;
+                            display: flex !important;
+                            flex-direction: row !important;
+                            align-items: center !important;
+                            gap: 2.5mm;
+                            overflow: hidden;
+                            position: relative;
+                            page-break-inside: avoid;
+                            break-inside: avoid;
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${printContent.innerHTML}
+                </body>
+                </html>
+            `);
+            doc.close();
+
+            // Wait for styles and QR code SVGs inside iframe to be ready before calling print
             setTimeout(() => {
-                window.print();
-                setTimeout(cleanup, 1500);
-            }, 150);
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+                setTimeout(() => {
+                    iframe.remove();
+                }, 2000);
+            }, 300);
         }
 
         lucide.createIcons();
