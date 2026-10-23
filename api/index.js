@@ -581,6 +581,9 @@ function normalizeFields(table, fields, recordId = '') {
       holder = f.holder.length > 0 ? (typeof f.holder[0] === 'object' && f.holder[0].name ? f.holder[0].name : String(f.holder[0])) : '';
     }
     let devType = extractFieldValue(f, ['type', 'Type', 'ประเภท']) || 'Other';
+    let devTypeId = extractFieldValue(f, ['type_ID', 'type_id', 'Type_ID', 'Type ID', 'type ID', 'Type_Id', 'typeId', 'TypeId']) || '';
+    if (Array.isArray(f.type_ID) && f.type_ID.length > 0) devTypeId = typeof f.type_ID[0] === 'object' && f.type_ID[0].id ? f.type_ID[0].id : String(f.type_ID[0]);
+    else if (Array.isArray(f.type_id) && f.type_id.length > 0) devTypeId = typeof f.type_id[0] === 'object' && f.type_id[0].id ? f.type_id[0].id : String(f.type_id[0]);
     let devCategory = extractFieldValue(f, ['category', 'Category', 'device_category', 'หมวดหมู่', 'ประเภทอุปกรณ์']);
     if (!devCategory) {
       const devTypeLow = devType.toLowerCase();
@@ -635,6 +638,8 @@ function normalizeFields(table, fields, recordId = '') {
       holder: holder,
       thai_name: holder,
       type: devType,
+      type_id: devTypeId,
+      type_ID: devTypeId,
       status: devStatus,
       brand: devBrand,
       model: devModel,
@@ -1336,6 +1341,7 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     const isNameProvided = hasField(['asset_name', 'asset name', 'Asset Name', 'Asset_Name', 'Asset_name', 'asset-name', 'eng_name', 'Name', 'name', 'ชื่ออุปกรณ์', 'ชื่อ']);
     const isHolderProvided = hasField(['holder', 'Holder', 'thai_name', 'user', 'User', 'ผู้ถือครอง', 'ชื่อผู้ใช้']);
     const isTypeProvided = hasField(['type', 'Type', 'ประเภท']);
+    const isTypeIdProvided = hasField(['type_ID', 'type_id', 'Type_ID', 'Type ID', 'type ID', 'Type_Id', 'typeId', 'TypeId']);
     const isStatusProvided = hasField(['status', 'Status', 'สถานะ']);
     const isDeptProvided = hasField(['department', 'Department', 'dept', 'Dept', 'group', 'แผนก', 'ชื่อแผนก', 'ฝ่าย', 'หน่วยงาน']);
     const isMapProvided = hasField(['map_id', 'Map ID', 'map', 'Map', 'ผัง']);
@@ -1354,6 +1360,7 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     const nameVal = isNameProvided ? (raw.asset_name || raw['Asset Name'] || raw.eng_name || raw.Name || raw.name || raw['ชื่ออุปกรณ์'] || raw['ชื่อ'] || codeVal) : '';
     const holderVal = isHolderProvided ? (raw.holder || raw.Holder || raw.thai_name || raw.user || raw['ผู้ถือครอง'] || raw['ชื่อผู้ใช้'] || '') : '';
     const typeVal = isTypeProvided ? (raw.type || raw.Type || raw['ประเภท'] || 'Camera') : '';
+    const typeIdVal = isTypeIdProvided ? (raw.type_ID || raw.type_id || raw.Type_ID || raw['Type ID'] || raw['type ID'] || '') : '';
     const categoryVal = isCategoryProvided ? (raw.category || raw.Category || raw.device_category || 'hardware') : '';
     const licenseVal = isLicenseProvided ? (raw.license_type || raw.license || raw.License || raw['License Type'] || raw.License_Type || '') : '';
     const statusVal = isStatusProvided ? (raw.status || raw.Status || raw['สถานะ'] || 'Active') : '';
@@ -1373,6 +1380,7 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     if (isNameProvided && nameVal) { result.asset_name = nameVal; if (!result.Name) result.Name = nameVal; }
     if (isHolderProvided) result.holder = holderVal;
     if (isTypeProvided) result.type = typeVal;
+    if (isTypeIdProvided && typeIdVal) { result.type_ID = typeIdVal; result.type_id = typeIdVal; }
     if (isCategoryProvided && categoryVal) result.category = categoryVal;
     if (isLicenseProvided && licenseVal) result.license_type = licenseVal;
     if (isStatusProvided) result.status = statusVal;
@@ -1393,6 +1401,7 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
       const nameCol = findMatchingAirtableFieldName(availableNames, ['asset_name', 'asset name', 'Asset Name', 'Asset_Name', 'eng_name', 'thai_name', 'Name', 'name', 'ชื่ออุปกรณ์', 'ชื่อ']);
       const holderCol = findMatchingAirtableFieldName(availableNames, ['holder', 'Holder', 'thai_name', 'user', 'ผู้ถือครอง', 'ชื่อผู้ใช้']);
       const typeCol = findMatchingAirtableFieldName(availableNames, ['type', 'Type', 'ประเภท']);
+      const typeIdCol = findMatchingAirtableFieldName(availableNames, ['type_ID', 'type_id', 'Type_ID', 'Type ID', 'type ID', 'Type_Id', 'typeId', 'TypeId']);
       const statusCol = findMatchingAirtableFieldName(availableNames, ['status', 'Status', 'สถานะ']);
       const deptCol = findMatchingAirtableFieldName(availableNames, ['department', 'Department', 'dept', 'Dept', 'แผนก', 'ชื่อแผนก', 'ฝ่าย']);
       const mapCol = findMatchingAirtableFieldName(availableNames, ['map_id', 'Map ID', 'map', 'Map', 'ผัง']);
@@ -1416,6 +1425,7 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
       if (isNameProvided && nameCol && nameVal) mapped[nameCol] = nameVal;
       if (isHolderProvided && holderCol) mapped[holderCol] = holderVal;
       if (isTypeProvided && typeCol) mapped[typeCol] = typeVal;
+      if (isTypeIdProvided && typeIdCol && typeIdVal) mapped[typeIdCol] = typeIdVal;
       if (isCategoryProvided && categoryCol && categoryVal) mapped[categoryCol] = categoryVal;
       if (isLicenseProvided && licenseCol && licenseVal) mapped[licenseCol] = licenseVal;
       if (isStatusProvided && statusCol) mapped[statusCol] = statusVal;

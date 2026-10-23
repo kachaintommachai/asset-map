@@ -644,7 +644,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div id="cam-network-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label for="cam-ip" class="text-xs text-slate-400">IP Address</label>
                         <input id="cam-ip" type="text" placeholder="เช่น 192.168.1.50" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500">
@@ -1597,6 +1597,9 @@
             const isSoftware = (category || '').toLowerCase() === 'software';
             const mapContainer = document.getElementById(`${prefix}-map-container`);
             const licenseContainer = document.getElementById(`${prefix}-license-container`);
+            const ipContainer = document.getElementById(`${prefix}-ip-container`);
+            const macContainer = document.getElementById(`${prefix}-mac-container`);
+            const netContainer = document.getElementById(`${prefix}-network-container`);
             if (mapContainer) {
                 if (isSoftware) {
                     mapContainer.classList.add('hidden');
@@ -1609,6 +1612,27 @@
                     licenseContainer.classList.remove('hidden');
                 } else {
                     licenseContainer.classList.add('hidden');
+                }
+            }
+            if (ipContainer) {
+                if (isSoftware) {
+                    ipContainer.classList.add('hidden');
+                } else {
+                    ipContainer.classList.remove('hidden');
+                }
+            }
+            if (macContainer) {
+                if (isSoftware) {
+                    macContainer.classList.add('hidden');
+                } else {
+                    macContainer.classList.remove('hidden');
+                }
+            }
+            if (netContainer) {
+                if (isSoftware) {
+                    netContainer.classList.add('hidden');
+                } else {
+                    netContainer.classList.remove('hidden');
                 }
             }
         }
@@ -2584,6 +2608,7 @@
                     }
 
                     const devType = f.type || f.Type || 'Other';
+                    const devTypeId = f.type_ID || f.type_id || f.Type_ID || f['Type ID'] || f['type ID'] || '';
                     const devCategory = String(f.category || f.Category || f.device_category || (getDeviceType(devType) === 'MS Office' ? 'software' : 'hardware')).toLowerCase();
                     const devLicenseType = String(f.license_type || f.License_Type || f.license || f.License || f['License Type'] || '').trim();
                     const devStatus = f.status || f.Status || 'Active';
@@ -2603,6 +2628,8 @@
                         thai_name: String(holder),
                         holder: String(holder),
                         type: devType,
+                        type_id: devTypeId ? (Array.isArray(devTypeId) ? String(devTypeId[0]) : String(devTypeId)) : '',
+                        type_ID: devTypeId ? (Array.isArray(devTypeId) ? String(devTypeId[0]) : String(devTypeId)) : '',
                         category: devCategory,
                         license_type: devLicenseType,
                         brand: devBrand,
@@ -3675,16 +3702,14 @@
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div><label class="text-xs text-slate-400">Serial Number</label><input type="text" id="detail-serial" value="${cam.serial || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
+                            <div><label class="text-xs text-slate-400">ผู้ถือครอง / ผู้ใช้งาน (Holder)</label><input type="text" id="detail-thai-name" value="${cam.holder || cam.thai_name || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
                             <div><label class="text-xs text-slate-400">ชื่อทรัพย์สิน / อุปกรณ์ (Asset Name)</label><input type="text" id="detail-eng-name" value="${cam.asset_name || cam.eng_name || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div><label class="text-xs text-slate-400">ผู้ถือครอง / ผู้ใช้งาน (Holder)</label><input type="text" id="detail-thai-name" value="${cam.holder || cam.thai_name || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
+                        <div id="detail-network-container" class="${devCategory === 'software' ? 'hidden' : ''} grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div><label class="text-xs text-slate-400">IP Address</label><input type="text" id="detail-ip" value="${cam.ip || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
+                            <div><label class="text-xs text-slate-400">MAC Address</label><input type="text" id="detail-mac" value="${cam.mac_address || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
                         </div>
-
-                        <div><label class="text-xs text-slate-400">MAC Address</label><input type="text" id="detail-mac" value="${cam.mac_address || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
 
                         <!-- อัปโหลดภาพอุปกรณ์ในหน้าแก้ไข -->
                         <div class="bg-slate-700/60 p-3 rounded-xl border border-slate-600 space-y-2">
@@ -3740,8 +3765,10 @@
                         <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">ยี่ห้อ (Brand)</span><span class="text-right">${cam.brand || '-'}</span></div>
                         <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">รุ่น (Model)</span><span class="text-right">${cam.model || '-'}</span></div>
                         <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">Serial Number</span><span class="text-right font-mono text-[11px] text-slate-300">${cam.serial || '-'}</span></div>
-                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">IP Address</span><span class="text-right font-mono text-emerald-400">${cam.ip || '-'}</span></div>
-                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">MAC Address</span><span class="text-right font-mono text-[11px] text-slate-400">${cam.mac_address || '-'}</span></div>
+                        ${devCategory === 'software' ? '' : `
+                            <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">IP Address</span><span class="text-right font-mono text-emerald-400">${cam.ip || '-'}</span></div>
+                            <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">MAC Address</span><span class="text-right font-mono text-[11px] text-slate-400">${cam.mac_address || '-'}</span></div>
+                        `}
                         <div class="flex justify-between py-1"><span class="text-slate-400">แผนก</span><span class="text-right font-medium text-emerald-400">${cam.department || '-'}</span></div>
                     </div>
                     ${imageHtml}
@@ -3878,8 +3905,8 @@
                 serial: document.getElementById('detail-serial').value.trim(),
                 status: document.getElementById('detail-status').value,
                 department: document.getElementById('detail-department').value,
-                ip: document.getElementById('detail-ip').value.trim(),
-                mac_address: document.getElementById('detail-mac').value.trim(),
+                ip: category === 'software' ? '' : document.getElementById('detail-ip').value.trim(),
+                mac_address: category === 'software' ? '' : document.getElementById('detail-mac').value.trim(),
                 image_url: imageUrl,
                 image: imageUrl,
                 Image: imageUrl,
@@ -4230,10 +4257,15 @@
             if (model) fields.model = model;
             const serial = document.getElementById('cam-serial').value.trim();
             if (serial) fields.serial = serial;
-            const ip = document.getElementById('cam-ip').value.trim();
-            if (ip) fields.ip = ip;
-            const mac = document.getElementById('cam-mac').value.trim();
-            if (mac) fields.mac_address = mac;
+            if (category === 'software') {
+                fields.ip = '';
+                fields.mac_address = '';
+            } else {
+                const ip = document.getElementById('cam-ip').value.trim();
+                if (ip) fields.ip = ip;
+                const mac = document.getElementById('cam-mac').value.trim();
+                if (mac) fields.mac_address = mac;
+            }
             if (imageUrl) {
                 fields.image_url = imageUrl;
                 fields.image = imageUrl;
