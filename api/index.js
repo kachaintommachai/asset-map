@@ -383,6 +383,9 @@ function getCandidateTables(table) {
   if (lower === 'maintenance' || lower === 'maintenances' || lower === 'repair' || lower === 'repairs' || lower === 'asset_history' || lower === 'history' || lower === 'service' || lower === 'services' || lower === 'purchase' || lower === 'purchases') {
     return ['repair', 'maintenance', 'service', 'history'];
   }
+  if (lower === 'type' || lower === 'types' || lower === 'device_type' || lower === 'device_types') {
+    return ['type', 'types', 'device_type', 'device_types'];
+  }
   return [t];
 }
 
@@ -728,6 +731,25 @@ function normalizeFields(table, fields, recordId = '') {
       ...f,
       department: String(deptName).trim(),
       Name: String(deptName).trim()
+    };
+  }
+
+  if (t === 'type' || t === 'types' || t === 'device_type' || t === 'device_types') {
+    const typeId = extractFieldValue(f, ['type_ID', 'type_id', 'Type_ID', 'Type ID', 'id', 'ID', 'code', 'Code']) || (f.id && !String(f.id).startsWith('rec') ? f.id : '');
+    const typeName = extractFieldValue(f, ['type_name', 'TypeName', 'Name', 'name', 'type', 'Type', 'ชื่อ', 'ชนิด', 'ชนิดอุปกรณ์']) || (f.type_ID || f.type_id || f.Name || f.name || '');
+    const category = extractFieldValue(f, ['category', 'Category', 'หมวดหมู่', 'ประเภท', 'ประเภทอุปกรณ์']) || 'hardware';
+    const description = extractFieldValue(f, ['discription', 'description', 'Description', 'Discription', 'desc', 'detail', 'details', 'คำอธิบาย', 'รายละเอียด']) || '';
+    return {
+      ...f,
+      type_ID: String(typeId).trim(),
+      type_id: String(typeId).trim(),
+      type_name: String(typeName).trim(),
+      Name: String(typeName || typeId).trim(),
+      name: String(typeName || typeId).trim(),
+      category: String(category).trim().toLowerCase(),
+      Category: String(category).trim().toLowerCase(),
+      discription: String(description).trim(),
+      description: String(description).trim()
     };
   }
 
@@ -1604,6 +1626,42 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     };
   }
 
+  if (t === 'type' || t === 'types' || t === 'device_type' || t === 'device_types') {
+    const typeId = raw.type_ID || raw.type_id || raw.Type_ID || raw['Type ID'] || raw.code || raw.id || '';
+    const typeName = raw.type_name || raw.TypeName || raw.Name || raw.name || raw.type || raw.discription || raw.description || typeId || '';
+    const category = raw.category || raw.Category || raw['หมวดหมู่'] || raw['ประเภท'] || 'hardware';
+    const discription = raw.discription || raw.description || raw.Description || raw.Discription || raw.detail || raw.name || raw.type_name || '';
+
+    const baseResult = {
+      type_ID: typeId,
+      category: category,
+      discription: discription
+    };
+    if (typeName) {
+      baseResult.Name = typeName;
+      baseResult.type_name = typeName;
+    }
+
+    if (availableNames && availableNames.length > 0) {
+      const mapped = {};
+      const idCol = findMatchingAirtableFieldName(availableNames, ['type_ID', 'type_id', 'Type_ID', 'Type ID', 'code', 'id', 'ID', 'รหัส', 'รหัสประเภท']);
+      const nameCol = findMatchingAirtableFieldName(availableNames, ['type_name', 'TypeName', 'Name', 'name', 'type', 'Type', 'ชื่อ', 'ชนิด', 'ชนิดอุปกรณ์']);
+      const catCol = findMatchingAirtableFieldName(availableNames, ['category', 'Category', 'หมวดหมู่', 'ประเภท', 'ประเภทอุปกรณ์']);
+      const descCol = findMatchingAirtableFieldName(availableNames, ['discription', 'description', 'Description', 'Discription', 'desc', 'detail', 'details', 'คำอธิบาย', 'รายละเอียด']);
+
+      if (idCol && typeId) mapped[idCol] = typeId;
+      if (nameCol && typeName) mapped[nameCol] = typeName;
+      if (catCol && category) mapped[catCol] = category;
+      if (descCol && discription) mapped[descCol] = discription;
+
+      if (primaryField && primaryField.name && !mapped[primaryField.name]) {
+        mapped[primaryField.name] = typeId || typeName || discription;
+      }
+      return { ...baseResult, ...mapped };
+    }
+    return baseResult;
+  }
+
   return raw;
 }
 
@@ -1685,7 +1743,7 @@ module.exports = async (req, res) => {
   // ─── BATCH INIT: โหลดทุกตารางในครั้งเดียว ───
   if (query.action === 'init') {
     const delay = ms => new Promise(r => setTimeout(r, ms));
-    const tables = ['device', 'departments', 'map', 'repair'];
+    const tables = ['device', 'departments', 'map', 'repair', 'type'];
     const results = {};
 
     for (let i = 0; i < tables.length; i++) {
