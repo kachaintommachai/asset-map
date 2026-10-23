@@ -113,7 +113,7 @@
             .device-dot { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
             .device-dot .dot-label { color: #000 !important; background: transparent !important; font-weight: 600 !important; }
 
-            /* QR Code Sticker Print Mode */
+            /* QR Code Sticker Print Mode (Single Tag) */
             body.print-qr-mode * { visibility: hidden !important; }
             body.print-qr-mode #qr-sticker-tag,
             body.print-qr-mode #qr-sticker-tag * { visibility: visible !important; }
@@ -132,6 +132,77 @@
                 border-radius: 4px !important;
                 display: flex !important;
                 box-shadow: none !important;
+            }
+
+            /* Multiple Asset Labels Print Mode (A4 Portrait - 10 Tags Per Page) */
+            body.print-labels-mode {
+                background: #fff !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            body.print-labels-mode * {
+                visibility: hidden !important;
+            }
+            body.print-labels-mode #labels-print-container,
+            body.print-labels-mode #labels-print-container * {
+                visibility: visible !important;
+            }
+            body.print-labels-mode #labels-print-container {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                display: block !important;
+                background: transparent !important;
+            }
+            @page label-a4-portrait {
+                size: A4 portrait;
+                margin: 8mm 6mm;
+            }
+            body.print-labels-mode {
+                page: label-a4-portrait;
+            }
+            .a4-label-page {
+                width: 198mm;
+                height: 281mm;
+                max-height: 281mm;
+                box-sizing: border-box;
+                display: grid !important;
+                grid-template-columns: repeat(2, 95mm);
+                grid-template-rows: repeat(5, 52mm);
+                column-gap: 6mm;
+                row-gap: 4mm;
+                padding: 2mm 0;
+                margin: 0 auto;
+                page-break-after: always;
+                break-after: page;
+                background: #fff !important;
+            }
+            .a4-label-page:last-child {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+            .asset-print-label-item {
+                width: 95mm;
+                height: 52mm;
+                max-width: 95mm;
+                max-height: 52mm;
+                border: 1.5px solid #000 !important;
+                border-radius: 6px;
+                padding: 2.5mm 3mm;
+                box-sizing: border-box;
+                background: #fff !important;
+                color: #000 !important;
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                gap: 2.5mm;
+                overflow: hidden;
+                position: relative;
+                page-break-inside: avoid;
+                break-inside: avoid;
             }
         }
         .dragging { opacity: 0.6; }
@@ -451,6 +522,10 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    <button type="button" onclick="openBatchPrintModal()" class="flex items-center gap-1.5 bg-emerald-700/80 hover:bg-emerald-600 text-emerald-100 hover:text-white text-xs px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl font-medium transition-all border border-emerald-500/50 shadow-sm" title="พิมพ์ป้ายทรัพย์สินแบบหลายรายการ (A4 10 ป้าย/หน้า)">
+                        <i data-lucide="printer" class="w-3.5 h-3.5 text-emerald-300"></i> <span class="hidden sm:inline">พิมพ์ป้ายทรัพย์สิน</span><span class="sm:hidden">พิมพ์ป้าย</span>
+                        <span id="dev-mgr-selected-count-badge" class="hidden ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-white text-emerald-800 font-bold">0</span>
+                    </button>
                     <button type="button" onclick="restoreDevicesFromCsv()" class="flex items-center gap-1.5 bg-cyan-900/60 hover:bg-cyan-800 text-cyan-300 hover:text-white text-xs px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl font-medium transition-all border border-cyan-700/60" title="กู้คืนข้อมูลอุปกรณ์ทั้งหมดจาก CSV เข้าสู่ Airtable">
                         <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-cyan-400"></i> <span class="hidden sm:inline">กู้คืนข้อมูลจาก CSV</span><span class="sm:hidden">กู้คืน</span>
                     </button>
@@ -462,6 +537,22 @@
                     </button>
                     <button onclick="closeModal('modal-devices')" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-700 transition-colors">
                         <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Selection Quick Action Bar (Floating bar when items are selected) -->
+            <div id="dev-mgr-selection-bar" class="hidden px-4 py-2 bg-emerald-950/70 border-b border-emerald-800/80 flex items-center justify-between gap-3 text-xs text-emerald-200">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="check-square" class="w-4 h-4 text-emerald-400"></i>
+                    <span>เลือกไว้แล้ว <strong id="dev-mgr-selection-text" class="text-white font-mono font-bold">0</strong> รายการ</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="selectAllFilteredDevices(true)" class="text-slate-300 hover:text-white underline text-[11px]">เลือกทั้งหมดที่แสดง</button>
+                    <span class="text-emerald-700">|</span>
+                    <button type="button" onclick="clearSelectedDevices()" class="text-slate-300 hover:text-white underline text-[11px]">ยกเลิกการเลือก</button>
+                    <button type="button" onclick="openBatchPrintModal()" class="ml-2 flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-lg font-medium transition-all shadow">
+                        <i data-lucide="printer" class="w-3.5 h-3.5"></i> ดูตัวอย่าง & พิมพ์ป้าย A4
                     </button>
                 </div>
             </div>
@@ -507,6 +598,9 @@
                     <table class="w-full text-left text-xs text-slate-300">
                         <thead class="bg-slate-900/90 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-700 sticky top-0 backdrop-blur-sm z-10">
                             <tr>
+                                <th class="py-3 px-3 w-10 text-center">
+                                    <input type="checkbox" id="dev-mgr-select-all" onchange="toggleSelectAllFilteredDevices(this.checked)" class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-emerald-600 focus:ring-emerald-500 cursor-pointer" title="เลือก/ยกเลิก ทั้งหมด">
+                                </th>
                                 <th class="py-3 px-3 w-12 text-center">รูป</th>
                                 <th class="py-3 px-3 cursor-pointer select-none hover:text-white transition-colors" onclick="toggleDeviceManagerCodeSort()" title="คลิกเพื่อสลับการจัดเรียง A-Z / Z-A">
                                     <div class="inline-flex items-center gap-1">
@@ -534,6 +628,9 @@
             <div class="px-6 py-3 border-t border-slate-700 flex items-center justify-between bg-slate-850 shrink-0">
                 <span id="dev-mgr-footer-count" class="text-xs text-slate-400"></span>
                 <div class="flex items-center gap-2">
+                    <button type="button" onclick="openBatchPrintModal()" class="flex items-center gap-1.5 bg-emerald-700/70 hover:bg-emerald-600 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition-all">
+                        <i data-lucide="printer" class="w-3.5 h-3.5"></i> พิมพ์ป้ายที่เลือก (<span id="dev-mgr-footer-selected-count">0</span>)
+                    </button>
                     <button onclick="openAddDevice()" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition-all">
                         <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> เพิ่มอุปกรณ์
                     </button>
@@ -1030,6 +1127,76 @@
             </div>
         </div>
     </div>
+
+    <!-- ─── BATCH ASSET TAGS PRINT PREVIEW MODAL (A4 PORTRAIT - 10 LABELS/PAGE) ─── -->
+    <div id="modal-batch-print" class="fixed inset-0 z-[80] hidden items-center justify-center modal-overlay">
+        <div class="bg-slate-900 rounded-2xl w-full max-w-5xl mx-3 sm:mx-6 border border-slate-750 shadow-2xl flex flex-col" style="height: 94vh;">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-slate-700 shrink-0 bg-slate-850 gap-2">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                        <i data-lucide="printer" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                            ตัวอย่างก่อนพิมพ์ป้ายทรัพย์สิน (A4 แนวตั้ง 10 ป้าย/หน้า)
+                        </h3>
+                        <p class="text-xs text-slate-400">
+                            ขนาดป้ายมาตรฐาน 95 × 52 มม. (2 คอลัมน์ × 5 แถว) พร้อม QR Code สแกนดูข้อมูลทันที
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" onclick="executeBatchPrint()" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm px-3.5 py-2 rounded-xl font-semibold transition-all shadow-lg shadow-emerald-900/30">
+                        <i data-lucide="printer" class="w-4 h-4"></i> สั่งพิมพ์ทันที
+                    </button>
+                    <button type="button" onclick="closeModal('modal-batch-print')" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-700 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Toolbar / Info & Options -->
+            <div class="px-4 sm:px-6 py-2.5 bg-slate-800/80 border-b border-slate-700/80 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300 shrink-0">
+                <div class="flex items-center gap-3">
+                    <span class="inline-flex items-center gap-1.5 bg-emerald-950/80 text-emerald-300 border border-emerald-800/80 px-2.5 py-1 rounded-lg font-medium">
+                        <i data-lucide="tag" class="w-3.5 h-3.5"></i>
+                        <span>จำนวนป้ายที่เลือก: <strong id="batch-preview-count" class="font-mono text-white text-sm">0</strong> ป้าย</span>
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 bg-slate-700/80 text-slate-200 px-2.5 py-1 rounded-lg">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5 text-cyan-400"></i>
+                        <span>จำนวนหน้ากระดาษ A4: <strong id="batch-preview-pages" class="font-mono text-white">0</strong> หน้า</span>
+                    </span>
+                </div>
+                <div class="flex items-center gap-2 text-[11px] text-slate-400">
+                    <span class="hidden sm:inline">💡 แนะนำ: ตั้งค่าการพิมพ์ในเบราว์เซอร์เป็น กระดาษ <strong>A4</strong>, ทิศทาง <strong>แนวตั้ง (Portrait)</strong>, ขอบกระดาษ <strong>ต่ำสุด (Minimum)</strong></span>
+                </div>
+            </div>
+
+            <!-- Preview Sheet Scroll Area -->
+            <div class="flex-1 overflow-auto p-4 sm:p-6 bg-slate-950 flex flex-col items-center">
+                <div id="batch-preview-container" class="space-y-8 w-full max-w-[820px] flex flex-col items-center">
+                    <!-- A4 sheet previews generated here via JS -->
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-3 border-t border-slate-750 flex items-center justify-between bg-slate-850 shrink-0 text-xs">
+                <span class="text-slate-400 text-[11px]">พิมพ์ผ่านระบบบราวเซอร์ รองรับเครื่องพิมพ์ทุกรุ่น หรือเลือกพิมพ์เป็นไฟล์ PDF</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="executeBatchPrint()" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl font-semibold transition-all shadow">
+                        <i data-lucide="printer" class="w-4 h-4"></i> สั่งพิมพ์ (Print)
+                    </button>
+                    <button type="button" onclick="closeModal('modal-batch-print')" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-xl font-medium transition-all">
+                        ปิด
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container used for @media print printing batch labels -->
+    <div id="labels-print-container" class="print-only"></div>
 
     <!-- ─── MAINTENANCE / REPAIR / PURCHASE HISTORY MANAGER MODAL (ADMIN) ─── -->
     <div id="modal-maintenance-list" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
@@ -4532,6 +4699,71 @@
         }
 
         // ─── DEVICE MANAGER (ADMIN) ───
+        const selectedDeviceKeys = new Set();
+        let lastFilteredDeviceKeys = [];
+
+        function getDeviceUniqueKey(c) {
+            return String(c._recordId || c.asset_code || c.id || '');
+        }
+
+        function updateDeviceManagerSelectionUI() {
+            const count = selectedDeviceKeys.size;
+            const badge = document.getElementById('dev-mgr-selected-count-badge');
+            if (badge) {
+                badge.textContent = count;
+                badge.classList.toggle('hidden', count === 0);
+            }
+            const bar = document.getElementById('dev-mgr-selection-bar');
+            if (bar) {
+                bar.classList.toggle('hidden', count === 0);
+            }
+            const selText = document.getElementById('dev-mgr-selection-text');
+            if (selText) selText.textContent = count;
+            const footerSelCount = document.getElementById('dev-mgr-footer-selected-count');
+            if (footerSelCount) footerSelCount.textContent = count;
+
+            // Update master select-all checkbox
+            const selectAllCb = document.getElementById('dev-mgr-select-all');
+            if (selectAllCb) {
+                if (lastFilteredDeviceKeys.length > 0 && lastFilteredDeviceKeys.every(k => selectedDeviceKeys.has(k))) {
+                    selectAllCb.checked = true;
+                    selectAllCb.indeterminate = false;
+                } else if (lastFilteredDeviceKeys.some(k => selectedDeviceKeys.has(k))) {
+                    selectAllCb.checked = false;
+                    selectAllCb.indeterminate = true;
+                } else {
+                    selectAllCb.checked = false;
+                    selectAllCb.indeterminate = false;
+                }
+            }
+        }
+
+        function toggleSelectDevice(key, checked) {
+            if (checked) {
+                selectedDeviceKeys.add(String(key));
+            } else {
+                selectedDeviceKeys.delete(String(key));
+            }
+            updateDeviceManagerSelectionUI();
+        }
+
+        function toggleSelectAllFilteredDevices(checked) {
+            lastFilteredDeviceKeys.forEach(k => {
+                if (checked) selectedDeviceKeys.add(k);
+                else selectedDeviceKeys.delete(k);
+            });
+            renderDeviceManagerList();
+        }
+
+        function selectAllFilteredDevices(checked) {
+            toggleSelectAllFilteredDevices(checked);
+        }
+
+        function clearSelectedDevices() {
+            selectedDeviceKeys.clear();
+            renderDeviceManagerList();
+        }
+
         function openDeviceManager() {
             populateDeviceManagerFilters();
             renderDeviceManagerList();
@@ -4654,16 +4886,20 @@
                 sortIcon.setAttribute('data-lucide', sortOrder === 'code-desc' ? 'arrow-down-z-a' : 'arrow-up-a-z');
             }
 
+            lastFilteredDeviceKeys = list.map(c => getDeviceUniqueKey(c)).filter(Boolean);
+
             // Update badge & footer count
             const totalBadge = document.getElementById('dev-mgr-total-badge');
             if (totalBadge) totalBadge.textContent = `${cameras.length} อุปกรณ์`;
             const footerCount = document.getElementById('dev-mgr-footer-count');
             if (footerCount) footerCount.textContent = `แสดง ${list.length} จากทั้งหมด ${cameras.length} อุปกรณ์`;
 
+            updateDeviceManagerSelectionUI();
+
             if (list.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="9" class="text-center py-12 text-slate-500">
+                        <td colspan="10" class="text-center py-12 text-slate-500">
                             <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
                             <p class="text-sm">ไม่พบข้อมูลอุปกรณ์ตามเงื่อนไขที่ระบุ</p>
                         </td>
@@ -4674,6 +4910,8 @@
             }
 
             tbody.innerHTML = list.map(c => {
+                const uniqueKey = getDeviceUniqueKey(c);
+                const isChecked = selectedDeviceKeys.has(uniqueKey);
                 const devType = getDeviceType(c.type);
                 const devCat = getDeviceCategory(c);
                 const iconName = getDeviceIconName(c.type);
@@ -4699,7 +4937,10 @@
                 const devImg = c.image_url || c.go2rtc || c.image || LocalImageStore.get(c.id) || LocalImageStore.get(c._recordId) || LocalImageStore.get(c.asset_code) || '';
 
                 return `
-                    <tr class="hover:bg-slate-750/70 transition-colors">
+                    <tr class="hover:bg-slate-750/70 transition-colors ${isChecked ? 'bg-emerald-950/20' : ''}">
+                        <td class="py-2.5 px-3 text-center">
+                            <input type="checkbox" data-dev-key="${uniqueKey}" ${isChecked ? 'checked' : ''} onchange="toggleSelectDevice('${uniqueKey}', this.checked)" class="dev-item-checkbox w-4 h-4 rounded border-slate-600 bg-slate-700 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
+                        </td>
                         <td class="py-2.5 px-3 text-center">
                             ${devImg ? `
                                 <img src="${devImg}" class="w-8 h-8 rounded-lg object-cover border border-slate-600 cursor-pointer hover:scale-110 transition-transform mx-auto" onclick="openImageViewer('${devImg}')" onerror="this.style.display='none'">
@@ -5870,6 +6111,165 @@
                 document.execCommand('copy');
                 alert('คัดลอกลิงก์เรียบร้อย');
             }
+        }
+
+        // ─── BATCH ASSET TAG PRINTING (A4 PORTRAIT - 10 LABELS/PAGE) ───
+        function getSelectedDevicesList() {
+            let selectedList = [];
+            if (selectedDeviceKeys.size > 0) {
+                selectedList = cameras.filter(c => selectedDeviceKeys.has(getDeviceUniqueKey(c)));
+            }
+            return selectedList;
+        }
+
+        function renderAssetLabelItemHTML(cam, isPreview) {
+            const assetCode = cam.asset_code || cam.id || cam.account_no || '-';
+            const assetName = cam.asset_name || cam.eng_name || '-';
+            const holder = cam.holder || cam.thai_name || '-';
+            const dept = cam.department || cam.group || '-';
+            const brandModel = [cam.brand, cam.model].filter(Boolean).join(' ') || '-';
+            const ip = cam.ip || '-';
+            const devType = getDeviceType(cam.type);
+
+            const directUrlKey = cam.asset_code || cam.id || cam.account_no || cam._recordId || '';
+            const url = new URL(window.location.href);
+            url.search = '';
+            url.hash = '';
+            if (directUrlKey) {
+                url.searchParams.set('asset', directUrlKey);
+            }
+            const directUrl = url.toString();
+
+            let qrSvg = '';
+            if (window.QRCode) {
+                try {
+                    qrSvg = QRCode.generateSVG(directUrl, { size: isPreview ? 80 : 86, margin: 1 });
+                } catch (e) {
+                    qrSvg = '<span style="font-size:8px;color:#999;">QR Code</span>';
+                }
+            }
+
+            return `
+                <div class="asset-print-label-item" style="box-sizing:border-box; width:100%; height:100%; border:1.5px solid #000; border-radius:6px; padding:2.5mm 3mm; background:#fff; color:#000; display:flex; flex-direction:row; align-items:center; gap:2.5mm; overflow:hidden; font-family:'IBM Plex Sans Thai',sans-serif; text-align:left;">
+                    <div style="width:23mm; min-width:23mm; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; border-right:1px dashed #bbb; padding-right:2mm;">
+                        <div style="width:22mm; height:22mm; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                            ${qrSvg}
+                        </div>
+                        <span style="font-size:6pt; font-family:monospace; font-weight:700; color:#333; margin-top:1mm; text-transform:uppercase; letter-spacing:0.3px; text-align:center;">SCAN FOR INFO</span>
+                    </div>
+                    <div style="flex:1; min-width:0; display:flex; flex-direction:column; justify-content:space-between; height:100%; overflow:hidden; padding-left:0.5mm;">
+                        <div style="display:flex; align-items:center; justify-content:between; border-bottom:1px solid #10b981; padding-bottom:1mm; margin-bottom:0.5mm;">
+                            <span style="font-size:7.5pt; font-weight:800; color:#047857; letter-spacing:0.5px;">★ IT ASSET TAG</span>
+                            <span style="font-size:6.5pt; background:#f1f5f9; color:#334155; font-weight:700; padding:1px 4px; border-radius:3px; margin-left:auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:28mm;">${devType}</span>
+                        </div>
+                        <div style="line-height:1.15;">
+                            <span style="font-size:6pt; color:#64748b; display:block;">รหัสทรัพย์สิน:</span>
+                            <span style="font-size:10.5pt; font-family:monospace; font-weight:900; color:#000; letter-spacing:0.5px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${assetCode}</span>
+                        </div>
+                        <div style="line-height:1.15; margin-top:0.5mm;">
+                            <span style="font-size:6pt; color:#64748b; display:block;">ชื่ออุปกรณ์:</span>
+                            <span style="font-size:7.5pt; font-weight:700; color:#1e293b; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${assetName}</span>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1mm; font-size:6.5pt; border-top:1px dotted #cbd5e1; padding-top:1mm; margin-top:0.5mm; line-height:1.2;">
+                            <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><span style="color:#64748b;">ผู้ใช้: </span><strong>${holder}</strong></div>
+                            <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><span style="color:#64748b;">แผนก: </span><strong>${dept}</strong></div>
+                            <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><span style="color:#64748b;">รุ่น: </span>${brandModel}</div>
+                            <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><span style="color:#64748b;">IP: </span><span style="font-family:monospace;">${ip}</span></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openBatchPrintModal() {
+            let items = getSelectedDevicesList();
+
+            // If user has not selected any via checkbox, prompt or use current filtered list
+            if (items.length === 0) {
+                if (lastFilteredDeviceKeys.length > 0) {
+                    const confirmUseFiltered = confirm(`คุณยังไม่ได้เลือกอุปกรณ์ด้วยช่องติ๊ก\n\nต้องการเลือกอุปกรณ์ทั้งหมดที่แสดงอยู่ในการค้นหา/ตัวกรองปัจจุบัน (${lastFilteredDeviceKeys.length} อุปกรณ์) มาพิมพ์ป้ายหรือไม่?`);
+                    if (confirmUseFiltered) {
+                        lastFilteredDeviceKeys.forEach(k => selectedDeviceKeys.add(k));
+                        renderDeviceManagerList();
+                        items = getSelectedDevicesList();
+                    } else {
+                        return;
+                    }
+                } else {
+                    alert('กรุณาเลือกอุปกรณ์ที่ต้องการพิมพ์ป้ายอย่างน้อย 1 รายการ');
+                    return;
+                }
+            }
+
+            if (items.length === 0) {
+                alert('ไม่พบรายการอุปกรณ์ที่เลือก');
+                return;
+            }
+
+            // Chunk items into 10 per A4 page
+            const pageSize = 10;
+            const totalPages = Math.ceil(items.length / pageSize);
+
+            const countEl = document.getElementById('batch-preview-count');
+            const pagesEl = document.getElementById('batch-preview-pages');
+            if (countEl) countEl.textContent = items.length;
+            if (pagesEl) pagesEl.textContent = totalPages;
+
+            const previewContainer = document.getElementById('batch-preview-container');
+            const printContainer = document.getElementById('labels-print-container');
+            if (!previewContainer || !printContainer) return;
+
+            let previewHTML = '';
+            let printHTML = '';
+
+            for (let p = 0; p < totalPages; p++) {
+                const pageItems = items.slice(p * pageSize, (p + 1) * pageSize);
+                const pageNumber = p + 1;
+
+                // Preview sheet card (Styled to represent an A4 sheet on dark screen)
+                let sheetInnerCards = pageItems.map(cam => renderAssetLabelItemHTML(cam, true)).join('');
+
+                previewHTML += `
+                    <div class="w-full flex flex-col items-center">
+                        <div class="text-xs text-slate-400 font-semibold mb-2 flex items-center justify-between w-full max-w-[794px] px-2">
+                            <span class="flex items-center gap-1.5"><i data-lucide="file" class="w-3.5 h-3.5 text-emerald-400"></i> แผ่นที่ ${pageNumber} จากทั้งหมด ${totalPages} หน้า (กระดาษ A4 แนวตั้ง - ${pageItems.length} ป้าย)</span>
+                            <span class="font-mono text-[11px] text-slate-500">ลำดับที่ ${(p * pageSize) + 1} - ${(p * pageSize) + pageItems.length}</span>
+                        </div>
+                        <div class="bg-white text-slate-900 shadow-2xl rounded-sm p-[8mm] border border-slate-300 w-full max-w-[794px] aspect-[210/297] box-sizing-border" style="min-height:760px;">
+                            <div style="display:grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(5, 1fr); column-gap: 6mm; row-gap: 4mm; width: 100%; height: 100%;">
+                                ${sheetInnerCards}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Actual @media print layout (Fixed mm units for 100% exact 10 labels / A4)
+                let printCards = pageItems.map(cam => renderAssetLabelItemHTML(cam, false)).join('');
+                printHTML += `
+                    <div class="a4-label-page">
+                        ${printCards}
+                    </div>
+                `;
+            }
+
+            previewContainer.innerHTML = previewHTML;
+            printContainer.innerHTML = printHTML;
+
+            openModal('modal-batch-print');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function executeBatchPrint() {
+            document.body.classList.add('print-labels-mode');
+            const cleanup = () => {
+                document.body.classList.remove('print-labels-mode');
+                window.removeEventListener('afterprint', cleanup);
+            };
+            window.addEventListener('afterprint', cleanup);
+            setTimeout(() => {
+                window.print();
+                setTimeout(cleanup, 1500);
+            }, 150);
         }
 
         lucide.createIcons();
