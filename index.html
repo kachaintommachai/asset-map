@@ -623,6 +623,7 @@
                                 <th class="py-3 px-3">ไซต์ (Site)</th>
                                 <th class="py-3 px-3">IP / MAC</th>
                                 <th class="py-3 px-3">แผนผัง / พิกัด</th>
+                                <th class="py-3 px-3 text-center">ค่าเสื่อม / มูลค่า</th>
                                 <th class="py-3 px-3 text-center">สถานะ</th>
                                 <th class="py-3 px-3 text-center w-24">จัดการ</th>
                             </tr>
@@ -739,6 +740,17 @@
                     <div>
                         <label for="cam-thai-name" class="text-xs text-slate-400">ผู้ถือครอง / ผู้ใช้งาน (Holder)</label>
                         <input id="cam-thai-name" type="text" placeholder="เช่น สมชาย บัญชี, ห้องประชุมใหญ่" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label for="cam-purchase-date" class="text-xs text-slate-400">วันที่ซื้อ / รับเข้า (Purchase Date)</label>
+                        <input id="cam-purchase-date" type="date" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label for="cam-price" class="text-xs text-slate-400">ราคาซื้อ / ทุนทรัพย์สิน (บาท)</label>
+                        <input id="cam-price" type="number" min="0" step="any" placeholder="เช่น 25000" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500">
                     </div>
                 </div>
 
@@ -886,13 +898,17 @@
                                 <input type="text" id="new-type-label" required placeholder="เช่น เครื่องคอมพิวเตอร์, Microsoft Office, สิทธิ์ Volume" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
                             </div>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                             <div>
                                 <label class="text-[11px] text-slate-400 font-medium">หมวดหมู่ (category) *</label>
                                 <select id="new-type-category" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
                                     <option value="hardware">Hardware (ฮาร์ดแวร์ - มี IP/MAC)</option>
                                     <option value="software">Software (ซอฟต์แวร์ / สิทธิ์ใช้งาน - ไม่มี IP/MAC)</option>
                                 </select>
+                            </div>
+                            <div>
+                                <label class="text-[11px] text-slate-400 font-medium">อายุค่าเสื่อม (depreciation - ปี) *</label>
+                                <input type="number" id="new-type-depreciation" min="0" step="0.5" value="5" placeholder="เช่น 3 หรือ 5 ปี" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
                             </div>
                             <div>
                                 <label class="text-[11px] text-slate-400 font-medium">ไอคอนแสดงผล</label>
@@ -1712,17 +1728,17 @@
 
         // ─── IT DEVICE TYPE & LICENSE TYPE STORE & LOGIC ───
         const DEFAULT_DEVICE_TYPES = [
-            { name: 'PC', label: 'คอมพิวเตอร์ (PC)', category: 'hardware', icon: 'monitor' },
-            { name: 'Notebook', label: 'โน้ตบุ๊ก (Notebook)', category: 'hardware', icon: 'laptop' },
-            { name: 'Printer', label: 'เครื่องพิมพ์ (Printer)', category: 'hardware', icon: 'printer' },
-            { name: 'MS Office', label: 'MS Office / ซอฟต์แวร์', category: 'software', icon: 'file-text' },
-            { name: 'Monitor', label: 'จอภาพ (Monitor)', category: 'hardware', icon: 'tv' },
-            { name: 'Switch', label: 'สวิตช์ / ฮับ (Switch/Hub)', category: 'hardware', icon: 'network' },
-            { name: 'Server', label: 'เซิร์ฟเวอร์ (Server)', category: 'hardware', icon: 'server' },
-            { name: 'Router', label: 'เราเตอร์ / WiFi (Router/AP)', category: 'hardware', icon: 'wifi' },
-            { name: 'UPS', label: 'เครื่องสำรองไฟ (UPS)', category: 'hardware', icon: 'zap' },
-            { name: 'Camera', label: 'กล้องวงจรปิด (Camera)', category: 'hardware', icon: 'camera' },
-            { name: 'Other', label: 'อื่นๆ (Other)', category: 'hardware', icon: 'hard-drive' }
+            { name: 'PC', label: 'คอมพิวเตอร์ (PC)', category: 'hardware', icon: 'monitor', depreciation: 5 },
+            { name: 'Notebook', label: 'โน้ตบุ๊ก (Notebook)', category: 'hardware', icon: 'laptop', depreciation: 3 },
+            { name: 'Printer', label: 'เครื่องพิมพ์ (Printer)', category: 'hardware', icon: 'printer', depreciation: 5 },
+            { name: 'MS Office', label: 'MS Office / ซอฟต์แวร์', category: 'software', icon: 'file-text', depreciation: 3 },
+            { name: 'Monitor', label: 'จอภาพ (Monitor)', category: 'hardware', icon: 'tv', depreciation: 5 },
+            { name: 'Switch', label: 'สวิตช์ / ฮับ (Switch/Hub)', category: 'hardware', icon: 'network', depreciation: 5 },
+            { name: 'Server', label: 'เซิร์ฟเวอร์ (Server)', category: 'hardware', icon: 'server', depreciation: 5 },
+            { name: 'Router', label: 'เราเตอร์ / WiFi (Router/AP)', category: 'hardware', icon: 'wifi', depreciation: 5 },
+            { name: 'UPS', label: 'เครื่องสำรองไฟ (UPS)', category: 'hardware', icon: 'zap', depreciation: 3 },
+            { name: 'Camera', label: 'กล้องวงจรปิด (Camera)', category: 'hardware', icon: 'camera', depreciation: 5 },
+            { name: 'Other', label: 'อื่นๆ (Other)', category: 'hardware', icon: 'hard-drive', depreciation: 5 }
         ];
 
         const DEFAULT_LICENSE_TYPES = [
@@ -1778,6 +1794,14 @@
                         const label = desc && typeId && desc !== typeId ? `${desc} (${typeId})` : (desc || typeId);
                         const icon = detectIconForType(name, cat);
 
+                        // ค่าเสื่อมราคา (depreciation) จากตาราง type
+                        const rawDep = f.depreciation != null ? f.depreciation : (f.Depreciation != null ? f.Depreciation : (f['ค่าเสื่อม'] != null ? f['ค่าเสื่อม'] : (f['ค่าเสื่อมราคา'] != null ? f['ค่าเสื่อมราคา'] : f['อายุการใช้งาน'])));
+                        let depVal = parseFloat(String(rawDep != null ? rawDep : '').replace(/[^0-9.]/g, '')) || 0;
+                        if (!depVal) {
+                            const defMatch = DEFAULT_DEVICE_TYPES.find(d => d.name.toLowerCase() === name.toLowerCase() || (d.label && d.label.toLowerCase() === name.toLowerCase()));
+                            if (defMatch && defMatch.depreciation) depVal = defMatch.depreciation;
+                        }
+
                         unifiedList.push({
                             _recordId: recId,
                             type_ID: typeId,
@@ -1785,6 +1809,7 @@
                             label: label,
                             category: cat,
                             discription: desc,
+                            depreciation: depVal,
                             icon: icon
                         });
                     });
@@ -1792,9 +1817,7 @@
                     if (unifiedList.length > 0) {
                         const sortedUnified = sortNatural(unifiedList, d => d.label || d.name);
                         customDeviceTypes = sortedUnified;
-                        customLicenseTypes = sortedUnified;
                         localStorage.setItem('it_asset_device_types', JSON.stringify(customDeviceTypes));
-                        localStorage.setItem('it_asset_license_types', JSON.stringify(customLicenseTypes));
                     }
 
                     refreshDeviceTypesGlobal();
@@ -1814,7 +1837,14 @@
                 if (storedDev) {
                     const parsed = JSON.parse(storedDev);
                     if (Array.isArray(parsed) && parsed.length > 0) {
-                        customDeviceTypes = parsed;
+                        customDeviceTypes = parsed.map(t => {
+                            let depVal = parseFloat(t.depreciation);
+                            if (isNaN(depVal) || depVal <= 0) {
+                                const defMatch = DEFAULT_DEVICE_TYPES.find(d => d.name.toLowerCase() === (t.name || '').toLowerCase());
+                                depVal = defMatch ? defMatch.depreciation : 5;
+                            }
+                            return { ...t, depreciation: depVal };
+                        });
                     }
                 }
             } catch (e) {
@@ -1829,8 +1859,12 @@
                 const storedLic = localStorage.getItem('it_asset_license_types');
                 if (storedLic) {
                     const parsed = JSON.parse(storedLic);
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        customLicenseTypes = parsed;
+                    if (Array.isArray(parsed) && parsed.length > 0 && parsed.every(p => p && (p.key || p.name))) {
+                        customLicenseTypes = parsed.map(p => ({
+                            key: p.key || p.type_ID || p.name || 'volume',
+                            name: p.name || p.label || p.key || 'Volume License',
+                            desc: p.desc || p.discription || p.description || ''
+                        }));
                     }
                 }
             } catch (e) {
@@ -2030,6 +2064,9 @@
                 catSelect.value = category;
             }
             toggleDeviceCategoryUI(prefix, category);
+            if (prefix === 'detail' && typeof updateDetailDepreciationLive === 'function') {
+                updateDetailDepreciationLive();
+            }
         }
 
         function getDeviceTypeClass(type) {
@@ -2166,6 +2203,11 @@
                                         </select>
                                     </div>
 
+                                    <div class="w-16">
+                                        <label class="text-[10px] text-slate-400 block mb-0.5 text-center">ค่าเสื่อม (ปี)</label>
+                                        <input type="number" id="type-row-dep-${originalIdx}" value="${t.depreciation || 0}" min="0" step="0.5" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-xs text-amber-300 font-mono text-center focus:outline-none focus:border-emerald-500" title="จำนวนปีค่าเสื่อมราคา">
+                                    </div>
+
                                     <div class="text-center min-w-[50px]">
                                         <label class="text-[10px] text-slate-400 block mb-0.5">ใช้งาน</label>
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${usageCount > 0 ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-800 text-slate-400'}">${usageCount} ชิ้น</span>
@@ -2197,11 +2239,13 @@
             const descInput = document.getElementById(`type-row-desc-${idx}`);
             const catSelect = document.getElementById(`type-row-cat-${idx}`);
             const iconSelect = document.getElementById(`type-row-icon-${idx}`);
+            const depInput = document.getElementById(`type-row-dep-${idx}`);
 
             const newTypeId = (idInput?.value || '').trim();
             const newDesc = (descInput?.value || '').trim() || newTypeId;
             const newCat = catSelect?.value || 'hardware';
             const newIcon = iconSelect?.value || 'hard-drive';
+            const newDep = parseFloat(depInput?.value) || 0;
 
             if (!newTypeId && !newDesc) {
                 alert('กรุณาระบุรหัสชนิดอุปกรณ์ หรือชื่อ/คำอธิบาย');
@@ -2216,12 +2260,14 @@
             oldItem.discription = newDesc;
             oldItem.category = newCat;
             oldItem.icon = newIcon;
+            oldItem.depreciation = newDep;
 
             try {
                 const payload = {
                     type_ID: newTypeId,
                     category: newCat,
-                    discription: newDesc
+                    discription: newDesc,
+                    depreciation: newDep
                 };
                 if (oldItem._recordId) {
                     await apiUpdate('type', oldItem._recordId, payload);
@@ -2286,11 +2332,13 @@
             const nameEl = document.getElementById('new-type-name'); // type_ID
             const labelEl = document.getElementById('new-type-label'); // discription
             const catEl = document.getElementById('new-type-category');
+            const depEl = document.getElementById('new-type-depreciation');
             const iconEl = document.getElementById('new-type-icon');
 
             const typeId = (nameEl?.value || '').trim();
             const desc = (labelEl?.value || '').trim() || typeId;
             const category = catEl?.value || 'hardware';
+            const depreciation = parseFloat(depEl?.value) || 0;
             const icon = iconEl?.value || detectIconForType(desc || typeId, category);
 
             if (!typeId && !desc) {
@@ -2302,14 +2350,15 @@
                 await apiCreate('type', {
                     type_ID: typeId,
                     category: category,
-                    discription: desc
+                    discription: desc,
+                    depreciation: depreciation
                 });
                 await fetchTypesFromTable();
             } catch (err) {
                 console.warn('apiCreate type failed, adding locally:', err);
                 const name = desc || typeId;
                 const label = desc && typeId && desc !== typeId ? `${desc} (${typeId})` : (desc || typeId);
-                customDeviceTypes.push({ type_ID: typeId, name, label, category, discription: desc, icon });
+                customDeviceTypes.push({ type_ID: typeId, name, label, category, discription: desc, depreciation, icon });
                 await saveSettingsToServer();
             }
 
@@ -4027,6 +4076,329 @@
             }
         }
 
+        // ─── ASSET DEPRECIATION CALCULATION & COMPONENTS ───
+        function getDeviceTypeItem(type) {
+            const resolvedName = getDeviceType(type);
+            const item = customDeviceTypes.find(d => 
+                (d.name && d.name.toLowerCase() === resolvedName.toLowerCase()) ||
+                (d.type_ID && String(d.type_ID).toLowerCase() === String(type).toLowerCase()) ||
+                (d.label && d.label.toLowerCase() === resolvedName.toLowerCase())
+            );
+            return item || null;
+        }
+
+        function getDeviceDepreciationYears(type) {
+            const item = getDeviceTypeItem(type);
+            if (item && item.depreciation != null) {
+                const val = parseFloat(item.depreciation);
+                if (!isNaN(val) && val > 0) return val;
+            }
+            const def = DEFAULT_DEVICE_TYPES.find(d => d.name.toLowerCase() === (item?.name || type || '').toLowerCase());
+            return def && def.depreciation ? def.depreciation : 0;
+        }
+
+        function calculateAssetDepreciation(cam, overridePurchaseDate, overridePrice) {
+            if (!cam) return null;
+            const devType = cam.type || '';
+            const typeInfo = getDeviceTypeItem(devType) || getDeviceTypeItem(cam.type_ID) || getDeviceTypeItem(cam.type_id);
+            const depreciationYears = parseFloat(typeInfo ? typeInfo.depreciation : 0) || getDeviceDepreciationYears(devType);
+
+            // Purchase Date: override -> cam.purchase_date -> maintenances table (purchase/receipt)
+            let purchaseDateStr = (overridePurchaseDate !== undefined ? overridePurchaseDate : (cam.purchase_date || cam['Purchase Date'] || cam['purchaseDate'] || cam['วันที่ซื้อ'] || cam['วันที่รับเข้า'] || cam.buy_date || '')).trim();
+
+            let purchaseRec = null;
+            if (typeof getMaintenancesForDevice === 'function') {
+                const code = cam.asset_code || cam.id || cam.account_no || '';
+                const mList = getMaintenancesForDevice(code);
+                purchaseRec = mList.find(r => (r.type || '').includes('ซื้อ') || (r.type || '').includes('รับเข้า'));
+                if (!purchaseDateStr && purchaseRec && purchaseRec.date) {
+                    purchaseDateStr = purchaseRec.date.trim();
+                }
+            }
+
+            // Price / Initial Cost
+            let initialPrice = 0;
+            if (overridePrice !== undefined && overridePrice !== null && overridePrice !== '') {
+                initialPrice = parseFloat(String(overridePrice).replace(/,/g, '')) || 0;
+            } else {
+                const rawPrice = cam.price ?? cam.cost ?? cam['ราคา'] ?? cam['ราคาซื้อ'] ?? cam['Cost'] ?? cam['Price'];
+                if (rawPrice != null && rawPrice !== '') {
+                    initialPrice = parseFloat(String(rawPrice).replace(/,/g, '')) || 0;
+                }
+                if (!initialPrice && purchaseRec && purchaseRec.cost) {
+                    initialPrice = parseFloat(String(purchaseRec.cost).replace(/,/g, '')) || 0;
+                }
+            }
+
+            if (!purchaseDateStr) {
+                return {
+                    status: 'NO_PURCHASE_DATE',
+                    depreciationYears,
+                    typeName: typeInfo?.name || devType || '-',
+                    message: 'ยังไม่ได้ระบุวันที่ซื้อ'
+                };
+            }
+
+            if (!depreciationYears || depreciationYears <= 0) {
+                return {
+                    status: 'NO_DEPRECIATION_PERIOD',
+                    purchaseDateStr,
+                    initialPrice,
+                    typeName: typeInfo?.name || devType || '-',
+                    message: `ชนิดอุปกรณ์ "${typeInfo?.name || devType}" ยังไม่ได้กำหนดอายุค่าเสื่อมในตาราง type (คอลัมน์ depreciation)`
+                };
+            }
+
+            const today = new Date();
+            let pDate = new Date(purchaseDateStr);
+            if (isNaN(pDate.getTime()) && purchaseDateStr.includes('/')) {
+                const parts = purchaseDateStr.split('/');
+                if (parts.length === 3) {
+                    pDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                }
+            }
+
+            if (isNaN(pDate.getTime())) {
+                return {
+                    status: 'INVALID_DATE',
+                    purchaseDateStr,
+                    depreciationYears,
+                    message: 'รูปแบบวันที่ซื้อไม่ถูกต้อง'
+                };
+            }
+
+            const diffMs = today.getTime() - pDate.getTime();
+            const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+            // ระยะเวลาที่ใช้งานมาแล้วเป็นปี (นำวันที่ปัจจุบัน - วันที่ซื้อ)
+            const elapsedYears = Math.max(0, diffDays / 365.25);
+
+            // คำนวณเป็น ปี เดือน วัน สำหรับการแสดงผลที่เข้าใจง่าย
+            let ageYears = today.getFullYear() - pDate.getFullYear();
+            let ageMonths = today.getMonth() - pDate.getMonth();
+            let ageDays = today.getDate() - pDate.getDate();
+            if (ageDays < 0) {
+                ageMonths -= 1;
+                const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+                ageDays += prevMonth.getDate();
+            }
+            if (ageMonths < 0) {
+                ageYears -= 1;
+                ageMonths += 12;
+            }
+            if (ageYears < 0) {
+                ageYears = 0;
+                ageMonths = 0;
+                ageDays = 0;
+            }
+
+            // นำวันที่ปัจจุบัน - วันที่ซื้อ แล้วหารด้วยจำนวนปีในคอลัม depreciation
+            const depreciationRatio = elapsedYears / depreciationYears;
+
+            // หากจำนวนปีเกินปีที่กำหนด ให้แสดงค่าเสื่อมเป็น 1 บาท หากไม่เกิน ให้คำนวณค่าเสื่อม
+            const isOverPeriod = elapsedYears >= depreciationYears;
+
+            let bookValue = 0; // มูลค่าคงเหลือสุทธิ / ค่าเสื่อมราคาคงเหลือ
+            let accumulatedDepreciation = 0; // ค่าเสื่อมราคาสะสม
+            let depreciationPerYear = 0; // ค่าเสื่อมราคาต่อปี
+
+            if (isOverPeriod) {
+                // เกินปีที่กำหนด -> แสดงค่าเสื่อมเป็น 1 บาท
+                bookValue = 1.0;
+                if (initialPrice > 1) {
+                    accumulatedDepreciation = initialPrice - 1;
+                    depreciationPerYear = (initialPrice - 1) / depreciationYears;
+                } else {
+                    accumulatedDepreciation = 0;
+                    depreciationPerYear = 0;
+                }
+            } else {
+                // ไม่เกินปีที่กำหนด -> คำนวณค่าเสื่อมราคา
+                if (initialPrice > 0) {
+                    const depreciableBase = initialPrice > 1 ? (initialPrice - 1) : initialPrice;
+                    depreciationPerYear = depreciableBase / depreciationYears;
+                    accumulatedDepreciation = Math.min(depreciableBase, depreciationPerYear * elapsedYears);
+                    bookValue = Math.max(1, initialPrice - accumulatedDepreciation);
+                } else {
+                    bookValue = null;
+                }
+            }
+
+            const progressPercent = Math.min(100, Math.max(0, depreciationRatio * 100));
+            const remainingYears = Math.max(0, depreciationYears - elapsedYears);
+
+            return {
+                status: 'OK',
+                hasPurchaseDate: true,
+                purchaseDateStr,
+                purchaseDate: purchaseDateStr,
+                purchaseDateObj: pDate,
+                depreciationYears,
+                elapsedYears,
+                diffDays,
+                ageYears,
+                ageMonths,
+                ageDays,
+                depreciationRatio,
+                isOverPeriod,
+                isExpired: isOverPeriod,
+                initialPrice,
+                price: initialPrice,
+                depreciationPerYear,
+                annualDepreciation: depreciationPerYear,
+                accumulatedDepreciation,
+                bookValue,
+                currentValue: bookValue,
+                progressPercent,
+                remainingYears,
+                typeName: typeInfo?.name || devType
+            };
+        }
+
+        function getDeviceDepreciationHtml(cam, overridePurchaseDate, overridePrice) {
+            const dep = calculateAssetDepreciation(cam, overridePurchaseDate, overridePrice);
+            if (!dep) return '';
+
+            if (dep.status === 'NO_PURCHASE_DATE') {
+                return `
+                    <div class="mt-4 pt-3 border-t border-slate-700">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                                <i data-lucide="calculator" class="w-3.5 h-3.5 text-amber-400"></i> การคำนวณค่าเสื่อมราคา (Depreciation)
+                            </span>
+                            <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700">ยังไม่ระบุวันที่ซื้อ</span>
+                        </div>
+                        <div class="p-3 bg-slate-900/50 rounded-xl border border-dashed border-slate-700/80 text-xs text-slate-400 text-center space-y-1">
+                            <p class="text-slate-300">ยังไม่ได้ระบุวันที่ซื้อของอุปกรณ์นี้</p>
+                            <p class="text-[11px] text-slate-500">สามารถระบุวันที่ซื้อในส่วนแก้ไข หรือบันทึกประวัติการซื้อเพื่อคำนวณค่าเสื่อมราคาอัตโนมัติ (เกณฑ์ ${dep.depreciationYears || '-'} ปีจากตาราง type)</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (dep.status === 'NO_DEPRECIATION_PERIOD') {
+                return `
+                    <div class="mt-4 pt-3 border-t border-slate-700">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                                <i data-lucide="calculator" class="w-3.5 h-3.5 text-amber-400"></i> การคำนวณค่าเสื่อมราคา (Depreciation)
+                            </span>
+                            <span class="text-[10px] bg-amber-500/10 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">รอตั้งค่าปี</span>
+                        </div>
+                        <div class="p-3 bg-slate-900/50 rounded-xl border border-dashed border-slate-700/80 text-xs text-slate-400 space-y-1">
+                            <div class="flex justify-between items-center text-slate-300">
+                                <span>วันที่ซื้อ: <strong class="text-white font-mono">${dep.purchaseDateStr}</strong></span>
+                                <span>ชนิดอุปกรณ์: <strong class="text-white">${dep.typeName}</strong></span>
+                            </div>
+                            <p class="text-amber-400/90 text-[11px] pt-1">⚠️ ชนิดอุปกรณ์นี้ยังไม่ได้ระบุจำนวนปีในคอลัมน์ <code>depreciation</code> ของตาราง <code>type</code></p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const isOver = dep.isOverPeriod;
+            const badgeHtml = isOver
+                ? `<span class="text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                     <i data-lucide="check-check" class="w-3 h-3 text-amber-400"></i> เกินกำหนด (ค่าเสื่อม 1 บาท)
+                   </span>`
+                : `<span class="text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                     <i data-lucide="clock" class="w-3 h-3 text-emerald-400"></i> อยู่ในเกณฑ์ค่าเสื่อมราคา
+                   </span>`;
+
+            const bookValueDisplay = isOver
+                ? '฿1.00 บาท'
+                : (dep.bookValue != null ? formatCurrency(dep.bookValue) : `${dep.progressPercent.toFixed(1)}%`);
+
+            const progressColor = isOver ? 'bg-amber-500' : 'bg-emerald-500';
+
+            return `
+                <div class="mt-4 pt-3 border-t border-slate-700">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                            <i data-lucide="calculator" class="w-3.5 h-3.5 text-cyan-400"></i> การคำนวณค่าเสื่อมราคา (Depreciation)
+                        </span>
+                        ${badgeHtml}
+                    </div>
+
+                    <!-- Main Calculation Card -->
+                    <div class="bg-gradient-to-br from-slate-900/95 to-slate-900/60 p-3.5 rounded-xl border border-slate-700/80 space-y-3 shadow-inner">
+                        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                            <div>
+                                <span class="text-[10px] text-slate-400 block">${isOver ? 'ค่าเสื่อมราคา (เกินอายุที่กำหนด):' : 'มูลค่าคงเหลือตามบัญชี (ค่าเสื่อม):'}</span>
+                                <div class="text-xl font-bold font-mono ${isOver ? 'text-amber-400' : 'text-emerald-400'}">
+                                    ${bookValueDisplay}
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] text-slate-400 block">เกณฑ์อายุใช้งาน (ตาราง type):</span>
+                                <div class="text-sm font-semibold font-mono text-cyan-300">
+                                    ${dep.depreciationYears} ปี
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div>
+                            <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+                                <span>อายุใช้งาน: <strong class="text-slate-200">${dep.ageYears} ปี ${dep.ageMonths} เดือน</strong> (${dep.elapsedYears.toFixed(2)} ปี)</span>
+                                <span class="font-mono font-medium ${isOver ? 'text-amber-300' : 'text-emerald-400'}">${dep.progressPercent.toFixed(1)}%</span>
+                            </div>
+                            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-700">
+                                <div class="${progressColor} h-full rounded-full transition-all duration-300" style="width: ${dep.progressPercent}%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Details Grid -->
+                        <div class="grid grid-cols-2 gap-2 text-[11px] pt-1 border-t border-slate-800">
+                            <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+                                <span class="text-slate-400 block text-[10px]">วันที่ซื้อ / รับเข้า:</span>
+                                <span class="font-mono font-medium text-slate-200">${dep.purchaseDateStr}</span>
+                            </div>
+                            <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+                                <span class="text-slate-400 block text-[10px]">ราคาซื้อ / ทุนเริ่มต้น:</span>
+                                <span class="font-mono font-medium ${dep.initialPrice > 0 ? 'text-emerald-300' : 'text-slate-500'}">
+                                    ${dep.initialPrice > 0 ? formatCurrency(dep.initialPrice) : 'ไม่ได้ระบุราคา'}
+                                </span>
+                            </div>
+                            ${dep.initialPrice > 0 ? `
+                                <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+                                    <span class="text-slate-400 block text-[10px]">ค่าเสื่อมราคาต่อปี:</span>
+                                    <span class="font-mono font-medium text-slate-300">${formatCurrency(dep.depreciationPerYear)} / ปี</span>
+                                </div>
+                                <div class="bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+                                    <span class="text-slate-400 block text-[10px]">ค่าเสื่อมราคาสะสม:</span>
+                                    <span class="font-mono font-medium text-amber-300">${formatCurrency(dep.accumulatedDepreciation)}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <div class="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/60">
+                            <span class="text-slate-400">สูตร: (วันที่ปัจจุบัน - วันที่ซื้อ) ÷ ${dep.depreciationYears} ปี</span>
+                            <span class="${isOver ? 'text-amber-400 font-medium' : 'text-slate-400'}">${isOver ? 'เกินเกณฑ์อายุ → แสดงเป็น 1 บาท' : `อายุคงเหลือ: ${dep.remainingYears.toFixed(1)} ปี`}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateDetailDepreciationLive() {
+            const cont = document.getElementById('detail-depreciation-container');
+            if (!cont) return;
+            const pDate = (document.getElementById('detail-purchase-date')?.value || '').trim();
+            const pPrice = parseFloat(document.getElementById('detail-price')?.value) || 0;
+            const typeVal = document.getElementById('detail-type')?.value || '';
+            const currentCode = document.getElementById('detail-id')?.value || '';
+            const tempCam = {
+                asset_code: currentCode,
+                id: currentCode,
+                type: typeVal,
+                purchase_date: pDate,
+                price: pPrice,
+                cost: pPrice
+            };
+            cont.innerHTML = getDeviceDepreciationHtml(tempCam, pDate, pPrice);
+            if (window.lucide) lucide.createIcons();
+        }
+
         // ─── DEVICE DETAIL MODAL ───
         function showCameraDetail(cam) {
             const content = document.getElementById('detail-content');
@@ -4042,12 +4414,31 @@
             const currentMapLabel = maps.find(m => String(m.map_id) === String(cam.map_id) || String(m._recordId) === String(cam.map_id));
             const mapLabel = currentMapLabel ? (currentMapLabel.map_name || `แผนผัง ${currentMapLabel.map_id}`) : (cam.map_id || '-');
 
+            // Resolve purchase date and price for admin and user views
+            const camPurchaseDate = (cam.purchase_date || cam['Purchase Date'] || cam['purchaseDate'] || cam['วันที่ซื้อ'] || '').trim();
+            let camPrice = cam.price ?? cam.cost ?? cam['ราคา'] ?? '';
+            let resolvedPurchaseDate = camPurchaseDate;
+            let resolvedPrice = camPrice;
+            if (!resolvedPurchaseDate || !resolvedPrice) {
+                const code = cam.asset_code || cam.id || cam.account_no || '';
+                const mList = typeof getMaintenancesForDevice === 'function' ? getMaintenancesForDevice(code) : [];
+                const pRec = mList.find(r => (r.type || '').includes('ซื้อ') || (r.type || '').includes('รับเข้า'));
+                if (!resolvedPurchaseDate && pRec) resolvedPurchaseDate = pRec.date || '';
+                if (!resolvedPrice && pRec) resolvedPrice = pRec.cost || '';
+            }
+
             if (isAdmin) {
                 let deptOpts = sortNatural(departments).map(d => `<option value="${d}" ${cam.department === d ? 'selected' : ''}>${d}</option>`).join('');
                 let siteOpts = sortNatural(sites).map(s => `<option value="${s}" ${cam.site === s ? 'selected' : ''}>${s}</option>`).join('');
                 let mapOpts = sortNatural(maps, m => m.map_name || m.map_id).map(m => `<option value="${m.map_id}" ${(String(m.map_id) === String(cam.map_id) || String(m._recordId) === String(cam.map_id)) ? 'selected' : ''}>${m.map_name || 'แผนผัง ' + m.map_id}</option>`).join('');
                 let typeOpts = sortNatural(customDeviceTypes, t => t.label || t.name).map(t => `<option value="${t.name}" ${devType === t.name ? 'selected' : ''}>${t.label || t.name}</option>`).join('');
-                let licenseOpts = sortNatural(customLicenseTypes, l => l.name || l.key).map(l => `<option value="${l.key}" ${String(devLicense).toLowerCase() === l.key.toLowerCase() ? 'selected' : ''}>${l.name} (${l.desc || l.key})</option>`).join('');
+                let licenseOpts = sortNatural(customLicenseTypes || [], l => (l?.name || l?.key || '')).map(l => {
+                    const lKey = String(l?.key || l?.type_ID || l?.name || '').toLowerCase();
+                    const lName = l?.name || l?.label || l?.key || lKey;
+                    const lDesc = l?.desc || l?.discription || l?.description || lKey;
+                    const isSelected = String(devLicense || '').toLowerCase() === lKey;
+                    return `<option value="${l?.key || lKey}" ${isSelected ? 'selected' : ''}>${lName} (${lDesc})</option>`;
+                }).join('');
 
                 content.innerHTML = `
                     <div class="flex items-center justify-between mb-4 border-b border-slate-700 pb-3">
@@ -4134,6 +4525,22 @@
                             <div><label class="text-xs text-slate-400">ชื่อทรัพย์สิน / อุปกรณ์ (Asset Name)</label><input type="text" id="detail-eng-name" value="${cam.asset_name || cam.eng_name || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
                         </div>
 
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-xs text-slate-400">วันที่ซื้อ / รับเข้า (Purchase Date)</label>
+                                <input type="date" id="detail-purchase-date" value="${resolvedPurchaseDate || ''}" onchange="updateDetailDepreciationLive()" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400">ราคาซื้อ / ทุนทรัพย์สิน (บาท)</label>
+                                <input type="number" id="detail-price" value="${resolvedPrice || ''}" min="0" step="any" oninput="updateDetailDepreciationLive()" placeholder="เช่น 25000" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                            </div>
+                        </div>
+
+                        <!-- กล่องแสดงการคำนวณค่าเสื่อมราคาแบบ Real-time -->
+                        <div id="detail-depreciation-container">
+                            ${getDeviceDepreciationHtml(cam, resolvedPurchaseDate, resolvedPrice)}
+                        </div>
+
                         <div id="detail-network-container" class="${devCategory === 'software' ? 'hidden' : ''} grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div><label class="text-xs text-slate-400">IP Address</label><input type="text" id="detail-ip" value="${cam.ip || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
                             <div><label class="text-xs text-slate-400">MAC Address</label><input type="text" id="detail-mac" value="${cam.mac_address || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
@@ -4164,6 +4571,23 @@
                         <span class="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-300 font-mono">Scan View</span>
                     </div>
                 ` : '';
+
+                const dep = calculateAssetDepreciation(cam, resolvedPurchaseDate, resolvedPrice);
+                let depSummaryText = '-';
+                let depSummaryClass = 'text-slate-400';
+                if (dep && dep.status === 'OK') {
+                    if (dep.isOverPeriod) {
+                        depSummaryText = '฿1.00 (เกินอายุเกณฑ์)';
+                        depSummaryClass = 'text-amber-400';
+                    } else if (dep.bookValue != null) {
+                        depSummaryText = formatCurrency(dep.bookValue);
+                        depSummaryClass = 'text-emerald-400';
+                    } else {
+                        depSummaryText = `ใช้งาน ${dep.elapsedYears.toFixed(1)}/${dep.depreciationYears} ปี (${dep.progressPercent.toFixed(1)}%)`;
+                        depSummaryClass = 'text-cyan-300';
+                    }
+                }
+                const depHtml = getDeviceDepreciationHtml(cam, resolvedPurchaseDate, resolvedPrice);
 
                 content.innerHTML = `
                     ${scanBanner}
@@ -4197,9 +4621,12 @@
                             <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">IP Address</span><span class="text-right font-mono text-emerald-400">${cam.ip || '-'}</span></div>
                             <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">MAC Address</span><span class="text-right font-mono text-[11px] text-slate-400">${cam.mac_address || '-'}</span></div>
                         `}
+                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">วันที่ซื้อ / รับเข้า</span><span class="text-right font-mono text-slate-200">${resolvedPurchaseDate || '-'}</span></div>
+                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">ค่าเสื่อมราคา / มูลค่าคงเหลือ</span><span class="text-right font-bold font-mono ${depSummaryClass}">${depSummaryText}</span></div>
                         <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">แผนก</span><span class="text-right font-medium text-emerald-400">${cam.department || '-'}</span></div>
                         <div class="flex justify-between py-1"><span class="text-slate-400">ไซต์ / สาขา (Site)</span><span class="text-right font-medium text-cyan-300">${cam.site || '-'}</span></div>
                     </div>
+                    ${depHtml}
                     ${imageHtml}
                     ${maintHtml}
                     <div class="flex gap-2 mt-3">
@@ -4315,6 +4742,9 @@
                 saveImageToRemoteStore(assetCode, imageUrl, recordId);
             }
 
+            const purchaseDateVal = document.getElementById('detail-purchase-date') ? document.getElementById('detail-purchase-date').value.trim() : '';
+            const priceVal = document.getElementById('detail-price') ? (parseFloat(document.getElementById('detail-price').value) || 0) : 0;
+
             const fields = {
                 asset_code: assetCode,
                 'Asset Code': assetCode,
@@ -4342,7 +4772,15 @@
                 image_url: imageUrl,
                 image: imageUrl,
                 Image: imageUrl,
-                go2rtc_link: imageUrl
+                go2rtc_link: imageUrl,
+                purchase_date: purchaseDateVal,
+                'Purchase Date': purchaseDateVal,
+                'วันที่ซื้อ': purchaseDateVal,
+                price: priceVal,
+                cost: priceVal,
+                'Price': priceVal,
+                'Cost': priceVal,
+                'ราคา': priceVal
             };
             if (fields.site) fields.site = fields.site;
             if (devMapId) fields.map_id = devMapId;
@@ -4484,6 +4922,8 @@
             document.getElementById('camera-form').reset();
             if (document.getElementById('cam-category')) document.getElementById('cam-category').value = 'hardware';
             if (document.getElementById('cam-license-type')) document.getElementById('cam-license-type').value = 'volume';
+            if (document.getElementById('cam-purchase-date')) document.getElementById('cam-purchase-date').value = '';
+            if (document.getElementById('cam-price')) document.getElementById('cam-price').value = '';
             toggleDeviceCategoryUI('cam', 'hardware');
             removeDeviceImagePreview();
             populateDepartmentSelects();
@@ -4521,6 +4961,18 @@
             document.getElementById('cam-ip').value = cam.ip || '';
             document.getElementById('cam-mac').value = cam.mac_address || '';
             document.getElementById('cam-image-url').value = imgUrl;
+
+            // Purchase date & Price
+            const purchaseRec = maintenances.find(m => {
+                const mCode = m.asset_code || m.asset_id || m.camera_id || '';
+                const mType = (m.type || m.action_type || '').toLowerCase();
+                return String(mCode) === String(assetCode) && (mType.includes('ซื้อ') || mType.includes('รับเข้า') || mType.includes('purchase'));
+            });
+            const resolvedPurchaseDate = cam.purchase_date || cam['วันที่ซื้อ'] || (purchaseRec ? (purchaseRec.date || purchaseRec.action_date || purchaseRec.created_at || '') : '');
+            const resolvedPrice = cam.price || cam.cost || cam['ราคา'] || (purchaseRec ? (purchaseRec.cost || purchaseRec.price || 0) : 0);
+
+            if (document.getElementById('cam-purchase-date')) document.getElementById('cam-purchase-date').value = resolvedPurchaseDate ? String(resolvedPurchaseDate).split('T')[0] : '';
+            if (document.getElementById('cam-price')) document.getElementById('cam-price').value = resolvedPrice ? Number(resolvedPrice) : '';
             
             if (imgUrl && !imgUrl.includes('stream.html')) {
                 showDeviceImagePreview(imgUrl);
@@ -4698,6 +5150,20 @@
                 fields.license = licenseType;
                 fields.License = licenseType;
                 fields['License Type'] = licenseType;
+            }
+            const purchaseDateVal = document.getElementById('cam-purchase-date') ? document.getElementById('cam-purchase-date').value.trim() : '';
+            if (purchaseDateVal) {
+                fields.purchase_date = purchaseDateVal;
+                fields['Purchase Date'] = purchaseDateVal;
+                fields['วันที่ซื้อ'] = purchaseDateVal;
+            }
+            const priceVal = document.getElementById('cam-price') ? (parseFloat(document.getElementById('cam-price').value) || 0) : 0;
+            if (priceVal > 0) {
+                fields.price = priceVal;
+                fields.cost = priceVal;
+                fields['Price'] = priceVal;
+                fields['Cost'] = priceVal;
+                fields['ราคา'] = priceVal;
             }
             const brand = document.getElementById('cam-brand').value.trim();
             if (brand) fields.brand = brand;
@@ -5333,6 +5799,33 @@
 
                 const devImg = c.image_url || c.go2rtc || c.image || LocalImageStore.get(c.id) || LocalImageStore.get(c._recordId) || LocalImageStore.get(c.asset_code) || '';
 
+                const depInfo = calculateAssetDepreciation(c);
+                let depBadge = '<span class="text-slate-500 text-[10px]">-</span>';
+                if (depInfo.hasPurchaseDate) {
+                    if (depInfo.isExpired) {
+                        depBadge = `
+                            <div class="inline-flex flex-col items-center">
+                                <span class="bg-amber-950/80 text-amber-300 border border-amber-700/60 font-mono font-bold px-2 py-0.5 rounded-full text-[10px] whitespace-nowrap">฿1.00</span>
+                                <span class="text-[9px] text-amber-400/80 mt-0.5">ครบ ${depInfo.depreciationYears} ปี</span>
+                            </div>
+                        `;
+                    } else if (depInfo.price > 0) {
+                        depBadge = `
+                            <div class="inline-flex flex-col items-center">
+                                <span class="bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 font-mono font-bold px-2 py-0.5 rounded-full text-[10px] whitespace-nowrap">฿${depInfo.currentValue.toLocaleString('th-TH', {minimumFractionDigits: 0, maximumFractionDigits: 2})}</span>
+                                <span class="text-[9px] text-slate-400 mt-0.5">${depInfo.elapsedYears.toFixed(1)} / ${depInfo.depreciationYears} ปี</span>
+                            </div>
+                        `;
+                    } else {
+                        depBadge = `
+                            <div class="inline-flex flex-col items-center">
+                                <span class="text-slate-300 text-[10px]">${depInfo.elapsedYears.toFixed(1)} / ${depInfo.depreciationYears} ปี</span>
+                                <span class="text-[9px] text-slate-500 mt-0.5">${depInfo.purchaseDateStr}</span>
+                            </div>
+                        `;
+                    }
+                }
+
                 return `
                     <tr class="hover:bg-slate-750/70 transition-colors ${isChecked ? 'bg-emerald-950/20' : ''}">
                         <td class="py-2.5 px-3 text-center">
@@ -5382,6 +5875,7 @@
                                 `}
                             `}
                         </td>
+                        <td class="py-2.5 px-3 text-center">${depBadge}</td>
                         <td class="py-2.5 px-3 text-center">${statusBadge}</td>
                         <td class="py-2.5 px-3 text-center">
                             <div class="flex items-center justify-center gap-1.5">
@@ -6933,6 +7427,18 @@
                     const holderName = c.holder || c.thai_name || '-';
                     const statusStr = c.status || 'Active';
 
+                    const depInfo = calculateAssetDepreciation(c);
+                    let depPrintStr = '-';
+                    if (depInfo.hasPurchaseDate) {
+                        if (depInfo.isExpired) {
+                            depPrintStr = `<span style="font-weight:700; color:#b45309;">฿1.00</span> <span style="font-size:7.5pt; color:#78350f;">(ครบ ${depInfo.depreciationYears} ปี)</span>`;
+                        } else if (depInfo.price > 0) {
+                            depPrintStr = `<span style="font-weight:700; color:#047857;">฿${depInfo.currentValue.toLocaleString('th-TH', {minimumFractionDigits: 0, maximumFractionDigits: 2})}</span> <span style="font-size:7.5pt; color:#64748b;">(${depInfo.elapsedYears.toFixed(1)}/${depInfo.depreciationYears} ปี)</span>`;
+                        } else {
+                            depPrintStr = `<span style="font-size:8pt; color:#475569;">${depInfo.elapsedYears.toFixed(1)} / ${depInfo.depreciationYears} ปี</span>`;
+                        }
+                    }
+
                     // Alternating background zebra colors
                     const bgColor = (index % 2 === 1) ? '#f8fafc' : '#ffffff';
 
@@ -6957,6 +7463,9 @@
                             </td>
                             <td style="border:1px solid #cbd5e1; padding:5px 8px; font-size:9pt; color:#334155;">
                                 ${devCat === 'software' ? `<span style="color:#d97706; font-size:8pt; font-weight:600;">License (${c.license_type || 'Volume'})</span>` : mapLabel}
+                            </td>
+                            <td style="border:1px solid #cbd5e1; padding:5px 8px; font-size:8.5pt; text-align:center; white-space:nowrap;">
+                                ${depPrintStr}
                             </td>
                             <td style="border:1px solid #cbd5e1; padding:5px 6px; text-align:center; font-size:8.5pt; white-space:nowrap;">
                                 <span style="font-weight:600; padding:2px 6px; border-radius:4px; ${statusStr.toLowerCase() === 'active' ? 'background:#dcfce7; color:#15803d;' : (statusStr.toLowerCase() === 'spare' ? 'background:#fef3c7; color:#b45309;' : 'background:#fee2e2; color:#b91c1c;')}">
@@ -6997,11 +7506,12 @@
                                 <th style="border:1px solid #0f766e; padding:7px 6px; text-align:center; width:35px;">#</th>
                                 <th style="border:1px solid #0f766e; padding:7px 8px; width:110px;">รหัสทรัพย์สิน</th>
                                 <th style="border:1px solid #0f766e; padding:7px 8px;">ชื่ออุปกรณ์ / ผู้ถือครอง</th>
-                                <th style="border:1px solid #0f766e; padding:7px 8px; width:130px;">ชนิด & ยี่ห้อ/รุ่น</th>
-                                <th style="border:1px solid #0f766e; padding:7px 8px; width:95px;">แผนก</th>
-                                <th style="border:1px solid #0f766e; padding:7px 8px; width:90px;">ไซต์ (Site)</th>
-                                <th style="border:1px solid #0f766e; padding:7px 8px; width:105px;">IP / MAC</th>
-                                <th style="border:1px solid #0f766e; padding:7px 8px; width:95px;">แผนผัง / ที่ตั้ง</th>
+                                <th style="border:1px solid #0f766e; padding:7px 8px; width:125px;">ชนิด & ยี่ห้อ/รุ่น</th>
+                                <th style="border:1px solid #0f766e; padding:7px 8px; width:90px;">แผนก</th>
+                                <th style="border:1px solid #0f766e; padding:7px 8px; width:85px;">ไซต์ (Site)</th>
+                                <th style="border:1px solid #0f766e; padding:7px 8px; width:100px;">IP / MAC</th>
+                                <th style="border:1px solid #0f766e; padding:7px 8px; width:90px;">แผนผัง / ที่ตั้ง</th>
+                                <th style="border:1px solid #0f766e; padding:7px 8px; text-align:center; width:110px;">ค่าเสื่อม / มูลค่า</th>
                                 <th style="border:1px solid #0f766e; padding:7px 6px; text-align:center; width:65px;">สถานะ</th>
                             </tr>
                         </thead>

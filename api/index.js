@@ -608,6 +608,15 @@ function normalizeFields(table, fields, recordId = '') {
     let devSerial = extractFieldValue(f, ['serial', 'Serial', 'serial_number', 'Serial Number']);
     let devIp = extractFieldValue(f, ['ip', 'IP', 'ip_address']);
     let devMac = extractFieldValue(f, ['mac_address', 'MAC', 'mac']);
+    let devPurchaseDate = extractFieldValue(f, ['purchase_date', 'purchaseDate', 'Purchase Date', 'Purchase_Date', 'buy_date', 'วันที่ซื้อ', 'วันที่รับเข้า', 'วันซื้อ']);
+    if (devPurchaseDate && typeof devPurchaseDate === 'string' && devPurchaseDate.trim().length >= 10) {
+      devPurchaseDate = devPurchaseDate.trim().slice(0, 10);
+    }
+    let devPrice = extractFieldValue(f, ['price', 'Price', 'cost', 'Cost', 'amount', 'Amount', 'total_cost', 'expense', 'Value', 'value', 'มูลค่า', 'ค่าใช้จ่าย', 'ราคา', 'ราคาซื้อ', 'จำนวนเงิน']);
+    let numPrice = 0;
+    if (devPrice != null && devPrice !== '') {
+      numPrice = parseFloat(String(devPrice).replace(/,/g, '')) || 0;
+    }
 
     // Enrich missing fields from device.csv
     try {
@@ -657,6 +666,9 @@ function normalizeFields(table, fields, recordId = '') {
       department: devDept,
       ip: devIp,
       mac_address: devMac,
+      purchase_date: devPurchaseDate || '',
+      price: numPrice,
+      cost: numPrice,
       image: img,
       image_url: img,
       go2rtc_link: img,
@@ -767,6 +779,8 @@ function normalizeFields(table, fields, recordId = '') {
     const typeName = extractFieldValue(f, ['type_name', 'TypeName', 'Name', 'name', 'type', 'Type', 'ชื่อ', 'ชนิด', 'ชนิดอุปกรณ์']) || (f.type_ID || f.type_id || f.Name || f.name || '');
     const category = extractFieldValue(f, ['category', 'Category', 'หมวดหมู่', 'ประเภท', 'ประเภทอุปกรณ์']) || 'hardware';
     const description = extractFieldValue(f, ['discription', 'description', 'Description', 'Discription', 'desc', 'detail', 'details', 'คำอธิบาย', 'รายละเอียด']) || '';
+    const rawDep = extractFieldValue(f, ['depreciation', 'Depreciation', 'ค่าเสื่อม', 'ค่าเสื่อมราคา', 'อายุการใช้งาน', 'จำนวนปี']);
+    const depreciation = rawDep != null && rawDep !== '' ? (parseFloat(String(rawDep).replace(/[^0-9.]/g, '')) || 0) : 0;
     return {
       ...f,
       type_ID: String(typeId).trim(),
@@ -777,7 +791,8 @@ function normalizeFields(table, fields, recordId = '') {
       category: String(category).trim().toLowerCase(),
       Category: String(category).trim().toLowerCase(),
       discription: String(description).trim(),
-      description: String(description).trim()
+      description: String(description).trim(),
+      depreciation: depreciation
     };
   }
 
@@ -1404,6 +1419,8 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     const isIpProvided = hasField(['ip', 'IP', 'ip_address']);
     const isMacProvided = hasField(['mac_address', 'mac', 'MAC']);
     const isImgProvided = hasField(['image_url', 'image', 'Image', 'photo', 'picture', 'go2rtc_link', 'รูปภาพ', 'ภาพ']);
+    const isPurchaseDateProvided = hasField(['purchase_date', 'purchaseDate', 'Purchase Date', 'Purchase_Date', 'buy_date', 'วันที่ซื้อ', 'วันที่รับเข้า', 'วันซื้อ']);
+    const isPriceProvided = hasField(['price', 'Price', 'cost', 'Cost', 'amount', 'Amount', 'total_cost', 'expense', 'Value', 'value', 'มูลค่า', 'ค่าใช้จ่าย', 'ราคา', 'ราคาซื้อ', 'จำนวนเงิน']);
     const isXProvided = raw.x !== undefined && raw.x !== null && raw.x !== '';
     const isYProvided = raw.y !== undefined && raw.y !== null && raw.y !== '';
 
@@ -1424,6 +1441,8 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     const ipVal = isIpProvided ? (raw.ip || raw.IP || raw.ip_address || '') : '';
     const macVal = isMacProvided ? (raw.mac_address || raw.MAC || raw.mac || '') : '';
     const imgVal = isImgProvided ? (raw.image_url || raw.image || raw.Image || raw.photo || raw.picture || raw.go2rtc_link || raw['รูปภาพ'] || raw['ภาพ'] || '') : '';
+    const purchaseDateVal = isPurchaseDateProvided ? (raw.purchase_date || raw.purchaseDate || raw['Purchase Date'] || raw['วันที่ซื้อ'] || '') : '';
+    const priceVal = isPriceProvided ? (parseFloat(String(raw.price != null ? raw.price : (raw.cost != null ? raw.cost : (raw['ราคา'] != null ? raw['ราคา'] : 0))).replace(/,/g, '')) || 0) : null;
     const xVal = isXProvided ? (parseFloat(raw.x) || 0) : null;
     const yVal = isYProvided ? (parseFloat(raw.y) || 0) : null;
 
@@ -1445,6 +1464,8 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     if (isIpProvided) result.ip = ipVal;
     if (isMacProvided) result.mac_address = macVal;
     if (isImgProvided) result.image_url = imgVal;
+    if (isPurchaseDateProvided && purchaseDateVal) result.purchase_date = purchaseDateVal;
+    if (isPriceProvided && priceVal != null) { result.price = priceVal; result.cost = priceVal; }
     if (isXProvided && xVal != null) result.x = xVal;
     if (isYProvided && yVal != null) result.y = yVal;
 
@@ -1472,6 +1493,8 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
         'attachment', 'Attachment', 'attachments', 'Attachments',
         'รูปภาพ', 'รูป', 'ภาพ', 'ภาพถ่าย', 'ภาพอุปกรณ์', 'go2rtc_link'
       ]);
+      const purchaseDateCol = findMatchingAirtableFieldName(availableNames, ['purchase_date', 'purchaseDate', 'Purchase Date', 'Purchase_Date', 'buy_date', 'date', 'วันที่ซื้อ', 'วันที่รับเข้า']);
+      const priceCol = findMatchingAirtableFieldName(availableNames, ['price', 'Price', 'cost', 'Cost', 'amount', 'Amount', 'total_cost', 'ราคา', 'ราคาซื้อ', 'มูลค่า']);
       const xCol = findMatchingAirtableFieldName(availableNames, ['x', 'X', 'pos_x']);
       const yCol = findMatchingAirtableFieldName(availableNames, ['y', 'Y', 'pos_y']);
 
@@ -1492,6 +1515,8 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
       if (isIpProvided && ipCol) mapped[ipCol] = ipVal;
       if (isMacProvided && macCol) mapped[macCol] = macVal;
       if (isImgProvided && imgCol && imgVal) mapped[imgCol] = imgVal;
+      if (isPurchaseDateProvided && purchaseDateCol && purchaseDateVal) mapped[purchaseDateCol] = purchaseDateVal;
+      if (isPriceProvided && priceCol && priceVal != null) mapped[priceCol] = priceVal;
       if (isXProvided && xCol && xVal != null) mapped[xCol] = xVal;
       if (isYProvided && yCol && yVal != null) mapped[yCol] = yVal;
 
@@ -1673,12 +1698,17 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
     const typeName = raw.type_name || raw.TypeName || raw.Name || raw.name || raw.type || raw.discription || raw.description || typeId || '';
     const category = raw.category || raw.Category || raw['หมวดหมู่'] || raw['ประเภท'] || 'hardware';
     const discription = raw.discription || raw.description || raw.Description || raw.Discription || raw.detail || raw.name || raw.type_name || '';
+    const rawDep = raw.depreciation != null ? raw.depreciation : (raw.Depreciation != null ? raw.Depreciation : (raw['ค่าเสื่อม'] != null ? raw['ค่าเสื่อม'] : ''));
+    const depreciationVal = (rawDep !== '' && rawDep != null) ? (parseFloat(String(rawDep).replace(/[^0-9.]/g, '')) || 0) : null;
 
     const baseResult = {
       type_ID: typeId,
       category: category,
       discription: discription
     };
+    if (depreciationVal != null) {
+      baseResult.depreciation = depreciationVal;
+    }
     if (typeName) {
       baseResult.Name = typeName;
       baseResult.type_name = typeName;
@@ -1690,11 +1720,13 @@ async function prepareFieldsForTable(baseId, token, table, targetTable, fields) 
       const nameCol = findMatchingAirtableFieldName(availableNames, ['type_name', 'TypeName', 'Name', 'name', 'type', 'Type', 'ชื่อ', 'ชนิด', 'ชนิดอุปกรณ์']);
       const catCol = findMatchingAirtableFieldName(availableNames, ['category', 'Category', 'หมวดหมู่', 'ประเภท', 'ประเภทอุปกรณ์']);
       const descCol = findMatchingAirtableFieldName(availableNames, ['discription', 'description', 'Description', 'Discription', 'desc', 'detail', 'details', 'คำอธิบาย', 'รายละเอียด']);
+      const depCol = findMatchingAirtableFieldName(availableNames, ['depreciation', 'Depreciation', 'ค่าเสื่อม', 'ค่าเสื่อมราคา', 'อายุการใช้งาน', 'จำนวนปี']);
 
       if (idCol && typeId) mapped[idCol] = typeId;
       if (nameCol && typeName) mapped[nameCol] = typeName;
       if (catCol && category) mapped[catCol] = category;
       if (descCol && discription) mapped[descCol] = discription;
+      if (depCol && depreciationVal != null) mapped[depCol] = depreciationVal;
 
       if (primaryField && primaryField.name && !mapped[primaryField.name]) {
         mapped[primaryField.name] = typeId || typeName || discription;
