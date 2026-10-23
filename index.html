@@ -722,64 +722,62 @@
                 </button>
             </div>
 
-            <!-- Tabs Header -->
-            <div class="flex border-b border-slate-700 mt-3">
-                <button type="button" id="tab-btn-types" onclick="switchTypeLicenseTab('types')" class="flex-1 py-2.5 px-4 text-xs sm:text-sm font-semibold border-b-2 border-emerald-500 text-emerald-400 flex items-center justify-center gap-2 transition-all">
-                    <i data-lucide="monitor" class="w-4 h-4"></i>
-                    <span>ชนิดอุปกรณ์ (Device Types)</span>
-                    <span id="badge-types-count" class="bg-emerald-950 text-emerald-400 text-[10px] px-1.5 py-0.2 rounded-full border border-emerald-800">0</span>
-                </button>
-                <button type="button" id="tab-btn-licenses" onclick="switchTypeLicenseTab('licenses')" class="flex-1 py-2.5 px-4 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center justify-center gap-2 transition-all">
-                    <i data-lucide="key" class="w-4 h-4"></i>
-                    <span>ชนิดสิทธิ์ใช้งาน (License Types)</span>
-                    <span id="badge-licenses-count" class="bg-slate-700 text-slate-300 text-[10px] px-1.5 py-0.2 rounded-full">0</span>
-                </button>
-            </div>
-
-            <!-- Tab 1: Device Types Content -->
-            <div id="tab-content-types" class="flex-1 overflow-y-auto py-3 space-y-4">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs text-slate-400">รายการชนิดอุปกรณ์ทั้งหมดที่สามารถเลือกได้ในระบบ:</span>
-                    <button type="button" onclick="resetDeviceTypesToDefault()" class="text-[11px] text-slate-400 hover:text-amber-400 flex items-center gap-1 transition-colors">
+            <!-- Controls & Count Bar -->
+            <div class="flex items-center justify-between border-b border-slate-700 py-3 mt-1">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-300 font-medium">รายการทั้งหมดในตาราง type:</span>
+                    <span id="badge-types-count" class="bg-emerald-950 text-emerald-400 text-xs px-2 py-0.5 rounded-full border border-emerald-800 font-semibold">0 รายการ</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <select id="type-filter-category" onchange="renderTypeLicenseLists()" class="bg-slate-700 border border-slate-600 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                        <option value="all">ทุกหมวดหมู่ (All)</option>
+                        <option value="hardware">เฉพาะ Hardware</option>
+                        <option value="software">เฉพาะ Software / License</option>
+                    </select>
+                    <button type="button" onclick="resetDeviceTypesToDefault()" class="text-[11px] text-slate-400 hover:text-amber-400 flex items-center gap-1 transition-colors px-2 py-1 rounded hover:bg-slate-700">
                         <i data-lucide="rotate-ccw" class="w-3 h-3"></i> คืนค่าเริ่มต้น
                     </button>
                 </div>
+            </div>
 
-                <!-- Device Types List -->
-                <div id="types-manage-list" class="space-y-2 max-h-[36vh] overflow-y-auto pr-1"></div>
+            <!-- Single Unified Type Table Content -->
+            <div id="tab-content-types" class="flex-1 overflow-y-auto py-3 space-y-4">
+                <!-- Unified Types List -->
+                <div id="types-manage-list" class="space-y-2 max-h-[42vh] overflow-y-auto pr-1"></div>
 
-                <!-- Add Device Type Form -->
+                <!-- Add Type Form -->
                 <div class="bg-slate-750/70 p-3.5 rounded-xl border border-slate-700 mt-2">
                     <h4 class="text-xs font-bold text-white mb-2.5 flex items-center gap-1.5">
-                        <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-400"></i> เพิ่มชนิดอุปกรณ์ใหม่
+                        <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-400"></i> เพิ่มข้อมูลใหม่ลงตาราง type
                     </h4>
                     <form id="add-type-form" onsubmit="addDeviceTypeSubmit(event)" class="space-y-2.5">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                             <div>
-                                <label class="text-[11px] text-slate-400 font-medium">รหัสชนิด (type_ID) *</label>
-                                <input type="text" id="new-type-name" required placeholder="เช่น PC, NB, SW-01" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                                <label class="text-[11px] text-slate-400 font-medium">รหัสชนิด / สิทธิ์ (type_ID) *</label>
+                                <input type="text" id="new-type-name" required placeholder="เช่น PC, NB, SW-OFFICE, LIC-VOL" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
                             </div>
                             <div>
-                                <label class="text-[11px] text-slate-400 font-medium">ชื่อชนิด / คำอธิบาย (discription) *</label>
-                                <input type="text" id="new-type-label" required placeholder="เช่น คอมพิวเตอร์ตั้งโต๊ะ, โน้ตบุ๊ก" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                                <label class="text-[11px] text-slate-400 font-medium">ชื่อ / คำอธิบาย (discription) *</label>
+                                <input type="text" id="new-type-label" required placeholder="เช่น เครื่องคอมพิวเตอร์, Microsoft Office, สิทธิ์ Volume" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
                             </div>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                             <div>
-                                <label class="text-[11px] text-slate-400">หมวดหมู่เริ่มต้น (Default Category)</label>
+                                <label class="text-[11px] text-slate-400 font-medium">หมวดหมู่ (category) *</label>
                                 <select id="new-type-category" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
-                                    <option value="hardware">Hardware (ฮาร์ดแวร์)</option>
-                                    <option value="software">Software (ซอฟต์แวร์)</option>
+                                    <option value="hardware">Hardware (ฮาร์ดแวร์ - มี IP/MAC)</option>
+                                    <option value="software">Software (ซอฟต์แวร์ / สิทธิ์ใช้งาน - ไม่มี IP/MAC)</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="text-[11px] text-slate-400">ไอคอนแสดงผล</label>
+                                <label class="text-[11px] text-slate-400 font-medium">ไอคอนแสดงผล</label>
                                 <select id="new-type-icon" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
                                     <option value="hard-drive">hard-drive (อุปกรณ์ทั่วไป)</option>
                                     <option value="monitor">monitor (คอมพิวเตอร์/หน้าจอ)</option>
                                     <option value="laptop">laptop (โน้ตบุ๊ก)</option>
                                     <option value="printer">printer (เครื่องพิมพ์)</option>
-                                    <option value="file-text">file-text (ซอฟต์แวร์/เอกสาร)</option>
+                                    <option value="file-text">file-text (ซอฟต์แวร์/สิทธิ์ใช้งาน)</option>
+                                    <option value="key">key (กุญแจสิทธิ์/ลิขสิทธิ์)</option>
                                     <option value="server">server (เซิร์ฟเวอร์)</option>
                                     <option value="network">network (สวิตช์/เครือข่าย)</option>
                                     <option value="wifi">wifi (เราเตอร์/ไร้สาย)</option>
@@ -791,46 +789,7 @@
                             </div>
                         </div>
                         <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-xs font-semibold transition-all shadow-sm">
-                            + เพิ่มชนิดอุปกรณ์
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Tab 2: License Types Content -->
-            <div id="tab-content-licenses" class="flex-1 overflow-y-auto py-3 space-y-4 hidden">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs text-slate-400">รายการชนิดสิทธิ์ใช้งาน (License Types) สำหรับอุปกรณ์ Software:</span>
-                    <button type="button" onclick="resetLicenseTypesToDefault()" class="text-[11px] text-slate-400 hover:text-amber-400 flex items-center gap-1 transition-colors">
-                        <i data-lucide="rotate-ccw" class="w-3 h-3"></i> คืนค่าเริ่มต้น
-                    </button>
-                </div>
-
-                <!-- License Types List -->
-                <div id="licenses-manage-list" class="space-y-2 max-h-[36vh] overflow-y-auto pr-1"></div>
-
-                <!-- Add License Type Form -->
-                <div class="bg-slate-750/70 p-3.5 rounded-xl border border-slate-700 mt-2">
-                    <h4 class="text-xs font-bold text-white mb-2.5 flex items-center gap-1.5">
-                        <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-amber-400"></i> เพิ่มชนิดสิทธิ์ใช้งานใหม่
-                    </h4>
-                    <form id="add-license-form" onsubmit="addLicenseTypeSubmit(event)" class="space-y-2.5">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                            <div>
-                                <label class="text-[11px] text-slate-400 font-medium">รหัสสิทธิ์ (type_ID) *</label>
-                                <input type="text" id="new-license-key" required placeholder="เช่น volume, oem, subscription" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-amber-500">
-                            </div>
-                            <div>
-                                <label class="text-[11px] text-slate-400 font-medium">ชื่อสิทธิ์ / รายละเอียด (discription) *</label>
-                                <input type="text" id="new-license-name" required placeholder="เช่น Volume License, Subscription 365" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-amber-500">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="text-[11px] text-slate-400">คำอธิบายเพิ่มเติม (หมายเหตุ/เงื่อนไข)</label>
-                            <input type="text" id="new-license-desc" placeholder="เช่น สิทธิ์ใช้งานแบบกลุ่มสำหรับองค์กร หรือเช่ารายปี" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-amber-500">
-                        </div>
-                        <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white py-2 rounded-lg text-xs font-semibold transition-all shadow-sm">
-                            + เพิ่มชนิดสิทธิ์ใช้งาน
+                            + บันทึกข้อมูลใหม่ลงตาราง type
                         </button>
                     </form>
                 </div>
@@ -1463,11 +1422,8 @@
             try {
                 const records = preloadedRecords || await apiGetAll('type');
                 tableTypesRecords = records || [];
-                console.log(`[it-asset-map] Loaded ${tableTypesRecords.length} records from type table`);
-
                 if (tableTypesRecords && tableTypesRecords.length > 0) {
-                    const devTypesList = [];
-                    const licTypesList = [];
+                    const unifiedList = [];
 
                     tableTypesRecords.forEach(rec => {
                         const f = rec.fields || {};
@@ -1479,7 +1435,7 @@
                         const label = desc && typeId && desc !== typeId ? `${desc} (${typeId})` : (desc || typeId);
                         const icon = detectIconForType(name, cat);
 
-                        devTypesList.push({
+                        unifiedList.push({
                             _recordId: recId,
                             type_ID: typeId,
                             name: name,
@@ -1488,26 +1444,12 @@
                             discription: desc,
                             icon: icon
                         });
-
-                        if (cat === 'software' || cat === 'license') {
-                            const key = (typeId || desc || '').toLowerCase();
-                            licTypesList.push({
-                                _recordId: recId,
-                                key: key,
-                                type_ID: typeId,
-                                name: desc || typeId,
-                                desc: desc,
-                                category: cat
-                            });
-                        }
                     });
 
-                    if (devTypesList.length > 0) {
-                        customDeviceTypes = devTypesList;
+                    if (unifiedList.length > 0) {
+                        customDeviceTypes = unifiedList;
+                        customLicenseTypes = unifiedList;
                         localStorage.setItem('it_asset_device_types', JSON.stringify(customDeviceTypes));
-                    }
-                    if (licTypesList.length > 0) {
-                        customLicenseTypes = licTypesList;
                         localStorage.setItem('it_asset_license_types', JSON.stringify(customLicenseTypes));
                     }
 
@@ -1705,11 +1647,7 @@
                 }
             }
             if (licenseContainer) {
-                if (isSoftware) {
-                    licenseContainer.classList.remove('hidden');
-                } else {
-                    licenseContainer.classList.add('hidden');
-                }
+                licenseContainer.classList.add('hidden');
             }
             if (ipContainer) {
                 if (isSoftware) {
@@ -1736,16 +1674,16 @@
 
         function handleDeviceTypeChange(prefix, type) {
             const catSelect = document.getElementById(`${prefix}-category`);
-            if (!catSelect) return;
-            const found = customDeviceTypes.find(d => d.name === type);
-            if (found && found.category) {
-                catSelect.value = found.category;
-            } else if (type === 'MS Office') {
-                catSelect.value = 'software';
-            } else {
-                catSelect.value = 'hardware';
+            const found = customDeviceTypes.find(d => 
+                d.name === type || 
+                (d.type_ID && String(d.type_ID).toLowerCase() === String(type).toLowerCase()) ||
+                (d.label && d.label.toLowerCase() === String(type).toLowerCase())
+            );
+            const category = (found && found.category) ? found.category.toLowerCase() : (type === 'MS Office' ? 'software' : 'hardware');
+            if (catSelect) {
+                catSelect.value = category;
             }
-            toggleDeviceCategoryUI(prefix, catSelect.value);
+            toggleDeviceCategoryUI(prefix, category);
         }
 
         function getDeviceTypeClass(type) {
@@ -1758,16 +1696,11 @@
             const camType = document.getElementById('cam-type');
             if (camType) {
                 const cur = camType.value;
-                camType.innerHTML = customDeviceTypes.map(d => `<option value="${d.name}">${d.label || d.name}</option>`).join('');
+                camType.innerHTML = customDeviceTypes.map(d => {
+                    const tag = (d.category || 'hardware') === 'software' ? ' [Software]' : '';
+                    return `<option value="${d.name}">${d.label || d.name}${tag}</option>`;
+                }).join('');
                 if (cur && customDeviceTypes.some(d => d.name === cur)) camType.value = cur;
-            }
-
-            // Update #cam-license-type
-            const camLic = document.getElementById('cam-license-type');
-            if (camLic) {
-                const cur = camLic.value;
-                camLic.innerHTML = customLicenseTypes.map(l => `<option value="${l.key}">${l.name}</option>`).join('');
-                if (cur && customLicenseTypes.some(l => l.key === cur)) camLic.value = cur;
             }
 
             // Update #dev-mgr-filter-type
@@ -1780,12 +1713,9 @@
             }
         }
 
-        // ─── TYPE & LICENSE MANAGER MODAL LOGIC ───
-        let activeTypeLicenseTab = 'types';
-
-        async function openTypeLicenseManager(tab = 'types') {
+        // ─── UNIFIED TYPE TABLE MANAGER MODAL LOGIC ───
+        async function openTypeLicenseManager() {
             loadTypeAndLicenseSettings();
-            switchTypeLicenseTab(tab === 'licenses' ? 'licenses' : 'types');
             renderTypeLicenseLists();
             openModal('modal-type-license');
             if (window.lucide) lucide.createIcons();
@@ -1797,90 +1727,78 @@
             } catch (_) {}
         }
 
-        function switchTypeLicenseTab(tab) {
-            activeTypeLicenseTab = (tab === 'licenses') ? 'licenses' : 'types';
-            const btnType = document.getElementById('tab-btn-types');
-            const btnLic = document.getElementById('tab-btn-licenses');
-            const panelType = document.getElementById('tab-content-types');
-            const panelLic = document.getElementById('tab-content-licenses');
-
-            if (activeTypeLicenseTab === 'types') {
-                if (btnType) {
-                    btnType.classList.add('border-emerald-500', 'text-emerald-400');
-                    btnType.classList.remove('border-transparent', 'text-slate-400');
-                }
-                if (btnLic) {
-                    btnLic.classList.remove('border-emerald-500', 'text-emerald-400');
-                    btnLic.classList.add('border-transparent', 'text-slate-400');
-                }
-                if (panelType) panelType.classList.remove('hidden');
-                if (panelLic) panelLic.classList.add('hidden');
-            } else {
-                if (btnLic) {
-                    btnLic.classList.add('border-emerald-500', 'text-emerald-400');
-                    btnLic.classList.remove('border-transparent', 'text-slate-400');
-                }
-                if (btnType) {
-                    btnType.classList.remove('border-emerald-500', 'text-emerald-400');
-                    btnType.classList.add('border-transparent', 'text-slate-400');
-                }
-                if (panelType) panelType.classList.add('hidden');
-                if (panelLic) panelLic.classList.remove('hidden');
-            }
+        function switchTypeLicenseTab() {
+            // No-op for backward compatibility
         }
 
         function renderTypeLicenseLists() {
-            // Update Badges
-            const bTypes = document.getElementById('badge-types-count');
-            if (bTypes) bTypes.textContent = customDeviceTypes.length;
-            const bLics = document.getElementById('badge-licenses-count');
-            if (bLics) bLics.textContent = customLicenseTypes.length;
+            const filterCat = document.getElementById('type-filter-category')?.value || 'all';
 
-            // Render Device Types List
+            // Filter items
+            const filtered = customDeviceTypes.filter(t => {
+                if (filterCat === 'all') return true;
+                return (t.category || 'hardware').toLowerCase() === filterCat.toLowerCase();
+            });
+
+            // Update Badge Count
+            const bTypes = document.getElementById('badge-types-count');
+            if (bTypes) {
+                bTypes.textContent = `${customDeviceTypes.length} รายการ`;
+            }
+
+            // Render Single Unified Type Table List
             const listType = document.getElementById('types-manage-list');
             if (listType) {
-                if (customDeviceTypes.length === 0) {
-                    listType.innerHTML = '<div class="text-xs text-slate-400 text-center py-4">ยังไม่มีชนิดอุปกรณ์ในตาราง type</div>';
+                if (filtered.length === 0) {
+                    listType.innerHTML = '<div class="text-xs text-slate-400 text-center py-6 bg-slate-800/40 rounded-xl border border-slate-700/60">ไม่พบข้อมูลชนิดหรือสิทธิ์ในตาราง type</div>';
                 } else {
-                    listType.innerHTML = customDeviceTypes.map((t, idx) => {
-                        const usageCount = cameras.filter(c => getDeviceType(c.type) === t.name || (c.type || '').trim().toLowerCase() === t.name.toLowerCase() || (c.type_ID && t.type_ID && String(c.type_ID).toLowerCase() === String(t.type_ID).toLowerCase())).length;
+                    listType.innerHTML = filtered.map((t) => {
+                        const originalIdx = customDeviceTypes.indexOf(t);
+                        const usageCount = cameras.filter(c => 
+                            getDeviceType(c.type) === t.name || 
+                            (c.type || '').trim().toLowerCase() === t.name.toLowerCase() || 
+                            (c.type_ID && t.type_ID && String(c.type_ID).toLowerCase() === String(t.type_ID).toLowerCase())
+                        ).length;
                         const typeIdVal = t.type_ID || t.name || '';
                         const descVal = t.discription || t.label || t.name || '';
+                        const isHardware = (t.category || 'hardware').toLowerCase() === 'hardware';
+
                         return `
                             <div class="bg-slate-700/60 hover:bg-slate-700/90 p-3 rounded-xl border border-slate-600/70 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div class="flex items-center gap-2.5 flex-1 min-w-0">
-                                    <div class="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center text-emerald-400 border border-slate-700 shrink-0">
-                                        <i data-lucide="${t.icon || 'hard-drive'}" class="w-4 h-4"></i>
+                                    <div class="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center ${isHardware ? 'text-emerald-400' : 'text-blue-400'} border border-slate-700 shrink-0">
+                                        <i data-lucide="${t.icon || (isHardware ? 'hard-drive' : 'file-text')}" class="w-4 h-4"></i>
                                     </div>
                                     <div class="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-2">
                                         <div>
                                             <label class="text-[10px] text-slate-400 block mb-0.5">รหัสชนิด (type_ID)</label>
-                                            <input type="text" id="type-row-id-${idx}" value="${escapeHtml(typeIdVal)}" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1 text-xs text-white font-mono font-medium focus:outline-none focus:border-emerald-500">
+                                            <input type="text" id="type-row-id-${originalIdx}" value="${escapeHtml(typeIdVal)}" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1 text-xs text-white font-mono font-medium focus:outline-none focus:border-emerald-500">
                                         </div>
                                         <div>
                                             <label class="text-[10px] text-slate-400 block mb-0.5">ชื่อ / คำอธิบาย (discription)</label>
-                                            <input type="text" id="type-row-desc-${idx}" value="${escapeHtml(descVal)}" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                                            <input type="text" id="type-row-desc-${originalIdx}" value="${escapeHtml(descVal)}" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
                                     <div>
-                                        <label class="text-[10px] text-slate-400 block mb-0.5">หมวดหมู่</label>
-                                        <select id="type-row-cat-${idx}" class="bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
-                                            <option value="hardware" ${t.category === 'hardware' ? 'selected' : ''}>Hardware</option>
-                                            <option value="software" ${t.category === 'software' ? 'selected' : ''}>Software</option>
+                                        <label class="text-[10px] text-slate-400 block mb-0.5">หมวดหมู่ (category)</label>
+                                        <select id="type-row-cat-${originalIdx}" class="bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                                            <option value="hardware" ${isHardware ? 'selected' : ''}>Hardware</option>
+                                            <option value="software" ${!isHardware ? 'selected' : ''}>Software</option>
                                         </select>
                                     </div>
 
                                     <div>
                                         <label class="text-[10px] text-slate-400 block mb-0.5">ไอคอน</label>
-                                        <select id="type-row-icon-${idx}" class="bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                                        <select id="type-row-icon-${originalIdx}" class="bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
                                             <option value="hard-drive" ${t.icon === 'hard-drive' ? 'selected' : ''}>hard-drive</option>
                                             <option value="monitor" ${t.icon === 'monitor' ? 'selected' : ''}>monitor</option>
                                             <option value="laptop" ${t.icon === 'laptop' ? 'selected' : ''}>laptop</option>
                                             <option value="printer" ${t.icon === 'printer' ? 'selected' : ''}>printer</option>
                                             <option value="file-text" ${t.icon === 'file-text' ? 'selected' : ''}>file-text</option>
+                                            <option value="key" ${t.icon === 'key' ? 'selected' : ''}>key</option>
                                             <option value="server" ${t.icon === 'server' ? 'selected' : ''}>server</option>
                                             <option value="network" ${t.icon === 'network' ? 'selected' : ''}>network</option>
                                             <option value="wifi" ${t.icon === 'wifi' ? 'selected' : ''}>wifi</option>
@@ -1897,56 +1815,13 @@
                                     </div>
 
                                     <div class="flex items-center gap-1 mt-3 sm:mt-3.5">
-                                        <button type="button" onclick="saveDeviceTypeRow(${idx})" class="p-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white rounded-lg transition-all" title="บันทึกลงตาราง type">
+                                        <button type="button" onclick="saveDeviceTypeRow(${originalIdx})" class="p-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white rounded-lg transition-all" title="บันทึกลงตาราง type">
                                             <i data-lucide="check" class="w-4 h-4"></i>
                                         </button>
-                                        <button type="button" onclick="deleteDeviceTypeRow(${idx})" class="p-1.5 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white rounded-lg transition-all" title="ลบออกจากตาราง type">
+                                        <button type="button" onclick="deleteDeviceTypeRow(${originalIdx})" class="p-1.5 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white rounded-lg transition-all" title="ลบออกจากตาราง type">
                                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                                         </button>
                                     </div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                }
-            }
-
-            // Render License Types List
-            const listLic = document.getElementById('licenses-manage-list');
-            if (listLic) {
-                if (customLicenseTypes.length === 0) {
-                    listLic.innerHTML = '<div class="text-xs text-slate-400 text-center py-4">ยังไม่มีชนิดสิทธิ์ใช้งานในตาราง type</div>';
-                } else {
-                    listLic.innerHTML = customLicenseTypes.map((l, idx) => {
-                        const usageCount = cameras.filter(c => (c.license_type || '').toLowerCase() === l.key.toLowerCase() || (c.type_ID && l.type_ID && String(c.type_ID).toLowerCase() === String(l.type_ID).toLowerCase())).length;
-                        return `
-                            <div class="bg-slate-700/60 hover:bg-slate-700/90 p-3 rounded-xl border border-slate-600/70 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div class="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                    <div>
-                                        <label class="text-[10px] text-slate-400 block mb-0.5">รหัสสิทธิ์ (type_ID)</label>
-                                        <input type="text" id="lic-row-key-${idx}" value="${escapeHtml(l.type_ID || l.key)}" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1 text-xs text-white font-mono focus:outline-none focus:border-amber-500">
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] text-slate-400 block mb-0.5">ชื่อ / คำอธิบาย (discription)</label>
-                                        <input type="text" id="lic-row-name-${idx}" value="${escapeHtml(l.desc || l.name)}" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] text-slate-400 block mb-0.5">หมวดหมู่</label>
-                                        <input type="text" readonly value="Software / License" class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-400">
-                                    </div>
-                                </div>
-
-                                <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                                    <div class="text-center min-w-[50px]">
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${usageCount > 0 ? 'bg-amber-950 text-amber-400 border border-amber-800' : 'bg-slate-800 text-slate-400'}">${usageCount} ชิ้น</span>
-                                    </div>
-
-                                    <button type="button" onclick="saveLicenseTypeRow(${idx})" class="p-1.5 bg-amber-600/20 text-amber-400 hover:bg-amber-600 hover:text-white rounded-lg transition-all" title="บันทึกการแก้ไขลงตาราง type">
-                                        <i data-lucide="check" class="w-4 h-4"></i>
-                                    </button>
-                                    <button type="button" onclick="deleteLicenseTypeRow(${idx})" class="p-1.5 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white rounded-lg transition-all" title="ลบสิทธิ์นี้">
-                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                    </button>
                                 </div>
                             </div>
                         `;
@@ -2015,14 +1890,18 @@
             if (!item) return;
 
             if (customDeviceTypes.length <= 1) {
-                alert('ไม่สามารถลบได้ ต้องมีชนิดอุปกรณ์อย่างน้อย 1 รายการ');
+                alert('ไม่สามารถลบได้ ต้องมีข้อมูลในตารางอย่างน้อย 1 รายการ');
                 return;
             }
 
-            const affected = cameras.filter(c => getDeviceType(c.type) === item.name || (c.type || '').trim() === item.name || (c.type_ID && item.type_ID && String(c.type_ID).toLowerCase() === String(item.type_ID).toLowerCase()));
-            let confirmMsg = `ยืนยันการลบชนิดอุปกรณ์ "${item.label || item.name}" หรือไม่?`;
+            const affected = cameras.filter(c => 
+                getDeviceType(c.type) === item.name || 
+                (c.type || '').trim() === item.name || 
+                (c.type_ID && item.type_ID && String(c.type_ID).toLowerCase() === String(item.type_ID).toLowerCase())
+            );
+            let confirmMsg = `ยืนยันการลบรายการ "${item.label || item.name}" หรือไม่?`;
             if (affected.length > 0) {
-                confirmMsg = `คำเตือน: มีอุปกรณ์จำนวน ${affected.length} รายการที่กำลังใช้ชนิดอุปกรณ์นี้!\n\nยืนยันที่จะลบหรือไม่?`;
+                confirmMsg = `คำเตือน: มีอุปกรณ์จำนวน ${affected.length} รายการที่กำลังใช้ชนิดนี้!\n\nยืนยันที่จะลบหรือไม่?`;
             }
 
             if (!confirm(confirmMsg)) return;
@@ -2042,7 +1921,7 @@
             renderTypeLicenseLists();
             if (typeof renderTypeFilter === 'function') renderTypeFilter();
             if (typeof renderCameraList === 'function') renderCameraList();
-            alert(`ลบชนิดอุปกรณ์ "${item.label || item.name}" สำเร็จ`);
+            alert(`ลบรายการ "${item.label || item.name}" สำเร็จ`);
         }
 
         async function addDeviceTypeSubmit(e) {
@@ -2058,7 +1937,7 @@
             const icon = iconEl?.value || detectIconForType(desc || typeId, category);
 
             if (!typeId && !desc) {
-                alert('กรุณากรอกรหัสชนิดอุปกรณ์ หรือคำอธิบาย');
+                alert('กรุณากรอกรหัสชนิด/สิทธิ์ หรือคำอธิบาย');
                 return;
             }
 
@@ -2084,120 +1963,7 @@
 
             if (nameEl) nameEl.value = '';
             if (labelEl) labelEl.value = '';
-            alert(`เพิ่มชนิดอุปกรณ์ "${desc || typeId}" ลงในตาราง type สำเร็จ`);
-        }
-
-        async function saveLicenseTypeRow(idx) {
-            const oldItem = customLicenseTypes[idx];
-            if (!oldItem) return;
-
-            const keyInput = document.getElementById(`lic-row-key-${idx}`);
-            const nameInput = document.getElementById(`lic-row-name-${idx}`);
-
-            const newKey = (keyInput?.value || '').trim().toLowerCase();
-            const newName = (nameInput?.value || '').trim();
-
-            if (!newKey || !newName) {
-                alert('กรุณาระบุรหัสสิทธิ์ (type_ID) และชื่อสิทธิ์ (discription)');
-                return;
-            }
-
-            oldItem.type_ID = newKey;
-            oldItem.key = newKey;
-            oldItem.name = newName;
-            oldItem.desc = newName;
-
-            try {
-                const payload = {
-                    type_ID: newKey,
-                    category: 'software',
-                    discription: newName
-                };
-                if (oldItem._recordId) {
-                    await apiUpdate('type', oldItem._recordId, payload);
-                } else {
-                    const created = await apiCreate('type', payload);
-                    if (created && created.id) oldItem._recordId = created.id;
-                }
-            } catch (err) {
-                console.warn('Sync license to type table failed:', err);
-            }
-
-            await saveSettingsToServer();
-            await fetchTypesFromTable().catch(() => {});
-            populateAllTypeAndLicenseSelects();
-            renderTypeLicenseLists();
-            alert('บันทึกการแก้ไขสิทธิ์ใช้งานลงตาราง type เรียบร้อยแล้ว');
-        }
-
-        async function deleteLicenseTypeRow(idx) {
-            const item = customLicenseTypes[idx];
-            if (!item) return;
-
-            if (customLicenseTypes.length <= 1) {
-                alert('ไม่สามารถลบได้ ต้องมีสิทธิ์ใช้งานอย่างน้อย 1 รายการ');
-                return;
-            }
-
-            const affected = cameras.filter(c => (c.license_type || '').toLowerCase() === item.key.toLowerCase());
-            let confirmMsg = `ยืนยันการลบสิทธิ์ใช้งาน "${item.name}" หรือไม่?`;
-            if (affected.length > 0) {
-                confirmMsg = `คำเตือน: มีอุปกรณ์จำนวน ${affected.length} รายการที่กำลังใช้สิทธิ์นี้!\n\nยืนยันที่จะลบหรือไม่?`;
-            }
-
-            if (!confirm(confirmMsg)) return;
-
-            try {
-                if (item._recordId) {
-                    await apiDelete('type', item._recordId);
-                }
-            } catch (err) {
-                console.warn('Delete license from type table failed:', err);
-            }
-
-            customLicenseTypes.splice(idx, 1);
-            await saveSettingsToServer();
-            await fetchTypesFromTable().catch(() => {});
-            populateAllTypeAndLicenseSelects();
-            renderTypeLicenseLists();
-            alert(`ลบสิทธิ์ใช้งาน "${item.name}" สำเร็จ`);
-        }
-
-        async function addLicenseTypeSubmit(e) {
-            if (e) e.preventDefault();
-            const keyEl = document.getElementById('new-license-key');
-            const nameEl = document.getElementById('new-license-name');
-            const descEl = document.getElementById('new-license-desc');
-
-            const key = (keyEl?.value || '').trim().toLowerCase();
-            const name = (nameEl?.value || '').trim();
-            const desc = (descEl?.value || '').trim() || name;
-
-            if (!key || !name) {
-                alert('กรุณากรอกรหัสสิทธิ์ (type_ID) และชื่อสิทธิ์ (discription)');
-                return;
-            }
-
-            try {
-                await apiCreate('type', {
-                    type_ID: key,
-                    category: 'software',
-                    discription: desc || name
-                });
-                await fetchTypesFromTable();
-            } catch (err) {
-                console.warn('apiCreate license failed:', err);
-                customLicenseTypes.push({ key, type_ID: key, name, desc, category: 'software' });
-                await saveSettingsToServer();
-            }
-
-            populateAllTypeAndLicenseSelects();
-            renderTypeLicenseLists();
-
-            if (keyEl) keyEl.value = '';
-            if (nameEl) nameEl.value = '';
-            if (descEl) descEl.value = '';
-            alert(`เพิ่มสิทธิ์การใช้งาน "${name}" ลงในตาราง type สำเร็จ`);
+            alert(`บันทึกข้อมูล "${desc || typeId}" ลงในตาราง type สำเร็จ`);
         }
 
         async function resetDeviceTypesToDefault() {
