@@ -4526,7 +4526,7 @@
             const maintHtml = getDeviceMaintenanceHtml(cam, isAdmin);
             const displayName = (cam.asset_name || cam.eng_name || cam.asset_code || cam.id) + (cam.holder || cam.thai_name ? ' - ' + (cam.holder || cam.thai_name) : '');
             const currentMapLabel = maps.find(m => String(m.map_id) === String(cam.map_id) || String(m._recordId) === String(cam.map_id));
-            const mapLabel = currentMapLabel ? (currentMapLabel.map_name || `แผนผัง ${currentMapLabel.map_id}`) : (cam.map_id || '-');
+            const mapLabel = currentMapLabel ? (currentMapLabel.map_name || `แผนผัง ${currentMapLabel.map_id}`) : (cam.map_id || '');
 
             // Resolve purchase date and price for admin and user views
             const camPurchaseDate = (cam.purchase_date || cam['Purchase Date'] || cam['purchaseDate'] || cam['วันที่ซื้อ'] || '').trim();
@@ -4750,7 +4750,7 @@
                 ` : '';
 
                 const dep = calculateAssetDepreciation(cam, resolvedPurchaseDate, resolvedPrice);
-                let depSummaryText = '-';
+                let depSummaryText = '';
                 let depSummaryClass = 'text-slate-400';
                 if (dep && dep.status === 'OK') {
                     if (dep.isOverPeriod) {
@@ -4774,34 +4774,34 @@
                         </div>
                         <h4 class="text-base font-bold text-white">${displayName}</h4>
                         <div class="flex items-center justify-center flex-wrap gap-1.5 mt-1">
-                            <span class="group-tag inline-block" style="background:${gColor}33;color:${gColor}">${cam.department || '-'}</span>
+                            ${cam.department ? `<span class="group-tag inline-block" style="background:${gColor}33;color:${gColor}">${cam.department}</span>` : ''}
                             <span class="text-[11px] bg-slate-700 text-emerald-400 px-2 py-0.5 rounded font-medium">${devType}</span>
                             <span class="text-[11px] ${devCategory === 'software' ? 'bg-cyan-900/60 text-cyan-300 border border-cyan-700/50' : 'bg-slate-700 text-slate-300'} px-2 py-0.5 rounded font-medium">${devCategory === 'software' ? 'Software' : 'Hardware'}</span>
                             <span class="text-[11px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded">${cam.status || 'Active'}</span>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs bg-slate-900/50 p-3 rounded-xl border border-slate-700/60">
-                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">รหัสทรัพย์สิน</span><span class="font-mono font-bold text-emerald-400 text-xs">${cam.asset_code || cam.account_no || cam.id || '-'}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">รหัสทรัพย์สิน</span><span class="font-mono font-bold text-emerald-400 text-xs">${cam.asset_code || cam.account_no || cam.id || ''}</span></div>
                         <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">หมวดหมู่อุปกรณ์</span><span class="font-medium text-xs ${devCategory === 'software' ? 'text-cyan-400' : 'text-slate-200'}">${devCategory === 'software' ? 'Software (ซอฟต์แวร์)' : 'Hardware (ฮาร์ดแวร์)'}</span></div>
                         ${devCategory === 'software' ? `
                             <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ชนิดสิทธิ์ (License)</span><span class="font-semibold text-amber-300 uppercase text-xs">${cam.license_type || 'Volume'}</span></div>
                         ` : `
-                            <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">แผนผังที่ติดตั้ง (ผังห้อง)</span><span class="text-slate-200 text-xs">${mapLabel || '-'}</span></div>
+                            <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">แผนผังที่ติดตั้ง (ผังห้อง)</span><span class="text-slate-200 text-xs">${mapLabel || ''}</span></div>
                         `}
                         <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">สถานะ</span><span class="font-medium text-slate-200 text-xs">${cam.status || 'Active'}</span></div>
-                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">แผนก / หน่วยงาน</span><span class="font-medium text-emerald-400 text-xs">${cam.department || '-'}</span></div>
-                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ไซต์ / สาขา (Site)</span><span class="font-medium text-cyan-300 text-xs">${cam.site || '-'}</span></div>
-                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ชื่อทรัพย์สิน / อุปกรณ์</span><span class="font-medium text-slate-200 text-xs">${cam.asset_name || cam.eng_name || '-'}</span></div>
-                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ผู้ถือครอง / ผู้ใช้งาน</span><span class="font-medium text-emerald-300 text-xs">${cam.holder || cam.thai_name || '-'}</span></div>
-                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ชนิดอุปกรณ์</span><span class="font-medium text-slate-200 text-xs">${devType}</span></div>
-                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ยี่ห้อ (Brand)</span><span class="text-slate-200 text-xs">${cam.brand || '-'}</span></div>
-                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">รุ่น (Model)</span><span class="text-slate-200 text-xs">${cam.model || '-'}</span></div>
-                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">Serial Number</span><span class="font-mono text-slate-300 text-xs">${cam.serial || '-'}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">แผนก / หน่วยงาน</span><span class="font-medium text-emerald-400 text-xs">${cam.department || ''}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ไซต์ / สาขา (Site)</span><span class="font-medium text-cyan-300 text-xs">${cam.site || ''}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ชื่อทรัพย์สิน / อุปกรณ์</span><span class="font-medium text-slate-200 text-xs">${cam.asset_name || cam.eng_name || ''}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ผู้ถือครอง / ผู้ใช้งาน</span><span class="font-medium text-emerald-300 text-xs">${cam.holder || cam.thai_name || ''}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ชนิดอุปกรณ์</span><span class="font-medium text-slate-200 text-xs">${devType || ''}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ยี่ห้อ (Brand)</span><span class="text-slate-200 text-xs">${cam.brand || ''}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">รุ่น (Model)</span><span class="text-slate-200 text-xs">${cam.model || ''}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">Serial Number</span><span class="font-mono text-slate-300 text-xs">${cam.serial || ''}</span></div>
                         ${devCategory === 'software' ? '' : `
-                            <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">IP Address</span><span class="font-mono text-emerald-400 text-xs">${cam.ip || '-'}</span></div>
-                            <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">MAC Address</span><span class="font-mono text-slate-300 text-xs">${cam.mac_address || '-'}</span></div>
+                            <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">IP Address</span><span class="font-mono text-emerald-400 text-xs">${cam.ip || ''}</span></div>
+                            <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">MAC Address</span><span class="font-mono text-slate-300 text-xs">${cam.mac_address || ''}</span></div>
                         `}
-                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">วันที่ซื้อ / รับเข้า</span><span class="font-mono text-slate-200 text-xs">${resolvedPurchaseDate || '-'}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">วันที่ซื้อ / รับเข้า</span><span class="font-mono text-slate-200 text-xs">${resolvedPurchaseDate || ''}</span></div>
                         <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ค่าเสื่อม / มูลค่าคงเหลือ</span><span class="font-bold font-mono text-xs ${depSummaryClass}">${depSummaryText}</span></div>
                     </div>
                     ${depHtml}
@@ -5083,7 +5083,7 @@
                     <div class="p-2.5 bg-slate-800/40 text-xs">
                         <div class="font-medium text-slate-200 truncate">${displayName}</div>
                         <div class="flex items-center justify-between text-[10px] text-slate-400 mt-1">
-                            <span>${cam.department || '-'}</span>
+                            <span>${cam.department || ''}</span>
                             <span class="font-mono text-emerald-400">${cam.ip || ''}</span>
                         </div>
                     </div>
@@ -5974,14 +5974,14 @@
                     statusBadge = '<span class="bg-red-950 text-red-400 border border-red-800 px-2 py-0.5 rounded-full text-[10px] font-medium">Inactive</span>';
                 }
 
-                const brandModel = [c.brand, c.model].filter(Boolean).join(' ') || '-';
+                const brandModel = [c.brand, c.model].filter(Boolean).join(' ') || '';
                 const subName = (c.holder || c.thai_name) ? `<span class="text-emerald-300 font-normal">👤 ${c.holder || c.thai_name}</span>` : '';
-                const mainName = c.asset_name || c.eng_name || '-';
+                const mainName = c.asset_name || c.eng_name || '';
 
                 const devImg = c.image_url || c.go2rtc || c.image || LocalImageStore.get(c.id) || LocalImageStore.get(c._recordId) || LocalImageStore.get(c.asset_code) || '';
 
                 const depInfo = calculateAssetDepreciation(c);
-                let depBadge = '<span class="text-slate-500 text-[10px]">-</span>';
+                let depBadge = '';
                 if (depInfo.hasPurchaseDate) {
                     if (depInfo.isExpired) {
                         depBadge = `
@@ -6021,7 +6021,7 @@
                                 </div>
                             `}
                         </td>
-                        <td class="py-2.5 px-3 font-mono font-bold text-slate-100">${c.asset_code || c.id || '-'}</td>
+                        <td class="py-2.5 px-3 font-mono font-bold text-slate-100">${c.asset_code || c.id || ''}</td>
                         <td class="py-2.5 px-3">
                             <div class="font-semibold text-slate-100">${mainName}</div>
                             ${subName ? `<div class="text-[11px] mt-0.5">${subName}</div>` : ''}
@@ -6033,12 +6033,12 @@
                             </div>
                             <div class="text-[11px] text-slate-400 truncate max-w-[150px] mt-0.5">${brandModel}</div>
                         </td>
-                        <td class="py-2.5 px-3 text-slate-300 font-medium">${c.department || '-'}</td>
+                        <td class="py-2.5 px-3 text-slate-300 font-medium">${c.department || ''}</td>
                         <td class="py-2.5 px-3">
-                            ${c.site ? `<span class="bg-cyan-900/60 text-cyan-300 border border-cyan-700/50 px-1.5 py-0.5 rounded text-[10px] font-medium whitespace-nowrap">🏢 ${c.site}</span>` : '<span class="text-slate-500 text-[11px]">-</span>'}
+                            ${c.site ? `<span class="bg-cyan-900/60 text-cyan-300 border border-cyan-700/50 px-1.5 py-0.5 rounded text-[10px] font-medium whitespace-nowrap">🏢 ${c.site}</span>` : ''}
                         </td>
                         <td class="py-2.5 px-3 font-mono text-[11px] text-slate-300">
-                            <div>${c.ip || '-'}</div>
+                            <div>${c.ip || ''}</div>
                             ${c.mac_address ? `<div class="text-[10px] text-slate-500">${c.mac_address}</div>` : ''}
                         </td>
                         <td class="py-2.5 px-3">
@@ -6560,22 +6560,22 @@
             tbody.innerHTML = list.map(m => {
                 const badge = getMaintenanceTypeBadge(m.type);
                 const statusBadge = getMaintenanceStatusBadge(m.status);
-                const costStr = m.cost ? formatCurrency(m.cost) : '-';
+                const costStr = m.cost ? formatCurrency(m.cost) : '';
                 const dev = cameras.find(c => String(c.asset_code || c.id).toLowerCase() === String(m.asset_code).toLowerCase());
-                const devName = m.device_name || (dev ? (dev.asset_name || dev.eng_name || '-') : '-');
+                const devName = m.device_name || (dev ? (dev.asset_name || dev.eng_name || '') : '');
                 const devHolder = dev ? (dev.holder || dev.thai_name || '') : '';
                 const devDept = dev ? (dev.department || dev.group || '') : '';
 
                 return `
                     <tr class="hover:bg-slate-750/70 transition-colors">
-                        <td class="py-2.5 px-3 font-mono text-slate-300 whitespace-nowrap">${m.date || '-'}</td>
+                        <td class="py-2.5 px-3 font-mono text-slate-300 whitespace-nowrap">${m.date || ''}</td>
                         <td class="py-2.5 px-3 font-mono font-bold text-cyan-400">
                             ${m.asset_code ? `
                                 <button type="button" onclick="inspectDeviceFromMaintenance('${m.asset_code}')" class="hover:underline flex items-center gap-1 text-left font-mono" title="คลิกเพื่อดูรายละเอียดอุปกรณ์">
                                     <span>${m.asset_code}</span>
                                     <i data-lucide="external-link" class="w-3 h-3 opacity-60"></i>
                                 </button>
-                            ` : '-'}
+                            ` : ''}
                         </td>
                         <td class="py-2.5 px-3">
                             <div class="font-semibold text-slate-100">${devName}</div>
@@ -6586,10 +6586,10 @@
                         </td>
                         <td class="py-2.5 px-3">${badge}</td>
                         <td class="py-2.5 px-3">
-                            <div class="max-w-xs text-slate-300 whitespace-pre-wrap line-clamp-2" title="${(m.description || '').replace(/"/g, '&quot;')}">${m.description || '-'}</div>
+                            <div class="max-w-xs text-slate-300 whitespace-pre-wrap line-clamp-2" title="${(m.description || '').replace(/"/g, '&quot;')}">${m.description || ''}</div>
                         </td>
                         <td class="py-2.5 px-3 text-slate-300">
-                            <div class="font-medium">${m.vendor || '-'}</div>
+                            <div class="font-medium">${m.vendor || ''}</div>
                             ${m.invoice_no ? `<div class="text-[10px] font-mono text-slate-400">เลขที่: ${m.invoice_no}</div>` : ''}
                         </td>
                         <td class="py-2.5 px-3 text-right font-mono font-bold text-emerald-400 whitespace-nowrap">${costStr}</td>
@@ -7617,14 +7617,14 @@
                     const devType = getDeviceType(c.type);
                     const devCat = getDeviceCategory(c);
                     const curMap = maps.find(m => String(m.map_id) === String(c.map_id) || String(m._recordId) === String(c.map_id));
-                    const mapLabel = curMap ? (curMap.map_name || `ผัง ${curMap.map_id}`) : (c.map_id ? `ผัง ${c.map_id}` : '-');
-                    const brandModel = [c.brand, c.model].filter(Boolean).join(' ') || '-';
-                    const mainName = c.asset_name || c.eng_name || '-';
-                    const holderName = c.holder || c.thai_name || '-';
+                    const mapLabel = curMap ? (curMap.map_name || `ผัง ${curMap.map_id}`) : (c.map_id ? `ผัง ${c.map_id}` : '');
+                    const brandModel = [c.brand, c.model].filter(Boolean).join(' ') || '';
+                    const mainName = c.asset_name || c.eng_name || '';
+                    const holderName = c.holder || c.thai_name || '';
                     const statusStr = c.status || 'Active';
 
                     const depInfo = calculateAssetDepreciation(c);
-                    let depPrintStr = '-';
+                    let depPrintStr = '';
                     if (depInfo.hasPurchaseDate) {
                         if (depInfo.isExpired) {
                             depPrintStr = `<span style="font-weight:700; color:#b45309;">฿1.00</span> <span style="font-size:7.5pt; color:#78350f;">(ครบ ${depInfo.depreciationYears} ปี)</span>`;
@@ -7641,20 +7641,20 @@
                     return `
                         <tr style="background-color:${bgColor}; page-break-inside:avoid; break-inside:avoid;">
                             <td style="border:1px solid #cbd5e1; padding:5px 6px; text-align:center; font-mono; font-size:9pt; color:#475569;">${index + 1}</td>
-                            <td style="border:1px solid #cbd5e1; padding:5px 8px; font-family:monospace; font-weight:700; font-size:9.5pt; color:#0f172a; white-space:nowrap;">${c.asset_code || c.id || '-'}</td>
+                            <td style="border:1px solid #cbd5e1; padding:5px 8px; font-family:monospace; font-weight:700; font-size:9.5pt; color:#0f172a; white-space:nowrap;">${c.asset_code || c.id || ''}</td>
                             <td style="border:1px solid #cbd5e1; padding:5px 8px; font-size:9.5pt; color:#1e293b;">
                                 <div style="font-weight:600;">${mainName}</div>
-                                ${holderName !== '-' ? `<div style="font-size:8pt; color:#047857;">ผู้ถือครอง: ${holderName}</div>` : ''}
+                                ${holderName ? `<div style="font-size:8pt; color:#047857;">ผู้ถือครอง: ${holderName}</div>` : ''}
                             </td>
                             <td style="border:1px solid #cbd5e1; padding:5px 8px; font-size:9pt; color:#334155;">
                                 <span style="display:inline-block; font-weight:600;">${devType}</span>
                                 <span style="font-size:7.5pt; background:#e2e8f0; color:#475569; padding:1px 4px; border-radius:3px; margin-left:3px;">${devCat === 'software' ? 'SW' : 'HW'}</span>
                                 <div style="font-size:8pt; color:#64748b;">${brandModel}</div>
                             </td>
-                            <td style="border:1px solid #cbd5e1; padding:5px 8px; font-size:9pt; color:#334155;">${c.department || '-'}</td>
-                            <td style="border:1px solid #cbd5e1; padding:5px 8px; font-size:9pt; color:#0284c7; white-space:nowrap;">${c.site || '-'}</td>
+                            <td style="border:1px solid #cbd5e1; padding:5px 8px; font-size:9pt; color:#334155;">${c.department || ''}</td>
+                            <td style="border:1px solid #cbd5e1; padding:5px 8px; font-size:9pt; color:#0284c7; white-space:nowrap;">${c.site || ''}</td>
                             <td style="border:1px solid #cbd5e1; padding:5px 8px; font-family:monospace; font-size:8.5pt; color:#334155; white-space:nowrap;">
-                                <div>${c.ip || '-'}</div>
+                                <div>${c.ip || ''}</div>
                                 ${c.mac_address ? `<div style="font-size:7.5pt; color:#64748b;">${c.mac_address}</div>` : ''}
                             </td>
                             <td style="border:1px solid #cbd5e1; padding:5px 8px; font-size:9pt; color:#334155;">
