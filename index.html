@@ -866,8 +866,8 @@
 
     <!-- Device Type & License Manager Modal -->
     <div id="modal-type-license" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
-        <div class="bg-slate-800 rounded-2xl p-4 sm:p-6 w-full max-w-2xl mx-2 sm:mx-4 border border-slate-700 shadow-2xl max-h-[92vh] flex flex-col">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-700">
+        <div class="bg-slate-800 rounded-2xl p-4 sm:p-6 w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl mx-2 sm:mx-4 border border-slate-700 shadow-2xl max-h-[92vh] flex flex-col">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-700 shrink-0">
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
                         <i data-lucide="tag" class="w-4 h-4"></i>
@@ -901,9 +901,9 @@
             </div>
 
             <!-- Single Unified Type Table Content -->
-            <div id="tab-content-types" class="flex-1 overflow-y-auto py-3 space-y-4">
-                <!-- Unified Types List -->
-                <div id="types-manage-list" class="space-y-2 max-h-[42vh] overflow-y-auto pr-1"></div>
+            <div id="tab-content-types" class="flex-1 overflow-y-auto py-3 space-y-3 custom-scrollbar">
+                <!-- Unified Types List in 3 Columns on desktop -->
+                <div id="types-manage-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-[52vh] overflow-y-auto pr-1 custom-scrollbar"></div>
 
                 <!-- Add Type Form -->
                 <div class="bg-slate-750/70 p-3.5 rounded-xl border border-slate-700 mt-2">
@@ -2199,35 +2199,54 @@
                         const isHardware = (t.category || 'hardware').toLowerCase() === 'hardware';
 
                         return `
-                            <div class="bg-slate-700/60 hover:bg-slate-700/90 p-3 rounded-xl border border-slate-600/70 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div class="flex items-center gap-2.5 flex-1 min-w-0">
-                                    <div class="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center ${isHardware ? 'text-emerald-400' : 'text-blue-400'} border border-slate-700 shrink-0">
-                                        <i data-lucide="${t.icon || (isHardware ? 'hard-drive' : 'file-text')}" class="w-4 h-4"></i>
+                            <div class="bg-slate-700/60 hover:bg-slate-700/90 p-2.5 rounded-xl border border-slate-600/70 transition-all flex flex-col justify-between gap-2 shadow-sm">
+                                <!-- Top row: Icon, Category badge, Usage count, and Action buttons -->
+                                <div class="flex items-center justify-between gap-1.5 pb-1.5 border-b border-slate-600/40">
+                                    <div class="flex items-center gap-1.5 min-w-0">
+                                        <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center ${isHardware ? 'text-emerald-400' : 'text-cyan-400'} border border-slate-700 shrink-0">
+                                            <i data-lucide="${t.icon || (isHardware ? 'hard-drive' : 'file-text')}" class="w-3.5 h-3.5"></i>
+                                        </div>
+                                        <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded ${isHardware ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/60' : 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/60'}">
+                                            ${isHardware ? 'Hardware' : 'Software'}
+                                        </span>
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded-full font-mono font-medium ${usageCount > 0 ? 'bg-slate-800 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800/80 text-slate-400'}">
+                                            ${usageCount} ชิ้น
+                                        </span>
                                     </div>
-                                    <div class="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                        <div>
-                                            <label class="text-[10px] text-slate-400 block mb-0.5">รหัสชนิด (type_ID)</label>
-                                            <input type="text" id="type-row-id-${originalIdx}" value="${escapeHtml(typeIdVal)}" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1 text-xs text-white font-mono font-medium focus:outline-none focus:border-emerald-500">
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] text-slate-400 block mb-0.5">ชื่อ / คำอธิบาย (discription)</label>
-                                            <input type="text" id="type-row-desc-${originalIdx}" value="${escapeHtml(descVal)}" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
-                                        </div>
+                                    <div class="flex items-center gap-1 shrink-0">
+                                        <button type="button" onclick="saveDeviceTypeRow(${originalIdx})" class="p-1 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white rounded-lg transition-all" title="บันทึกลงตาราง type">
+                                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                        <button type="button" onclick="deleteDeviceTypeRow(${originalIdx})" class="p-1 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white rounded-lg transition-all" title="ลบออกจากตาราง type">
+                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                        </button>
                                     </div>
                                 </div>
 
-                                <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-                                    <div>
-                                        <label class="text-[10px] text-slate-400 block mb-0.5">หมวดหมู่ (category)</label>
-                                        <select id="type-row-cat-${originalIdx}" class="bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                                <!-- Middle row: type_ID and discription inputs -->
+                                <div class="grid grid-cols-5 gap-1.5">
+                                    <div class="col-span-2">
+                                        <label class="text-[10px] text-slate-400 block mb-0.5">รหัส (type_ID)</label>
+                                        <input type="text" id="type-row-id-${originalIdx}" value="${escapeHtml(typeIdVal)}" placeholder="type_ID" class="w-full bg-slate-800/90 border border-slate-600 rounded-lg px-2 py-1 text-xs text-white font-mono font-semibold focus:outline-none focus:border-emerald-500">
+                                    </div>
+                                    <div class="col-span-3">
+                                        <label class="text-[10px] text-slate-400 block mb-0.5">ชื่อ / คำอธิบาย</label>
+                                        <input type="text" id="type-row-desc-${originalIdx}" value="${escapeHtml(descVal)}" placeholder="คำอธิบาย" class="w-full bg-slate-800/90 border border-slate-600 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                                    </div>
+                                </div>
+
+                                <!-- Bottom row: Category, Icon, and Depreciation (years) -->
+                                <div class="grid grid-cols-12 gap-1.5 pt-1 border-t border-slate-600/30">
+                                    <div class="col-span-5">
+                                        <label class="text-[10px] text-slate-400 block mb-0.5">หมวดหมู่</label>
+                                        <select id="type-row-cat-${originalIdx}" class="w-full bg-slate-800/90 border border-slate-600 rounded-lg px-1.5 py-1 text-[11px] text-slate-200 focus:outline-none focus:border-emerald-500">
                                             <option value="hardware" ${isHardware ? 'selected' : ''}>Hardware</option>
                                             <option value="software" ${!isHardware ? 'selected' : ''}>Software</option>
                                         </select>
                                     </div>
-
-                                    <div>
+                                    <div class="col-span-4">
                                         <label class="text-[10px] text-slate-400 block mb-0.5">ไอคอน</label>
-                                        <select id="type-row-icon-${originalIdx}" class="bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                                        <select id="type-row-icon-${originalIdx}" class="w-full bg-slate-800/90 border border-slate-600 rounded-lg px-1 py-1 text-[11px] text-slate-200 focus:outline-none focus:border-emerald-500">
                                             <option value="hard-drive" ${t.icon === 'hard-drive' ? 'selected' : ''}>hard-drive</option>
                                             <option value="monitor" ${t.icon === 'monitor' ? 'selected' : ''}>monitor</option>
                                             <option value="laptop" ${t.icon === 'laptop' ? 'selected' : ''}>laptop</option>
@@ -2243,24 +2262,9 @@
                                             <option value="cpu" ${t.icon === 'cpu' ? 'selected' : ''}>cpu</option>
                                         </select>
                                     </div>
-
-                                    <div class="w-16">
-                                        <label class="text-[10px] text-slate-400 block mb-0.5 text-center">ค่าเสื่อม (ปี)</label>
-                                        <input type="number" id="type-row-dep-${originalIdx}" value="${t.depreciation || 0}" min="0" step="0.5" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-xs text-amber-300 font-mono text-center focus:outline-none focus:border-emerald-500" title="จำนวนปีค่าเสื่อมราคา">
-                                    </div>
-
-                                    <div class="text-center min-w-[50px]">
-                                        <label class="text-[10px] text-slate-400 block mb-0.5">ใช้งาน</label>
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${usageCount > 0 ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-800 text-slate-400'}">${usageCount} ชิ้น</span>
-                                    </div>
-
-                                    <div class="flex items-center gap-1 mt-3 sm:mt-3.5">
-                                        <button type="button" onclick="saveDeviceTypeRow(${originalIdx})" class="p-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white rounded-lg transition-all" title="บันทึกลงตาราง type">
-                                            <i data-lucide="check" class="w-4 h-4"></i>
-                                        </button>
-                                        <button type="button" onclick="deleteDeviceTypeRow(${originalIdx})" class="p-1.5 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white rounded-lg transition-all" title="ลบออกจากตาราง type">
-                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                        </button>
+                                    <div class="col-span-3">
+                                        <label class="text-[10px] text-slate-400 block mb-0.5 text-center">ค่าเสื่อม(ปี)</label>
+                                        <input type="number" id="type-row-dep-${originalIdx}" value="${t.depreciation || 0}" min="0" step="0.5" class="w-full bg-slate-800/90 border border-slate-600 rounded-lg px-1 py-1 text-xs text-amber-300 font-mono text-center focus:outline-none focus:border-emerald-500" title="จำนวนปีค่าเสื่อมราคา">
                                     </div>
                                 </div>
                             </div>
