@@ -4984,7 +4984,7 @@
                 if (document.getElementById('modal-devices') && !document.getElementById('modal-devices').classList.contains('hidden')) {
                     renderDeviceManagerList();
                 }
-                alert(`บันทึกการเปลี่ยนแปลงรหัส "${assetCode}" สำเร็จ!\n• ตารางใน Airtable: "${saveRes.targetTable || 'device'}"\n• Record ID: "${saveRes.id}"`);
+                alert(`บันทึกการเปลี่ยนแปลงรหัส "${assetCode}" สำเร็จ!\n• ตารางใน Supabase: "${saveRes.targetTable || 'device'}"\n• Record ID: "${saveRes.id}"`);
             } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
         }
 
@@ -5372,12 +5372,10 @@
                 let saveRes;
                 if (recordId) {
                     saveRes = await apiUpdate('device', recordId, fields);
-                    const debugInfo = saveRes._debug ? `\n\n[DEBUG] Fields ส่งไป: ${JSON.stringify(saveRes._debug[0]?.fields||[])}\nAirtable ตอบ: ${JSON.stringify(saveRes._debug.slice(1))}` : '';
-                    alert(`อัปเดตข้อมูลอุปกรณ์รหัส "${assetCode}" สำเร็จ!\n• ตารางใน Airtable: "${saveRes.targetTable || 'device'}"\n• Base ID: "${saveRes.baseId || '-'}"\n• Record ID: "${saveRes.id}"${debugInfo}`);
+                    alert(`อัปเดตข้อมูลอุปกรณ์รหัส "${assetCode}" สำเร็จ!\n• ตารางใน Supabase: "${saveRes.targetTable || 'device'}"\n• Record ID: "${saveRes.id}"`);
                 } else {
                     saveRes = await apiCreate('device', fields);
-                    const debugInfo = saveRes._debug ? `\n\n[DEBUG] Fields ส่งไป: ${JSON.stringify(saveRes._debug[0]?.fields||[])}\nAirtable ตอบ: ${JSON.stringify(saveRes._debug.slice(1))}` : '';
-                    alert(`เพิ่มอุปกรณ์ไอทีรหัส "${assetCode}" สำเร็จ!\n• ตารางใน Airtable: "${saveRes.targetTable || 'device'}"\n• Base ID: "${saveRes.baseId || '-'}"\n• Record ID: "${saveRes.id}"${debugInfo}`);
+                    alert(`เพิ่มอุปกรณ์ไอทีรหัส "${assetCode}" สำเร็จ!\n• ตารางใน Supabase: "${saveRes.targetTable || 'device'}"\n• Record ID: "${saveRes.id}"`);
                 }
                 console.log('[saveCamera] Response:', saveRes);
                 if (saveRes._debug) console.log('[saveCamera] Debug Log:', JSON.stringify(saveRes._debug, null, 2));
@@ -6747,8 +6745,8 @@
                 }
 
                 closeModal('modal-maintenance');
-                const targetName = saveRes && saveRes.targetTable ? saveRes.targetTable : 'Airtable (repair)';
-                alert((id ? 'แก้ไขข้อมูลเรียบร้อยแล้ว' : 'บันทึกประวัติการซื้อ/ซ่อมบำรุงเรียบร้อยแล้ว') + `\n(บันทึกไปยัง: ${targetName})`);
+                const targetTable = saveRes && saveRes.targetTable ? saveRes.targetTable : 'repair';
+                alert((id ? 'แก้ไขข้อมูลเรียบร้อยแล้ว' : 'บันทึกประวัติการซื้อ/ซ่อมบำรุงเรียบร้อยแล้ว') + `\n(บันทึกไปยัง: Supabase [${targetTable}])`);
             } catch (err) {
                 console.error('Failed to save maintenance:', err);
                 alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);

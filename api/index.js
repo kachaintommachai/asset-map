@@ -539,7 +539,9 @@ module.exports = async (req, res) => {
 
       return res.status(200).json({
         id: formatted.id,
-        fields: formatted.fields
+        fields: formatted.fields,
+        targetTable: supabaseTable,
+        database: 'Supabase'
       });
     } catch (err) {
       return res.status(500).json({ error: err.message });
@@ -611,7 +613,9 @@ module.exports = async (req, res) => {
 
       return res.status(200).json({
         id: formatted ? formatted.id : rawId,
-        fields: formatted ? formatted.fields : fields
+        fields: formatted ? formatted.fields : fields,
+        targetTable: supabaseTable,
+        database: 'Supabase'
       });
     } catch (err) {
       return res.status(500).json({ error: err.message });
