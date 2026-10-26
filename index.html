@@ -824,20 +824,43 @@
     </div>
 
     <!-- Group Manager Modal -->
-    <div id="modal-groups" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
-        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-md mx-4 border border-slate-700 shadow-2xl">
-            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <i data-lucide="layers" class="w-5 h-5 text-emerald-400"></i> จัดการแผนก / กลุ่มอุปกรณ์
-            </h3>
-            <div id="groups-list" class="space-y-2 max-h-60 overflow-y-auto mb-4"></div>
-            <div id="groups-add-section" class="border-t border-slate-700 pt-4 mb-4 hidden">
-                <h4 class="text-sm font-medium mb-3 text-slate-200">เพิ่มแผนกใหม่</h4>
-                <form id="add-dept-form" class="flex gap-2" onsubmit="addDepartment(event)">
-                    <input type="text" id="new-dept-name" required placeholder="ชื่อแผนก เช่น ฝ่ายไอที, การเงิน" class="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
-                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">เพิ่ม</button>
-                </form>
+    <div id="modal-groups" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay p-3 sm:p-4">
+        <div class="bg-slate-800 rounded-2xl p-5 sm:p-6 w-full max-w-6xl border border-slate-700 shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-slate-700 shrink-0">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                        <i data-lucide="layers" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-white">จัดการแผนก / กลุ่มอุปกรณ์</h3>
+                        <p class="text-xs text-slate-400">แก้ไขชื่อแผนก, สีประจำกลุ่ม หรือเพิ่ม/ลบแผนกในระบบ</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeModal('modal-groups')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-700 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
             </div>
-            <button onclick="closeModal('modal-groups')" class="w-full bg-slate-600 hover:bg-slate-500 text-white py-2 rounded-lg text-sm font-medium transition-all">ปิด</button>
+
+            <!-- Content Area (4-Column Grid) -->
+            <div class="flex-1 overflow-y-auto py-3 pr-1 space-y-4">
+                <div id="groups-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5"></div>
+
+                <div id="groups-add-section" class="border-t border-slate-700/80 pt-3 bg-slate-800/90 rounded-xl hidden">
+                    <h4 class="text-xs font-semibold uppercase tracking-wider mb-2 text-slate-300 flex items-center gap-1.5">
+                        <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i> เพิ่มแผนกใหม่
+                    </h4>
+                    <form id="add-dept-form" class="flex flex-col sm:flex-row gap-2 max-w-lg" onsubmit="addDepartment(event)">
+                        <input type="text" id="new-dept-name" required placeholder="ชื่อแผนก เช่น ฝ่ายไอที, การเงิน" class="flex-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0">เพิ่มแผนก</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="pt-3 border-t border-slate-700 flex items-center justify-end shrink-0">
+                <button type="button" onclick="closeModal('modal-groups')" class="px-5 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white rounded-lg text-xs font-medium transition-all">ปิด</button>
+            </div>
         </div>
     </div>
 
@@ -6248,24 +6271,29 @@
             departmentRecords.forEach((rec, i) => {
                 const count = cameras.filter(c => (c.department || c.group) === rec.department).length;
                 const div = document.createElement('div');
-                div.className = 'flex items-center gap-3 p-3 bg-slate-700 rounded-xl';
+                div.className = 'flex items-center gap-2 p-2.5 bg-slate-700/80 hover:bg-slate-700 border border-slate-600/60 rounded-xl transition-all shadow-sm';
                 if (isAdmin) {
                     div.innerHTML = `
-                        <div class="w-4 h-4 rounded-full shrink-0" style="background:${groupColors[i % groupColors.length]}"></div>
-                        <input type="text" id="dept-name-${rec._recordId}" value="${rec.department}" class="flex-1 px-2.5 py-1 bg-slate-600 border border-slate-500 rounded text-white text-sm focus:outline-none focus:border-emerald-500">
-                        <span class="text-xs text-slate-400 shrink-0">${count} อุปกรณ์</span>
-                        <button onclick="saveDepartment('${rec._recordId}')" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded transition-all shrink-0">บันทึก</button>
-                        <button onclick="requestDelete('${rec._recordId}','department')" class="text-xs bg-red-600/80 hover:bg-red-500 text-white px-2.5 py-1 rounded transition-all shrink-0">ลบ</button>
+                        <div class="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm" style="background:${groupColors[i % groupColors.length]}"></div>
+                        <input type="text" id="dept-name-${rec._recordId}" value="${rec.department}" class="flex-1 min-w-0 px-2 py-1 bg-slate-600 border border-slate-500 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500 font-medium">
+                        <span class="text-[10px] text-slate-400 shrink-0 font-mono">(${count})</span>
+                        <button onclick="saveDepartment('${rec._recordId}')" class="p-1 rounded bg-emerald-600/80 hover:bg-emerald-600 text-white transition-all shrink-0" title="บันทึก">
+                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button onclick="requestDelete('${rec._recordId}','department')" class="p-1 rounded bg-red-600/70 hover:bg-red-600 text-white transition-all shrink-0" title="ลบ">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
                     `;
                 } else {
                     div.innerHTML = `
-                        <div class="w-4 h-4 rounded-full shrink-0" style="background:${groupColors[i % groupColors.length]}"></div>
-                        <span class="flex-1 text-sm text-white">${rec.department}</span>
-                        <span class="text-xs text-slate-400">${count} อุปกรณ์</span>
+                        <div class="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm" style="background:${groupColors[i % groupColors.length]}"></div>
+                        <span class="flex-1 min-w-0 text-xs text-white truncate font-medium">${rec.department}</span>
+                        <span class="text-[10px] text-slate-400 shrink-0 font-mono">${count} เครื่อง</span>
                     `;
                 }
                 list.appendChild(div);
             });
+            if (window.lucide) lucide.createIcons();
         }
 
         async function saveDepartment(recordId) {
