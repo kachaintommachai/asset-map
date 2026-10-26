@@ -531,7 +531,10 @@ module.exports = async (req, res) => {
     }
 
     const payload = preparePayloadForSupabase(supabaseTable, fields);
-    payload.updated_at = new Date().toISOString();
+    // ใส่ updated_at เฉพาะตารางที่มีคอลัมน์ updated_at (เช่น device, repair)
+    if (supabaseTable === 'device' || supabaseTable === 'repair') {
+      payload.updated_at = new Date().toISOString();
+    }
 
     let patchUrl = `${supabaseUrl}/rest/v1/${supabaseTable}`;
     if (rawId) {
