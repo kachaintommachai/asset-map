@@ -199,7 +199,8 @@ function formatRow(tName, row) {
       map_id: row.map_id || '',
       map_name: row.map_name || '',
       map_pic: row.map_pic || '',
-      map_url: row.map_pic || ''
+      map_url: row.map_pic || '',
+      site: row.site || ''
     };
   } else if (target === 'departments') {
     fields = {
@@ -286,6 +287,7 @@ function preparePayloadForSupabase(tName, fields) {
     if (f.map_name !== undefined) payload.map_name = f.map_name;
     if (f.map_pic !== undefined) payload.map_pic = f.map_pic;
     if (f.map_url !== undefined && !f.map_pic) payload.map_pic = f.map_url;
+    if (f.site !== undefined) payload.site = f.site;
     return payload;
   }
 
