@@ -5322,11 +5322,12 @@
                 fields['Type ID'] = devTypeId;
                 fields['Type_ID'] = devTypeId;
             }
-            if (holder) fields.holder = holder;
-            if (devDept) fields.department = devDept;
-            if (devSite) fields.site = devSite;
-            if (devMapId) fields.map_id = devMapId;
-            if (category === 'software' && licenseType) {
+            fields.holder = holder;
+            fields.thai_name = holder;
+            fields.department = devDept;
+            fields.site = devSite;
+            fields.map_id = devMapId;
+            if (category === 'software') {
                 fields.license_type = licenseType;
                 fields.license = licenseType;
                 fields.License = licenseType;
@@ -5346,20 +5347,15 @@
                 fields['Cost'] = priceVal;
                 fields['ราคา'] = priceVal;
             }
-            const brand = document.getElementById('cam-brand').value.trim();
-            if (brand) fields.brand = brand;
-            const model = document.getElementById('cam-model').value.trim();
-            if (model) fields.model = model;
-            const serial = document.getElementById('cam-serial').value.trim();
-            if (serial) fields.serial = serial;
+            fields.brand = document.getElementById('cam-brand').value.trim();
+            fields.model = document.getElementById('cam-model').value.trim();
+            fields.serial = document.getElementById('cam-serial').value.trim();
             if (category === 'software') {
                 fields.ip = '';
                 fields.mac_address = '';
             } else {
-                const ip = document.getElementById('cam-ip').value.trim();
-                if (ip) fields.ip = ip;
-                const mac = document.getElementById('cam-mac').value.trim();
-                if (mac) fields.mac_address = mac;
+                fields.ip = document.getElementById('cam-ip').value.trim();
+                fields.mac_address = document.getElementById('cam-mac').value.trim();
             }
             if (imageUrl) {
                 fields.image_url = imageUrl;

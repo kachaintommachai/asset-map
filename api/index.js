@@ -157,7 +157,7 @@ function formatRow(tName, row) {
     fields = {
       asset_code: row.asset_code || '',
       asset_name: row.asset_name || '',
-      thai_name: row.asset_name || '',
+      thai_name: row.holder || '',
       eng_name: row.asset_name || '',
       holder: row.holder || '',
       type: row.type || '',
