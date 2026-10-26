@@ -438,7 +438,7 @@ module.exports = async (req, res) => {
       if (supabaseTable === 'device') {
         fetchUrl += `&asset_code=eq.${encodeURIComponent(rawId)}`;
       } else if (supabaseTable === 'map') {
-        fetchUrl += `&map_id=eq.${encodeURIComponent(rawId)}`;
+        fetchUrl += `&or=(id.eq.${encodeURIComponent(rawId)},map_id.eq.${encodeURIComponent(rawId)})`;
       } else if (supabaseTable === 'departments') {
         fetchUrl += `&department=eq.${encodeURIComponent(rawId)}`;
       } else if (supabaseTable === 'site') {
@@ -543,7 +543,8 @@ module.exports = async (req, res) => {
       if (supabaseTable === 'device') {
         patchUrl += `?asset_code=eq.${encodeURIComponent(rawId)}`;
       } else if (supabaseTable === 'map') {
-        patchUrl += `?map_id=eq.${encodeURIComponent(rawId)}`;
+        const isNumeric = /^\d+$/.test(rawId);
+        patchUrl += isNumeric ? `?or=(id.eq.${encodeURIComponent(rawId)},map_id.eq.${encodeURIComponent(rawId)})` : `?map_id=eq.${encodeURIComponent(rawId)}`;
       } else if (supabaseTable === 'departments') {
         patchUrl += `?department=eq.${encodeURIComponent(rawId)}`;
       } else if (supabaseTable === 'site') {
@@ -596,7 +597,8 @@ module.exports = async (req, res) => {
     if (supabaseTable === 'device') {
       deleteUrl += `?asset_code=eq.${encodeURIComponent(rawId)}`;
     } else if (supabaseTable === 'map') {
-      deleteUrl += `?map_id=eq.${encodeURIComponent(rawId)}`;
+      const isNumeric = /^\d+$/.test(rawId);
+      deleteUrl += isNumeric ? `?or=(id.eq.${encodeURIComponent(rawId)},map_id.eq.${encodeURIComponent(rawId)})` : `?map_id=eq.${encodeURIComponent(rawId)}`;
     } else if (supabaseTable === 'departments') {
       deleteUrl += `?department=eq.${encodeURIComponent(rawId)}`;
     } else if (supabaseTable === 'site') {
