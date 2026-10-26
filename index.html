@@ -4887,13 +4887,14 @@
                     renderBookmarks();
                 }
 
-                if (recordId && String(recordId).startsWith('rec')) {
-                    await apiUpdate('device', recordId, {
+                const devTargetId = recordId || assetCode;
+                if (devTargetId) {
+                    await apiUpdate('device', devTargetId, {
                         image_url: finalUrl,
                         image: finalUrl,
                         Image: finalUrl,
                         go2rtc_link: finalUrl
-                    }).catch(e => console.warn('Airtable image write fallback:', e));
+                    }).catch(e => console.warn('Supabase device image write notice:', e));
                     await fetchDevices();
                     const updatedCam = cameras.find(c => String(c._recordId) === String(recordId) || (assetCode && (String(c.id) === assetCode || String(c.asset_code) === assetCode)));
                     if (updatedCam) showCameraDetail(updatedCam);
@@ -6127,7 +6128,7 @@
                             <label class="inline-flex items-center gap-1.5 px-2 py-1.5 bg-slate-600 hover:bg-slate-500 border border-slate-500 border-dashed rounded-lg cursor-pointer transition-all max-w-full">
                                 <i data-lucide="upload" class="w-3.5 h-3.5 text-slate-300 shrink-0"></i>
                                 <span class="text-[11px] text-slate-200 truncate" id="map-file-label-${m._recordId}">${m.map_url ? 'เปลี่ยนไฟล์...' : 'เลือกไฟล์...'}</span>
-                                <input type="file" accept="image/*" class="hidden" onchange="uploadMapFile(this, '${m._recordId}', ${m.map_id})">
+                                <input type="file" accept="image/*" class="hidden" onchange="uploadMapFile(this, '${m._recordId}', '${m.map_id || ''}')">
                             </label>
                             <span id="map-upload-status-${m._recordId}" class="text-[10px] text-slate-400 ml-1"></span>
                         </div>
@@ -6187,11 +6188,12 @@
                 if (recordId) LocalImageStore.save(`map_${recordId}`, finalUrl);
                 if (selectedMapId) LocalImageStore.save(`map_${selectedMapId}`, finalUrl);
 
-                if (recordId && String(recordId).startsWith('rec')) {
-                    await apiUpdate('map', recordId, {
+                const targetUpdateId = recordId || mapId;
+                if (targetUpdateId) {
+                    await apiUpdate('map', targetUpdateId, {
                         map_pic: finalUrl,
                         map_url: finalUrl
-                    });
+                    }).catch(e => console.warn('Supabase map update fallback notice:', e));
                 }
                 if (status) {
                     status.textContent = 'อัปโหลดสำเร็จ!';
@@ -6418,8 +6420,9 @@
                 if (oldName && oldName !== name) {
                     const camsToUpdate = cameras.filter(c => c.department === oldName);
                     for (const cam of camsToUpdate) {
-                        if (cam._recordId && cam._recordId.startsWith('rec')) {
-                            await apiUpdate('device', cam._recordId, { department: name });
+                        const targetCamId = cam._recordId || cam.asset_code || cam.id;
+                        if (targetCamId) {
+                            await apiUpdate('device', targetCamId, { department: name }).catch(() => {});
                         }
                     }
                 }
