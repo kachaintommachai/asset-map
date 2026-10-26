@@ -2609,40 +2609,41 @@
                 const batchText = await batchRes.text();
                 let batchData;
                 try { batchData = JSON.parse(batchText); } catch(e) { batchData = {}; }
+                const tables = batchData.results || batchData;
 
-                // ส่ง records เข้า fetch functions ที่มีอยู่เดิม
-                if (batchData.device && batchData.device.records) {
-                    await fetchDevices(batchData.device.records).catch(e => console.warn('fetchDevices error:', e));
+                // ส่ง records เข้า fetch functions จาก batch data ในครั้งเดียว
+                if (tables.device && tables.device.records) {
+                    await fetchDevices(tables.device.records).catch(e => console.warn('fetchDevices error:', e));
                 } else {
                     await fetchDevices().catch(e => console.warn('fetchDevices error:', e));
                 }
 
-                if (batchData.departments && batchData.departments.records) {
-                    await fetchDepartments(batchData.departments.records).catch(e => console.warn('fetchDepartments error:', e));
+                if (tables.departments && tables.departments.records) {
+                    await fetchDepartments(tables.departments.records).catch(e => console.warn('fetchDepartments error:', e));
                 } else {
                     await fetchDepartments().catch(e => console.warn('fetchDepartments error:', e));
                 }
 
-                if (batchData.map && batchData.map.records) {
-                    await fetchMaps(batchData.map.records).catch(e => console.warn('fetchMaps error:', e));
+                if (tables.map && tables.map.records) {
+                    await fetchMaps(tables.map.records).catch(e => console.warn('fetchMaps error:', e));
                 } else {
                     await fetchMaps().catch(e => console.warn('fetchMaps error:', e));
                 }
 
-                if (batchData.type && batchData.type.records) {
-                    await fetchTypesFromTable(batchData.type.records).catch(e => console.warn('fetchTypes error:', e));
+                if (tables.type && tables.type.records) {
+                    await fetchTypesFromTable(tables.type.records).catch(e => console.warn('fetchTypes error:', e));
                 } else {
                     await fetchTypesFromTable().catch(e => console.warn('fetchTypes error:', e));
                 }
 
-                if (batchData.site && batchData.site.records) {
-                    await fetchSites(batchData.site.records).catch(e => console.warn('fetchSites error:', e));
+                if (tables.site && tables.site.records) {
+                    await fetchSites(tables.site.records).catch(e => console.warn('fetchSites error:', e));
                 } else {
                     await fetchSites().catch(e => console.warn('fetchSites error:', e));
                 }
 
-                if (batchData.repair && batchData.repair.records) {
-                    await fetchMaintenances(batchData.repair.records).catch(e => console.warn('fetchMaintenances error:', e));
+                if (tables.repair && tables.repair.records) {
+                    await fetchMaintenances(tables.repair.records).catch(e => console.warn('fetchMaintenances error:', e));
                 } else {
                     await fetchMaintenances().catch(e => console.warn('fetchMaintenances error:', e));
                 }
@@ -3890,6 +3891,7 @@
             }
 
 
+            const fragment = document.createDocumentFragment();
             filtered.forEach(cam => {
                 const div = document.createElement('div');
                 div.className = 'sidebar-item flex items-center gap-2.5 p-2 rounded-xl mb-1 border border-transparent hover:border-slate-700 cursor-pointer';
@@ -3943,9 +3945,12 @@
                     div.ondragstart = () => { dragTarget = cam; div.classList.add('opacity-50'); };
                     div.ondragend = () => div.classList.remove('opacity-50');
                 }
-                list.appendChild(div);
+                fragment.appendChild(div);
             });
-            lucide.createIcons();
+            list.appendChild(fragment);
+            if (window.lucide) {
+                lucide.createIcons({ root: list });
+            }
         }
         const renderDeviceList = renderCameraList;
 
