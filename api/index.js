@@ -434,9 +434,13 @@ module.exports = async (req, res) => {
     if (query.id) {
       const rawId = query.id.trim();
       if (supabaseTable === 'device') {
-        fetchUrl += `&or=(id.eq.${encodeURIComponent(rawId)},asset_code.eq.${encodeURIComponent(rawId)})`;
+        fetchUrl += `&asset_code=eq.${encodeURIComponent(rawId)}`;
       } else if (supabaseTable === 'map') {
-        fetchUrl += `&or=(id.eq.${encodeURIComponent(rawId)},map_id.eq.${encodeURIComponent(rawId)})`;
+        fetchUrl += `&map_id=eq.${encodeURIComponent(rawId)}`;
+      } else if (supabaseTable === 'departments') {
+        fetchUrl += `&department=eq.${encodeURIComponent(rawId)}`;
+      } else if (supabaseTable === 'site') {
+        fetchUrl += `&name=eq.${encodeURIComponent(rawId)}`;
       } else {
         fetchUrl += `&id=eq.${encodeURIComponent(rawId)}`;
       }
@@ -532,9 +536,13 @@ module.exports = async (req, res) => {
     let patchUrl = `${supabaseUrl}/rest/v1/${supabaseTable}`;
     if (rawId) {
       if (supabaseTable === 'device') {
-        patchUrl += `?or=(id.eq.${encodeURIComponent(rawId)},asset_code.eq.${encodeURIComponent(rawId)})`;
+        patchUrl += `?asset_code=eq.${encodeURIComponent(rawId)}`;
       } else if (supabaseTable === 'map') {
-        patchUrl += `?or=(id.eq.${encodeURIComponent(rawId)},map_id.eq.${encodeURIComponent(rawId)})`;
+        patchUrl += `?map_id=eq.${encodeURIComponent(rawId)}`;
+      } else if (supabaseTable === 'departments') {
+        patchUrl += `?department=eq.${encodeURIComponent(rawId)}`;
+      } else if (supabaseTable === 'site') {
+        patchUrl += `?name=eq.${encodeURIComponent(rawId)}`;
       } else {
         patchUrl += `?id=eq.${encodeURIComponent(rawId)}`;
       }
@@ -581,9 +589,13 @@ module.exports = async (req, res) => {
 
     let deleteUrl = `${supabaseUrl}/rest/v1/${supabaseTable}`;
     if (supabaseTable === 'device') {
-      deleteUrl += `?or=(id.eq.${encodeURIComponent(rawId)},asset_code.eq.${encodeURIComponent(rawId)})`;
+      deleteUrl += `?asset_code=eq.${encodeURIComponent(rawId)}`;
     } else if (supabaseTable === 'map') {
-      deleteUrl += `?or=(id.eq.${encodeURIComponent(rawId)},map_id.eq.${encodeURIComponent(rawId)})`;
+      deleteUrl += `?map_id=eq.${encodeURIComponent(rawId)}`;
+    } else if (supabaseTable === 'departments') {
+      deleteUrl += `?department=eq.${encodeURIComponent(rawId)}`;
+    } else if (supabaseTable === 'site') {
+      deleteUrl += `?name=eq.${encodeURIComponent(rawId)}`;
     } else {
       deleteUrl += `?id=eq.${encodeURIComponent(rawId)}`;
     }
