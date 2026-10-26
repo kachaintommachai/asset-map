@@ -139,6 +139,7 @@ function resolveSupabaseTable(tableName) {
   if (t === 'map' || t === 'maps') return 'map';
   if (t === 'department' || t === 'departments') return 'departments';
   if (t === 'user' || t === 'users') return 'users';
+  if (t === 'type' || t === 'types') return 'type';
   if (t.startsWith('maint') || t.startsWith('repair') || t.startsWith('hist') || t.startsWith('purch') || t.startsWith('service')) return 'repair';
   if (t === 'site' || t === 'sites') return 'site';
   return t;
@@ -219,6 +220,15 @@ function formatRow(tName, row) {
     fields = {
       Name: row.name || '',
       name: row.name || ''
+    };
+  } else if (target === 'type') {
+    fields = {
+      type_ID: row.type_id || '',
+      type_id: row.type_id || '',
+      category: row.category || 'hardware',
+      discription: row.discription || '',
+      description: row.discription || '',
+      depreciation: row.depreciation != null ? Number(row.depreciation) : 0
     };
   }
 
@@ -380,7 +390,7 @@ module.exports = async (req, res) => {
 
   // 3. Batch Init API (โหลดทุกตารางใน Request เดียว)
   if (query.action === 'init') {
-    const tableKeys = ['device', 'departments', 'map', 'repair', 'users', 'site'];
+    const tableKeys = ['device', 'departments', 'map', 'repair', 'users', 'site', 'type'];
     const results = {};
 
     try {
