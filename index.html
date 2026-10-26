@@ -946,42 +946,60 @@
     </div>
 
     <!-- Map Manager Modal -->
-    <div id="modal-maps" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
-        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-3xl mx-4 border border-slate-700 shadow-2xl">
-            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <i data-lucide="map" class="w-5 h-5 text-emerald-400"></i> จัดการแผนผังอาคาร/ห้อง
-            </h3>
-            <div id="maps-list" class="space-y-3 max-h-[60vh] overflow-y-auto mb-4 pr-1"></div>
-            <div class="border-t border-slate-700 pt-4">
-                <h4 class="text-sm font-medium mb-3 text-slate-200">เพิ่มแผนผังใหม่</h4>
-                <form id="add-map-form" class="space-y-2" onsubmit="addMap(event)">
-                    <div class="grid grid-cols-3 gap-2">
-                        <div class="col-span-1">
-                            <label class="text-xs text-slate-400">รหัสแผนผัง (ID) <span class="text-red-400">*</span></label>
-                            <input type="text" id="new-map-id" required placeholder="กำหนดรหัสเอง" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500 font-mono text-center">
-                        </div>
-                        <div class="col-span-2">
-                            <label class="text-xs text-slate-400">ชื่อแผนผัง</label>
-                            <input type="text" id="new-map-name" required placeholder="เช่น ห้องเซิร์ฟเวอร์, สำนักงานชั้น 2" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400">ไซต์ / สาขา (Site)</label>
-                        <select id="new-map-site" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400">ไฟล์ภาพแผนผัง</label>
-                        <label class="flex items-center gap-2 mt-1 px-3 py-2 bg-slate-700 border border-slate-600 border-dashed rounded-lg cursor-pointer hover:border-emerald-500 transition-all">
-                            <i data-lucide="upload" class="w-4 h-4 text-slate-400"></i>
-                            <span class="text-sm text-slate-400" id="new-map-file-label">เลือกไฟล์รูปภาพแผนผัง...</span>
-                            <input type="file" id="new-map-file" accept="image/*" class="hidden" onchange="document.getElementById('new-map-file-label').textContent = this.files[0] ? this.files[0].name : 'เลือกไฟล์รูปภาพแผนผัง...'">
-                        </label>
-                    </div>
-                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-medium transition-all">เพิ่มแผนผัง</button>
-                </form>
+    <div id="modal-maps" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay p-3 sm:p-4">
+        <div class="bg-slate-800 rounded-2xl p-5 sm:p-6 w-full max-w-5xl border border-slate-700 shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-slate-700 shrink-0">
+                <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                    <i data-lucide="map" class="w-5 h-5 text-emerald-400"></i> จัดการแผนผังอาคาร/ห้อง
+                </h3>
+                <button type="button" onclick="closeModal('modal-maps')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-700 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
             </div>
-            <p class="text-[11px] text-slate-500 mt-3 text-center" id="build-stamp"></p>
-            <button onclick="closeModal('modal-maps')" class="w-full mt-2 bg-slate-600 hover:bg-slate-500 text-white py-2 rounded-lg text-sm font-medium transition-all">ปิด</button>
+
+            <!-- Scrollable Content Area -->
+            <div class="flex-1 overflow-y-auto py-3 space-y-4 pr-1">
+                <!-- 2-Column Grid for Map Cards -->
+                <div id="maps-list" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+
+                <!-- Add New Map Form -->
+                <div class="border-t border-slate-700/80 pt-3 bg-slate-800/90 rounded-xl">
+                    <h4 class="text-xs font-semibold uppercase tracking-wider mb-2.5 text-slate-300 flex items-center gap-1.5">
+                        <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i> เพิ่มแผนผังใหม่
+                    </h4>
+                    <form id="add-map-form" class="space-y-2.5 bg-slate-750 p-3 rounded-xl border border-slate-700" onsubmit="addMap(event)">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                            <div>
+                                <label class="text-[11px] text-slate-400 block mb-1">รหัสแผนผัง (ID) <span class="text-red-400">*</span></label>
+                                <input type="text" id="new-map-id" required placeholder="กำหนดรหัส ID" class="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500 font-mono text-center">
+                            </div>
+                            <div>
+                                <label class="text-[11px] text-slate-400 block mb-1">ชื่อแผนผัง <span class="text-red-400">*</span></label>
+                                <input type="text" id="new-map-name" required placeholder="เช่น ห้องเซิร์ฟเวอร์, สำนักงานชั้น 2" class="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                            </div>
+                            <div>
+                                <label class="text-[11px] text-slate-400 block mb-1">ไซต์ / สาขา (Site)</label>
+                                <select id="new-map-site" class="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></select>
+                            </div>
+                        </div>
+                        <div class="flex flex-col sm:flex-row items-center gap-2 pt-1">
+                            <label class="flex-1 w-full flex items-center gap-2 px-3 py-1.5 bg-slate-700 border border-slate-600 border-dashed rounded-lg cursor-pointer hover:border-emerald-500 transition-all">
+                                <i data-lucide="upload" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                                <span class="text-xs text-slate-300 truncate" id="new-map-file-label">เลือกไฟล์รูปภาพแผนผัง...</span>
+                                <input type="file" id="new-map-file" accept="image/*" class="hidden" onchange="document.getElementById('new-map-file-label').textContent = this.files[0] ? this.files[0].name : 'เลือกไฟล์รูปภาพแผนผัง...'">
+                            </label>
+                            <button type="submit" class="w-full sm:w-auto px-5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium transition-all shrink-0">เพิ่มแผนผัง</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="pt-3 border-t border-slate-700 flex items-center justify-between shrink-0">
+                <span class="text-[11px] text-slate-500" id="build-stamp"></span>
+                <button type="button" onclick="closeModal('modal-maps')" class="px-5 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white rounded-lg text-xs font-medium transition-all">ปิด</button>
+            </div>
         </div>
     </div>
 
@@ -5947,54 +5965,52 @@
             list.innerHTML = '';
             maps.forEach(m => {
                 const div = document.createElement('div');
-                div.className = 'p-3 bg-slate-700/80 rounded-xl space-y-2.5 border border-slate-600/60 shadow-sm';
+                div.className = 'p-3 bg-slate-700/80 rounded-xl space-y-2 border border-slate-600/70 shadow-sm flex flex-col justify-between';
                 const label = m.map_name || (m.map_id ? `แผนผัง ${m.map_id}` : 'แผนผังใหม่');
                 const devCount = m.map_id ? cameras.filter(c => c.map_id === String(m.map_id)).length : 0;
                 const idDisplay = m.map_id ? `ID: ${m.map_id}` : `<span class="text-amber-400 font-semibold">ยังไม่มีรหัส ID</span>`;
                 div.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <span class="text-sm font-semibold text-white">${label}</span>
-                            <span class="text-xs text-slate-400 ml-2">(${idDisplay}, ${devCount} อุปกรณ์)</span>
-                        </div>
+                    <div class="flex items-center justify-between pb-0.5">
+                        <span class="text-xs sm:text-sm font-semibold text-white truncate max-w-[240px]">${label}</span>
+                        <span class="text-[11px] text-slate-400 shrink-0">(${idDisplay}, ${devCount} อุปกรณ์)</span>
                     </div>
-                    <div class="flex gap-2.5 items-center">
-                        <div class="w-32 shrink-0">
-                            <label class="text-[10px] text-slate-400 block mb-0.5">รหัส ID <span class="text-red-400">*</span></label>
-                            <input type="text" id="map-id-${m._recordId}" value="${m.map_id || ''}" placeholder="กำหนด ID" class="w-full px-2.5 py-1.5 bg-slate-600 border border-slate-500 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500 text-center font-mono">
+                    <div class="grid grid-cols-12 gap-1.5 items-center">
+                        <div class="col-span-3">
+                            <label class="text-[9px] text-slate-400 block mb-0.5">รหัส ID <span class="text-red-400">*</span></label>
+                            <input type="text" id="map-id-${m._recordId}" value="${m.map_id || ''}" placeholder="ID" class="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500 text-center font-mono">
                         </div>
-                        <div class="flex-1 min-w-[200px]">
-                            <label class="text-[10px] text-slate-400 block mb-0.5">ชื่อแผนผัง <span class="text-red-400">*</span></label>
-                            <input type="text" id="map-name-${m._recordId}" value="${m.map_name || ''}" placeholder="ชื่อแผนผัง" class="w-full px-3 py-1.5 bg-slate-600 border border-slate-500 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                        <div class="col-span-5">
+                            <label class="text-[9px] text-slate-400 block mb-0.5">ชื่อแผนผัง <span class="text-red-400">*</span></label>
+                            <input type="text" id="map-name-${m._recordId}" value="${m.map_name || ''}" placeholder="ชื่อแผนผัง" class="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
                         </div>
-                        <div class="w-48 shrink-0">
-                            <label class="text-[10px] text-slate-400 block mb-0.5">ไซต์ / สาขา</label>
-                            <select id="map-site-${m._recordId}" class="w-full px-2.5 py-1.5 bg-slate-600 border border-slate-500 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                        <div class="col-span-4">
+                            <label class="text-[9px] text-slate-400 block mb-0.5">ไซต์ / สาขา</label>
+                            <select id="map-site-${m._recordId}" class="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
                                 <option value="">-- ไม่ระบุ --</option>
                                 ${sites.map(s => `<option value="${s}" ${m.site === s ? 'selected' : ''}>${s}</option>`).join('')}
                             </select>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 pt-0.5">
+                    <div class="flex items-center gap-2 pt-1">
                         <div class="shrink-0">
-                            ${m.map_url ? `<img src="${m.map_url}" class="w-14 h-10 object-cover rounded-lg border border-slate-600 shadow-sm" onerror="this.style.display='none'">` : '<div class="w-14 h-10 rounded-lg border border-dashed border-slate-600 flex items-center justify-center text-[10px] text-slate-500">ไม่มีรูป</div>'}
+                            ${m.map_url ? `<img src="${m.map_url}" class="w-12 h-9 object-cover rounded-lg border border-slate-600 shadow-sm" onerror="this.style.display='none'">` : '<div class="w-12 h-9 rounded-lg border border-dashed border-slate-600 flex items-center justify-center text-[9px] text-slate-500">ไม่มีรูป</div>'}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <label class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-600 hover:bg-slate-500 border border-slate-500 border-dashed rounded-lg cursor-pointer transition-all max-w-full">
+                            <label class="inline-flex items-center gap-1.5 px-2 py-1.5 bg-slate-600 hover:bg-slate-500 border border-slate-500 border-dashed rounded-lg cursor-pointer transition-all max-w-full">
                                 <i data-lucide="upload" class="w-3.5 h-3.5 text-slate-300 shrink-0"></i>
-                                <span class="text-xs text-slate-200 truncate" id="map-file-label-${m._recordId}">${m.map_url ? 'เปลี่ยนไฟล์แผนผัง...' : 'เลือกไฟล์แผนผัง...'}</span>
+                                <span class="text-[11px] text-slate-200 truncate" id="map-file-label-${m._recordId}">${m.map_url ? 'เปลี่ยนไฟล์...' : 'เลือกไฟล์...'}</span>
                                 <input type="file" accept="image/*" class="hidden" onchange="uploadMapFile(this, '${m._recordId}', ${m.map_id})">
                             </label>
-                            <span id="map-upload-status-${m._recordId}" class="text-[11px] text-slate-400 ml-2"></span>
+                            <span id="map-upload-status-${m._recordId}" class="text-[10px] text-slate-400 ml-1"></span>
                         </div>
-                        <div class="flex items-center gap-2 shrink-0">
-                            <button onclick="saveMap('${m._recordId}')" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-lg transition-all font-medium inline-flex items-center gap-1 shadow-sm">
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button onclick="saveMap('${m._recordId}')" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1.5 rounded-lg transition-all font-medium inline-flex items-center gap-1 shadow-sm" title="บันทึก">
                                 <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                                <span>บันทึก</span>
+                                <span class="hidden sm:inline">บันทึก</span>
                             </button>
-                            <button onclick="requestDelete('${m._recordId}','map')" class="text-xs bg-red-600/80 hover:bg-red-500 text-white px-3 py-1.5 rounded-lg transition-all font-medium inline-flex items-center gap-1 shadow-sm">
+                            <button onclick="requestDelete('${m._recordId}','map')" class="text-xs bg-red-600/80 hover:bg-red-500 text-white px-2.5 py-1.5 rounded-lg transition-all font-medium inline-flex items-center gap-1 shadow-sm" title="ลบ">
                                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                                <span>ลบ</span>
+                                <span class="hidden sm:inline">ลบ</span>
                             </button>
                         </div>
                     </div>
