@@ -145,6 +145,38 @@ function resolveSupabaseTable(tableName) {
   return t;
 }
 
+// Fetch all rows from Supabase handling pagination (Supabase default max-rows is 1000)
+async function fetchAllRowsFromSupabase(baseUrl, apiKey) {
+  let allRows = [];
+  let page = 0;
+  const pageSize = 1000;
+  while (true) {
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+    const res = await fetch(baseUrl, {
+      headers: {
+        'apikey': apiKey,
+        'Authorization': `Bearer ${apiKey}`,
+        'Range': `${from}-${to}`
+      }
+    });
+    if (!res.ok) {
+      if (allRows.length === 0) {
+        const errText = await res.text();
+        throw new Error(errText || `Supabase query error (${res.status})`);
+      }
+      break;
+    }
+    const rows = await res.json();
+    if (!Array.isArray(rows) || rows.length === 0) break;
+    allRows.push(...rows);
+    if (rows.length < pageSize) break;
+    page++;
+    if (page > 50) break; // safety guard up to 50,000 records
+  }
+  return allRows;
+}
+
 // Map Fields from Supabase row to Frontend Airtable-like format
 function formatRow(tName, row) {
   if (!row) return null;
@@ -414,19 +446,13 @@ module.exports = async (req, res) => {
 
     try {
       await Promise.all(tableKeys.map(async (t) => {
-        const fetchUrl = `${supabaseUrl}/rest/v1/${t}?select=*`;
-        const r = await fetch(fetchUrl, {
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`
-          }
-        });
-        if (r.ok) {
-          const list = await r.json();
+        try {
+          const fetchUrl = `${supabaseUrl}/rest/v1/${t}?select=*`;
+          const list = await fetchAllRowsFromSupabase(fetchUrl, supabaseKey);
           results[t] = {
             records: list.map(item => formatRow(t, item))
           };
-        } else {
+        } catch (_) {
           results[t] = { records: [] };
         }
       }));
@@ -478,21 +504,25 @@ module.exports = async (req, res) => {
     }
 
     try {
-      const response = await fetch(fetchUrl, {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`
-        }
-      });
+      let rows;
+      if (query.id) {
+        const response = await fetch(fetchUrl, {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`
+          }
+        });
 
-      if (!response.ok) {
-        const errText = await response.text();
-        return res.status(response.status).json({ error: errText });
+        if (!response.ok) {
+          const errText = await response.text();
+          return res.status(response.status).json({ error: errText });
+        }
+        rows = await response.json();
+      } else {
+        rows = await fetchAllRowsFromSupabase(fetchUrl, supabaseKey);
       }
 
-      const rows = await response.json();
       const records = rows.map(r => formatRow(supabaseTable, r));
-
       return res.status(200).json({ records });
     } catch (err) {
       return res.status(500).json({ error: err.message });
