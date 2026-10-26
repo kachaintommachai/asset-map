@@ -5947,7 +5947,7 @@
             list.innerHTML = '';
             maps.forEach(m => {
                 const div = document.createElement('div');
-                div.className = 'p-3 bg-slate-700 rounded-xl space-y-2';
+                div.className = 'p-3 bg-slate-700/80 rounded-xl space-y-2.5 border border-slate-600/60 shadow-sm';
                 const label = m.map_name || (m.map_id ? `แผนผัง ${m.map_id}` : 'แผนผังใหม่');
                 const devCount = m.map_id ? cameras.filter(c => c.map_id === String(m.map_id)).length : 0;
                 const idDisplay = m.map_id ? `ID: ${m.map_id}` : `<span class="text-amber-400 font-semibold">ยังไม่มีรหัส ID</span>`;
@@ -5957,37 +5957,47 @@
                             <span class="text-sm font-semibold text-white">${label}</span>
                             <span class="text-xs text-slate-400 ml-2">(${idDisplay}, ${devCount} อุปกรณ์)</span>
                         </div>
-                        <button onclick="requestDelete('${m._recordId}','map')" class="text-xs bg-red-600/80 hover:bg-red-500 text-white px-2 py-1 rounded transition-all">ลบ</button>
                     </div>
-                    <div class="flex gap-2 items-center">
-                        <div class="w-28 shrink-0">
+                    <div class="flex gap-2.5 items-center">
+                        <div class="w-32 shrink-0">
                             <label class="text-[10px] text-slate-400 block mb-0.5">รหัส ID <span class="text-red-400">*</span></label>
-                            <input type="text" id="map-id-${m._recordId}" value="${m.map_id || ''}" placeholder="กำหนด ID" class="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-white text-xs focus:outline-none focus:border-emerald-500 text-center font-mono">
+                            <input type="text" id="map-id-${m._recordId}" value="${m.map_id || ''}" placeholder="กำหนด ID" class="w-full px-2.5 py-1.5 bg-slate-600 border border-slate-500 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500 text-center font-mono">
                         </div>
                         <div class="flex-1 min-w-[200px]">
                             <label class="text-[10px] text-slate-400 block mb-0.5">ชื่อแผนผัง <span class="text-red-400">*</span></label>
-                            <input type="text" id="map-name-${m._recordId}" value="${m.map_name || ''}" placeholder="ชื่อแผนผัง" class="w-full px-2.5 py-1.5 bg-slate-600 border border-slate-500 rounded text-white text-xs focus:outline-none focus:border-emerald-500">
+                            <input type="text" id="map-name-${m._recordId}" value="${m.map_name || ''}" placeholder="ชื่อแผนผัง" class="w-full px-3 py-1.5 bg-slate-600 border border-slate-500 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
                         </div>
-                        <div class="w-44 shrink-0">
+                        <div class="w-48 shrink-0">
                             <label class="text-[10px] text-slate-400 block mb-0.5">ไซต์ / สาขา</label>
-                            <select id="map-site-${m._recordId}" class="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-white text-xs focus:outline-none focus:border-emerald-500">
+                            <select id="map-site-${m._recordId}" class="w-full px-2.5 py-1.5 bg-slate-600 border border-slate-500 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
                                 <option value="">-- ไม่ระบุ --</option>
                                 ${sites.map(s => `<option value="${s}" ${m.site === s ? 'selected' : ''}>${s}</option>`).join('')}
                             </select>
                         </div>
-                        <div class="self-end pb-0.5 shrink-0">
-                            <button onclick="saveMap('${m._recordId}')" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded transition-all font-medium">บันทึก</button>
+                    </div>
+                    <div class="flex items-center gap-2 pt-0.5">
+                        <div class="shrink-0">
+                            ${m.map_url ? `<img src="${m.map_url}" class="w-14 h-10 object-cover rounded-lg border border-slate-600 shadow-sm" onerror="this.style.display='none'">` : '<div class="w-14 h-10 rounded-lg border border-dashed border-slate-600 flex items-center justify-center text-[10px] text-slate-500">ไม่มีรูป</div>'}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <label class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-600 hover:bg-slate-500 border border-slate-500 border-dashed rounded-lg cursor-pointer transition-all max-w-full">
+                                <i data-lucide="upload" class="w-3.5 h-3.5 text-slate-300 shrink-0"></i>
+                                <span class="text-xs text-slate-200 truncate" id="map-file-label-${m._recordId}">${m.map_url ? 'เปลี่ยนไฟล์แผนผัง...' : 'เลือกไฟล์แผนผัง...'}</span>
+                                <input type="file" accept="image/*" class="hidden" onchange="uploadMapFile(this, '${m._recordId}', ${m.map_id})">
+                            </label>
+                            <span id="map-upload-status-${m._recordId}" class="text-[11px] text-slate-400 ml-2"></span>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button onclick="saveMap('${m._recordId}')" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-lg transition-all font-medium inline-flex items-center gap-1 shadow-sm">
+                                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                <span>บันทึก</span>
+                            </button>
+                            <button onclick="requestDelete('${m._recordId}','map')" class="text-xs bg-red-600/80 hover:bg-red-500 text-white px-3 py-1.5 rounded-lg transition-all font-medium inline-flex items-center gap-1 shadow-sm">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                <span>ลบ</span>
+                            </button>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <label class="flex-1 flex items-center gap-2 px-2.5 py-1.5 bg-slate-600 border border-slate-500 border-dashed rounded cursor-pointer hover:border-emerald-500 transition-all">
-                            <i data-lucide="upload" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
-                            <span class="text-xs text-slate-300 truncate" id="map-file-label-${m._recordId}">${m.map_url ? 'เปลี่ยนไฟล์แผนผัง...' : 'เลือกไฟล์แผนผัง...'}</span>
-                            <input type="file" accept="image/*" class="hidden" onchange="uploadMapFile(this, '${m._recordId}', ${m.map_id})">
-                        </label>
-                        <span id="map-upload-status-${m._recordId}" class="text-[11px] text-slate-400"></span>
-                    </div>
-                    ${m.map_url ? `<div class="flex items-center gap-2"><img src="${m.map_url}" class="w-16 h-12 object-cover rounded-lg border border-slate-600" onerror="this.style.display='none'"><span class="text-[11px] text-emerald-400 truncate flex-1">${m.map_url}</span></div>` : '<span class="text-[11px] text-slate-500">ยังไม่มีไฟล์แผนผัง</span>'}
                 `;
                 list.appendChild(div);
             });
