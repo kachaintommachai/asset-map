@@ -175,7 +175,11 @@ function formatRow(tName, row) {
       x: row.x !== null ? Number(row.x) : 0,
       y: row.y !== null ? Number(row.y) : 0,
       account_no: row.account_no || '',
-      site: row.site || ''
+      site: row.site || '',
+      category: row.category || 'hardware',
+      Category: row.category || 'hardware',
+      license_type: row.license_type || '',
+      license: row.license_type || ''
     };
   } else if (target === 'repair') {
     fields = {
@@ -262,6 +266,9 @@ function preparePayloadForSupabase(tName, fields) {
     if (f.y !== undefined) payload.y = parseFloat(f.y) || 0;
     if (f.account_no !== undefined) payload.account_no = f.account_no;
     if (f.site !== undefined) payload.site = f.site;
+    if (f.category !== undefined || f.Category !== undefined) {
+      payload.category = String(f.category || f.Category || 'hardware').toLowerCase().trim();
+    }
     return payload;
   }
 
