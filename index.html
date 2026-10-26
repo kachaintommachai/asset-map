@@ -658,27 +658,39 @@
 
     <!-- Add/Edit Device Modal -->
     <div id="modal-camera" class="fixed inset-0 z-[60] hidden items-center justify-center modal-overlay">
-        <div class="bg-slate-800 rounded-2xl p-4 sm:p-6 w-full max-w-lg mx-2 sm:mx-4 border border-slate-700 shadow-2xl max-h-[92vh] overflow-y-auto">
-            <h3 id="modal-camera-title" class="text-base sm:text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <i data-lucide="plus-circle" class="w-5 h-5 text-emerald-400"></i>
-                <span>เพิ่มอุปกรณ์ไอที</span>
-            </h3>
-            <form id="camera-form" class="space-y-3" onsubmit="saveCamera(event)">
+        <div class="bg-slate-800 rounded-2xl p-4 sm:p-6 w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl mx-2 sm:mx-4 border border-slate-700 shadow-2xl max-h-[94vh] flex flex-col">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-700 shrink-0">
+                <h3 id="modal-camera-title" class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                    <i data-lucide="plus-circle" class="w-5 h-5 text-emerald-400"></i>
+                    <span>เพิ่มอุปกรณ์ไอที</span>
+                </h3>
+                <button type="button" onclick="closeModal('modal-camera')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-700 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="camera-form" class="space-y-3 flex-1 overflow-y-auto pr-1 custom-scrollbar" onsubmit="saveCamera(event)">
                 <input type="hidden" id="cam-edit-rec-id">
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- 4-Column Responsive Grid on Desktop -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
+                    <!-- Row 1 -->
+                    <!-- Col 1 -->
                     <div>
-                        <label for="cam-id" class="text-xs text-slate-400 font-medium">รหัสทรัพย์สิน / รหัสอุปกรณ์ (Asset Code) *</label>
-                        <input id="cam-id" type="text" required placeholder="เช่น PC-001, NB-IT-01, ACC-2024-001" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500">
+                        <label for="cam-id" class="text-[11px] text-slate-400 font-medium block mb-1">รหัสทรัพย์สิน (Asset Code) *</label>
+                        <input id="cam-id" type="text" required placeholder="เช่น PC-001, ACC-2024-001" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs font-mono font-semibold focus:outline-none focus:border-emerald-500">
                     </div>
+
+                    <!-- Col 2 -->
                     <div>
-                        <div class="flex items-center justify-between">
-                            <label for="cam-type" class="text-xs text-slate-400 font-medium">ชนิดอุปกรณ์ (Type) *</label>
-                            <button type="button" onclick="runAdminAction(() => openTypeLicenseManager('types'))" class="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-normal cursor-pointer" title="ตั้งค่า/แก้ไข/ลบ ชนิดอุปกรณ์">
+                        <div class="flex items-center justify-between mb-1">
+                            <label for="cam-type" class="text-[11px] text-slate-400 font-medium">ชนิดอุปกรณ์ (Type) *</label>
+                            <button type="button" onclick="runAdminAction(() => openTypeLicenseManager('types'))" class="text-[10px] text-emerald-400 hover:text-emerald-300 flex items-center gap-0.5 font-normal cursor-pointer" title="ตั้งค่า/แก้ไข/ลบ ชนิดอุปกรณ์">
                                 <i data-lucide="settings" class="w-3 h-3"></i> จัดการชนิด
                             </button>
                         </div>
-                        <select id="cam-type" required onchange="handleDeviceTypeChange('cam', this.value)" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                        <select id="cam-type" required onchange="handleDeviceTypeChange('cam', this.value)" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
                             <option value="PC">PC (คอมพิวเตอร์ตั้งโต๊ะ)</option>
                             <option value="Notebook">Notebook (โน้ตบุ๊ก)</option>
                             <option value="Printer">Printer (เครื่องพิมพ์)</option>
@@ -692,132 +704,149 @@
                             <option value="Other">Other (อุปกรณ์อื่นๆ)</option>
                         </select>
                     </div>
-                </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Col 3 -->
                     <div>
-                        <label for="cam-brand" class="text-xs text-slate-400">ยี่ห้อ (Brand)</label>
-                        <input id="cam-brand" type="text" placeholder="เช่น Dell, HP, Cisco, Canon" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                        <label for="cam-category" class="text-[11px] text-slate-400 font-medium block mb-1">หมวดหมู่อุปกรณ์ (Category) *</label>
+                        <select id="cam-category" onchange="toggleDeviceCategoryUI('cam', this.value)" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs font-semibold focus:outline-none focus:border-emerald-500">
+                            <option value="hardware">Hardware (ฮาร์ดแวร์)</option>
+                            <option value="software">Software (ซอฟต์แวร์)</option>
+                        </select>
                     </div>
-                    <div>
-                        <label for="cam-model" class="text-xs text-slate-400">รุ่น (Model)</label>
-                        <input id="cam-model" type="text" placeholder="เช่น OptiPlex 7090" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
-                    </div>
-                </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Col 4 -->
                     <div>
-                        <label for="cam-serial" class="text-xs text-slate-400">หมายเลขเครื่อง (Serial Number)</label>
-                        <input id="cam-serial" type="text" placeholder="S/N" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500">
-                    </div>
-                    <div>
-                        <label for="cam-status" class="text-xs text-slate-400">สถานะอุปกรณ์</label>
-                        <select id="cam-status" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                        <label for="cam-status" class="text-[11px] text-slate-400 font-medium block mb-1">สถานะอุปกรณ์</label>
+                        <select id="cam-status" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
                             <option value="Active">ใช้งานอยู่ (Active)</option>
                             <option value="Spare">สำรอง (Spare)</option>
                             <option value="Repair">ซ่อมบำรุง (Repair)</option>
                             <option value="Retired">จำหน่ายออก (Retired)</option>
                         </select>
                     </div>
-                </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Row 2 -->
+                    <!-- Col 1 -->
                     <div>
-                        <label for="cam-department" class="text-xs text-slate-400">แผนก / หน่วยงานที่ใช้งาน</label>
-                        <select id="cam-department" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
+                        <label for="cam-department" class="text-[11px] text-slate-400 font-medium block mb-1">แผนก / หน่วยงาน</label>
+                        <select id="cam-department" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></select>
                     </div>
-                    <div>
-                        <label for="cam-site" class="text-xs text-slate-400">ไซต์ / สาขาที่ตั้ง (Site)</label>
-                        <select id="cam-site" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
-                    </div>
-                </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Col 2 -->
                     <div>
-                        <label for="cam-eng-name" class="text-xs text-slate-400">ชื่อทรัพย์สิน / อุปกรณ์ (Asset Name)</label>
-                        <input id="cam-eng-name" type="text" placeholder="เช่น Computer Dell OptiPlex, Core Switch" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                        <label for="cam-site" class="text-[11px] text-slate-400 font-medium block mb-1">ไซต์ / สาขา (Site)</label>
+                        <select id="cam-site" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></select>
                     </div>
-                    <div>
-                        <label for="cam-thai-name" class="text-xs text-slate-400">ผู้ถือครอง / ผู้ใช้งาน (Holder)</label>
-                        <input id="cam-thai-name" type="text" placeholder="เช่น สมชาย บัญชี, ห้องประชุมใหญ่" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
-                    </div>
-                </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Col 3 -->
                     <div>
-                        <label for="cam-purchase-date" class="text-xs text-slate-400">วันที่ซื้อ / รับเข้า (Purchase Date)</label>
-                        <input id="cam-purchase-date" type="date" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500">
-                    </div>
-                    <div>
-                        <label for="cam-price" class="text-xs text-slate-400">ราคาซื้อ / ทุนทรัพย์สิน (บาท)</label>
-                        <input id="cam-price" type="number" min="0" step="any" placeholder="เช่น 25000" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label for="cam-category" class="text-xs text-slate-400 font-medium">หมวดหมู่อุปกรณ์ (Category) *</label>
-                        <select id="cam-category" onchange="toggleDeviceCategoryUI('cam', this.value)" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
-                            <option value="hardware">Hardware (ฮาร์ดแวร์ / เครื่องจริง)</option>
-                            <option value="software">Software (ซอฟต์แวร์ / สิทธิ์ใช้งาน)</option>
-                        </select>
-                    </div>
-                    <div id="cam-map-container">
-                        <label for="cam-map-id" class="text-xs text-slate-400 font-medium">แผนผังที่ติดตั้ง (ผังห้อง) *</label>
-                        <select id="cam-map-id" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
-                    </div>
-                    <div id="cam-license-container" class="hidden">
-                        <div class="flex items-center justify-between">
-                            <label for="cam-license-type" class="text-xs text-slate-400 font-medium">ชนิดสิทธิ์ใช้งาน (License Type) *</label>
-                            <button type="button" onclick="runAdminAction(() => openTypeLicenseManager('licenses'))" class="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 font-normal cursor-pointer" title="ตั้งค่า/แก้ไข/ลบ ชนิดสิทธิ์">
-                                <i data-lucide="settings" class="w-3 h-3"></i> จัดการสิทธิ์
-                            </button>
+                        <div id="cam-map-container">
+                            <label for="cam-map-id" class="text-[11px] text-slate-400 font-medium block mb-1">แผนผังที่ติดตั้ง (ผังห้อง) *</label>
+                            <select id="cam-map-id" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></select>
                         </div>
-                        <select id="cam-license-type" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-amber-300 font-medium text-sm focus:outline-none focus:border-emerald-500">
-                            <option value="volume">Volume License (ซื้อสิทธิ์ตามจำนวนเครื่อง)</option>
-                            <option value="open">Open License (สิทธิ์แบบเปิด / Commercial)</option>
-                            <option value="free">Free License (ฟรี / Open Source)</option>
-                        </select>
+                        <div id="cam-license-container" class="hidden">
+                            <div class="flex items-center justify-between mb-1">
+                                <label for="cam-license-type" class="text-[11px] text-amber-400 font-medium">ชนิดสิทธิ์ (License Type) *</label>
+                                <button type="button" onclick="runAdminAction(() => openTypeLicenseManager('licenses'))" class="text-[10px] text-amber-400 hover:text-amber-300 flex items-center gap-0.5 font-normal cursor-pointer" title="ตั้งค่า/แก้ไข/ลบ ชนิดสิทธิ์">
+                                    <i data-lucide="settings" class="w-3 h-3"></i> จัดการสิทธิ์
+                                </button>
+                            </div>
+                            <select id="cam-license-type" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-amber-300 font-medium text-xs focus:outline-none focus:border-emerald-500">
+                                <option value="volume">Volume License (ซื้อสิทธิ์ตามจำนวนเครื่อง)</option>
+                                <option value="open">Open License (สิทธิ์แบบเปิด / Commercial)</option>
+                                <option value="free">Free License (ฟรี / Open Source)</option>
+                            </select>
+                        </div>
                     </div>
-                </div>
 
-                <div id="cam-network-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Col 4 -->
                     <div>
-                        <label for="cam-ip" class="text-xs text-slate-400">IP Address</label>
-                        <input id="cam-ip" type="text" placeholder="เช่น 192.168.1.50" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500">
+                        <label for="cam-serial" class="text-[11px] text-slate-400 font-medium block mb-1">Serial Number</label>
+                        <input id="cam-serial" type="text" placeholder="S/N" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
                     </div>
+
+                    <!-- Row 3 -->
+                    <!-- Col 1 -->
                     <div>
-                        <label for="cam-mac" class="text-xs text-slate-400">MAC Address</label>
-                        <input id="cam-mac" type="text" placeholder="เช่น AA:BB:CC:DD:EE:FF" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-emerald-500">
+                        <label for="cam-eng-name" class="text-[11px] text-slate-400 font-medium block mb-1">ชื่อทรัพย์สิน (Asset Name)</label>
+                        <input id="cam-eng-name" type="text" placeholder="เช่น Computer Dell OptiPlex" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <!-- Col 2 -->
+                    <div>
+                        <label for="cam-thai-name" class="text-[11px] text-slate-400 font-medium block mb-1">ผู้ถือครอง / ผู้ใช้งาน (Holder)</label>
+                        <input id="cam-thai-name" type="text" placeholder="เช่น สมชาย บัญชี" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <!-- Col 3 -->
+                    <div>
+                        <label for="cam-brand" class="text-[11px] text-slate-400 font-medium block mb-1">ยี่ห้อ (Brand)</label>
+                        <input id="cam-brand" type="text" placeholder="เช่น Dell, HP, Cisco" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <!-- Col 4 -->
+                    <div>
+                        <label for="cam-model" class="text-[11px] text-slate-400 font-medium block mb-1">รุ่น (Model)</label>
+                        <input id="cam-model" type="text" placeholder="เช่น OptiPlex 7090" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <!-- Row 4 -->
+                    <!-- Col 1 -->
+                    <div>
+                        <label for="cam-purchase-date" class="text-[11px] text-slate-400 font-medium block mb-1">วันที่ซื้อ / รับเข้า</label>
+                        <input id="cam-purchase-date" type="date" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <!-- Col 2 -->
+                    <div>
+                        <label for="cam-price" class="text-[11px] text-slate-400 font-medium block mb-1">ราคาซื้อ / ทุนทรัพย์สิน (บาท)</label>
+                        <input id="cam-price" type="number" min="0" step="any" placeholder="เช่น 25000" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <!-- Col 3 -->
+                    <div id="cam-ip-box">
+                        <label for="cam-ip" class="text-[11px] text-slate-400 font-medium block mb-1">IP Address</label>
+                        <input id="cam-ip" type="text" placeholder="192.168.1.x" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <!-- Col 4 -->
+                    <div id="cam-mac-box">
+                        <label for="cam-mac" class="text-[11px] text-slate-400 font-medium block mb-1">MAC Address</label>
+                        <input id="cam-mac" type="text" placeholder="AA:BB:CC:DD:EE:FF" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
                     </div>
                 </div>
 
                 <!-- ภาพอุปกรณ์ (Device Image Upload & URL) -->
-                <div class="bg-slate-700/50 p-3 rounded-xl border border-slate-600/70 space-y-2">
+                <div class="bg-slate-700/40 p-3 rounded-xl border border-slate-600/70 space-y-2 mt-2">
                     <label class="text-xs text-slate-300 font-medium flex items-center gap-1.5">
-                        <i data-lucide="image" class="w-3.5 h-3.5 text-emerald-400"></i> ภาพอุปกรณ์ไอที
+                        <i data-lucide="image" class="w-3.5 h-3.5 text-emerald-400"></i> ภาพถ่ายอุปกรณ์ไอที
                     </label>
                     <div class="flex items-center gap-2">
-                        <input id="cam-image-url" type="text" placeholder="URL รูปภาพ หรืออัปโหลดไฟล์ด้านขวา" class="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
-                        <label class="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium cursor-pointer transition-all shrink-0">
+                        <input id="cam-image-url" type="text" placeholder="URL รูปภาพ หรือคลิกอัปโหลดไฟล์รูปภาพ" class="flex-1 px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                        <label class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium cursor-pointer transition-all shrink-0 shadow-sm">
                             <i data-lucide="upload" class="w-3.5 h-3.5"></i>
                             <span id="cam-upload-text">อัปโหลดภาพ</span>
                             <input type="file" id="cam-image-file" accept="image/*" class="hidden" onchange="handleDeviceImageUpload(this)">
                         </label>
                     </div>
                     <div id="cam-image-preview-container" class="hidden mt-2">
-                        <div class="relative w-32 h-20 rounded-lg overflow-hidden border border-slate-600 bg-slate-800">
-                            <img id="cam-image-preview" src="" alt="Preview" class="w-full h-full object-cover">
-                            <button type="button" onclick="removeDeviceImagePreview()" class="absolute top-1 right-1 bg-red-600 text-white rounded-full p-0.5 hover:bg-red-500">
+                        <div class="relative w-36 h-24 rounded-lg overflow-hidden border border-slate-600 bg-slate-900 shadow-inner">
+                            <img id="cam-image-preview" src="" alt="Preview" class="w-full h-full object-contain">
+                            <button type="button" onclick="removeDeviceImagePreview()" class="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 hover:bg-red-500 shadow">
                                 <i data-lucide="x" class="w-3 h-3"></i>
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex gap-2 pt-3">
-                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md shadow-emerald-600/20">บันทึกข้อมูลอุปกรณ์</button>
-                    <button type="button" onclick="closeModal('modal-camera')" class="flex-1 bg-slate-600 hover:bg-slate-500 text-white py-2.5 rounded-lg text-sm font-medium transition-all">ยกเลิก</button>
+                <!-- Footer Buttons -->
+                <div class="flex gap-2 pt-2 border-t border-slate-700 shrink-0">
+                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-xs font-semibold transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5">
+                        <i data-lucide="save" class="w-3.5 h-3.5"></i> บันทึกข้อมูลอุปกรณ์
+                    </button>
+                    <button type="button" onclick="closeModal('modal-camera')" class="px-5 bg-slate-600 hover:bg-slate-500 text-white py-2 rounded-lg text-xs font-medium transition-all">
+                        ยกเลิก
+                    </button>
                 </div>
             </form>
         </div>
