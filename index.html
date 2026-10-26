@@ -900,39 +900,39 @@
                 </div>
             </div>
 
-            <!-- Single Unified Type Table Content -->
-            <div id="tab-content-types" class="flex-1 overflow-y-auto py-3 space-y-3 custom-scrollbar">
+            <!-- Single Unified Type Table Content (Single Scrollbar) -->
+            <div id="tab-content-types" class="flex-1 overflow-y-auto py-3 space-y-4 pr-1.5 custom-scrollbar">
                 <!-- Unified Types List in 3 Columns on desktop -->
-                <div id="types-manage-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-[52vh] overflow-y-auto pr-1 custom-scrollbar"></div>
+                <div id="types-manage-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5"></div>
 
                 <!-- Add Type Form -->
-                <div class="bg-slate-750/70 p-3.5 rounded-xl border border-slate-700 mt-2">
+                <div class="bg-slate-750/70 p-3.5 rounded-xl border border-slate-700 shrink-0">
                     <h4 class="text-xs font-bold text-white mb-2.5 flex items-center gap-1.5">
                         <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-400"></i> เพิ่มข้อมูลใหม่ลงตาราง type
                     </h4>
                     <form id="add-type-form" onsubmit="addDeviceTypeSubmit(event)" class="space-y-2.5">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                             <div>
                                 <label class="text-[11px] text-slate-400 font-medium">รหัสชนิด / สิทธิ์ (type_ID) *</label>
-                                <input type="text" id="new-type-name" required placeholder="เช่น PC, NB, SW-OFFICE, LIC-VOL" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                                <input type="text" id="new-type-name" required placeholder="เช่น PC, NB, SW-OFFICE" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
                             </div>
                             <div>
                                 <label class="text-[11px] text-slate-400 font-medium">ชื่อ / คำอธิบาย (discription) *</label>
-                                <input type="text" id="new-type-label" required placeholder="เช่น เครื่องคอมพิวเตอร์, Microsoft Office, สิทธิ์ Volume" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                                <input type="text" id="new-type-label" required placeholder="เช่น คอมพิวเตอร์, MS Office" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
                             </div>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                             <div>
                                 <label class="text-[11px] text-slate-400 font-medium">หมวดหมู่ (category) *</label>
                                 <select id="new-type-category" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
-                                    <option value="hardware">Hardware (ฮาร์ดแวร์ - มี IP/MAC)</option>
-                                    <option value="software">Software (ซอฟต์แวร์ / สิทธิ์ใช้งาน - ไม่มี IP/MAC)</option>
+                                    <option value="hardware">Hardware (ฮาร์ดแวร์)</option>
+                                    <option value="software">Software (ซอฟต์แวร์ / สิทธิ์)</option>
                                 </select>
                             </div>
                             <div>
                                 <label class="text-[11px] text-slate-400 font-medium">อายุค่าเสื่อม (depreciation - ปี) *</label>
-                                <input type="number" id="new-type-depreciation" min="0" step="0.5" value="5" placeholder="เช่น 3 หรือ 5 ปี" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                                <input type="number" id="new-type-depreciation" min="0" step="0.5" value="5" placeholder="เช่น 3 หรือ 5" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
                             </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-end">
                             <div>
                                 <label class="text-[11px] text-slate-400 font-medium">ไอคอนแสดงผล</label>
                                 <select id="new-type-icon" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
@@ -951,10 +951,12 @@
                                     <option value="cpu">cpu (หน่วยประมวลผล)</option>
                                 </select>
                             </div>
+                            <div>
+                                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-xs font-semibold transition-all shadow-sm flex items-center justify-center gap-1.5">
+                                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> บันทึกข้อมูลใหม่ลงตาราง type
+                                </button>
+                            </div>
                         </div>
-                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-xs font-semibold transition-all shadow-sm">
-                            + บันทึกข้อมูลใหม่ลงตาราง type
-                        </button>
                     </form>
                 </div>
             </div>
