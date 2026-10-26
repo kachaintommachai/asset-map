@@ -1140,9 +1140,9 @@
 
     <!-- Device Detail Modal (เปลี่ยน Live View เป็นภาพอุปกรณ์ไอที) -->
     <div id="modal-detail" class="fixed inset-0 z-[60] hidden items-center justify-center modal-overlay">
-        <div class="bg-slate-800 rounded-2xl p-4 sm:p-6 w-full max-w-md mx-3 sm:mx-4 border border-slate-700 shadow-2xl max-h-[92vh] overflow-y-auto">
-            <div id="detail-content"></div>
-            <button onclick="closeModal('modal-detail')" class="w-full mt-4 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium transition-all">ปิดหน้าต่าง</button>
+        <div class="bg-slate-800 rounded-2xl p-4 sm:p-6 w-full max-w-5xl xl:max-w-6xl mx-3 sm:mx-6 border border-slate-700 shadow-2xl max-h-[92vh] flex flex-col">
+            <div id="detail-content" class="overflow-y-auto flex-1 pr-1 custom-scrollbar"></div>
+            <button onclick="closeModal('modal-detail')" class="w-full mt-3 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium transition-all shrink-0">ปิดหน้าต่าง</button>
         </div>
     </div>
 
@@ -4537,77 +4537,131 @@
                     </div>
                     
                     <form id="detail-form" class="space-y-3" onsubmit="saveDetailEdit(event, '${cam._recordId}')">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div><label class="text-xs text-slate-400">รหัสทรัพย์สิน (Asset Code)</label><input type="text" id="detail-id" value="${cam.asset_code || cam.account_no || cam.id || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono font-semibold focus:outline-none focus:border-emerald-500"></div>
+                        <!-- 4-Column Grid for Device Information Inputs -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
+                            <!-- Col 1 -->
                             <div>
-                                <div class="flex items-center justify-between">
-                                    <label class="text-xs text-slate-400">ชนิดอุปกรณ์ (Type)</label>
-                                    <button type="button" onclick="runAdminAction(() => openTypeLicenseManager('types'))" class="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-normal cursor-pointer" title="ตั้งค่า/แก้ไข/ลบ ชนิดอุปกรณ์">
+                                <label class="text-[11px] text-slate-400 block mb-1">รหัสทรัพย์สิน (Asset Code)</label>
+                                <input type="text" id="detail-id" value="${cam.asset_code || cam.account_no || cam.id || ''}" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs font-mono font-semibold focus:outline-none focus:border-emerald-500">
+                            </div>
+
+                            <!-- Col 2 -->
+                            <div>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="text-[11px] text-slate-400">ชนิดอุปกรณ์ (Type)</label>
+                                    <button type="button" onclick="runAdminAction(() => openTypeLicenseManager('types'))" class="text-[10px] text-emerald-400 hover:text-emerald-300 flex items-center gap-0.5 font-normal cursor-pointer" title="ตั้งค่า/แก้ไข/ลบ ชนิดอุปกรณ์">
                                         <i data-lucide="settings" class="w-3 h-3"></i> จัดการชนิด
                                     </button>
                                 </div>
-                                <select id="detail-type" onchange="handleDeviceTypeChange('detail', this.value)" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">${typeOpts}</select>
+                                <select id="detail-type" onchange="handleDeviceTypeChange('detail', this.value)" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">${typeOpts}</select>
                             </div>
-                        </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div><label class="text-xs text-slate-400">หมวดหมู่อุปกรณ์ (Category)</label>
-                                <select id="detail-category" onchange="toggleDeviceCategoryUI('detail', this.value)" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-semibold focus:outline-none focus:border-emerald-500">
-                                    <option value="hardware" ${devCategory === 'hardware' ? 'selected' : ''}>Hardware (ฮาร์ดแวร์ / เครื่องจริง)</option>
-                                    <option value="software" ${devCategory === 'software' ? 'selected' : ''}>Software (ซอฟต์แวร์ / สิทธิ์ใช้งาน)</option>
+                            <!-- Col 3 -->
+                            <div>
+                                <label class="text-[11px] text-slate-400 block mb-1">หมวดหมู่อุปกรณ์ (Category)</label>
+                                <select id="detail-category" onchange="toggleDeviceCategoryUI('detail', this.value)" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs font-semibold focus:outline-none focus:border-emerald-500">
+                                    <option value="hardware" ${devCategory === 'hardware' ? 'selected' : ''}>Hardware (ฮาร์ดแวร์)</option>
+                                    <option value="software" ${devCategory === 'software' ? 'selected' : ''}>Software (ซอฟต์แวร์)</option>
                                 </select>
                             </div>
-                            <div><label class="text-xs text-slate-400">แผนก / หน่วยงาน</label><select id="detail-department" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"><option value="">--</option>${deptOpts}</select></div>
-                        </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div><label class="text-xs text-slate-400">ไซต์ / สาขาที่ตั้ง (Site)</label><select id="detail-site" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"><option value="">-- ไม่ระบุไซต์ --</option>${siteOpts}</select></div>
-                            <div><label class="text-xs text-slate-400">สถานะ</label>
-                                <select id="detail-status" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                            <!-- Col 4 -->
+                            <div>
+                                <label class="text-[11px] text-slate-400 block mb-1">สถานะ</label>
+                                <select id="detail-status" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
                                     <option value="Active" ${cam.status==='Active'?'selected':''}>ใช้งานอยู่ (Active)</option>
                                     <option value="Spare" ${cam.status==='Spare'?'selected':''}>สำรอง (Spare)</option>
                                     <option value="Repair" ${cam.status==='Repair'?'selected':''}>ซ่อมบำรุง (Repair)</option>
                                     <option value="Retired" ${cam.status==='Retired'?'selected':''}>จำหน่ายออก (Retired)</option>
                                 </select>
                             </div>
-                        </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div id="detail-map-container" class="${devCategory === 'software' ? 'hidden' : ''}">
-                                <label class="text-xs text-slate-400">แผนผังที่ติดตั้ง (ผังห้อง)</label>
-                                <select id="detail-map-id" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">${mapOpts}</select>
+                            <!-- Row 2 -->
+                            <!-- Col 1 -->
+                            <div>
+                                <label class="text-[11px] text-slate-400 block mb-1">แผนก / หน่วยงาน</label>
+                                <select id="detail-department" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"><option value="">--</option>${deptOpts}</select>
                             </div>
-                            <div id="detail-license-container" class="${devCategory === 'software' ? '' : 'hidden'}">
-                                <div class="flex items-center justify-between">
-                                    <label class="text-xs text-slate-400 font-medium text-amber-400">ชนิดสิทธิ์ใช้งาน (License Type)</label>
-                                    <button type="button" onclick="runAdminAction(() => openTypeLicenseManager('licenses'))" class="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 font-normal cursor-pointer" title="ตั้งค่า/แก้ไข/ลบ ชนิดสิทธิ์">
-                                        <i data-lucide="settings" class="w-3 h-3"></i> จัดการสิทธิ์
-                                    </button>
+
+                            <!-- Col 2 -->
+                            <div>
+                                <label class="text-[11px] text-slate-400 block mb-1">ไซต์ / สาขา (Site)</label>
+                                <select id="detail-site" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"><option value="">-- ไม่ระบุไซต์ --</option>${siteOpts}</select>
+                            </div>
+
+                            <!-- Col 3 -->
+                            <div>
+                                <div id="detail-map-container" class="${devCategory === 'software' ? 'hidden' : ''}">
+                                    <label class="text-[11px] text-slate-400 block mb-1">แผนผังที่ติดตั้ง (ผังห้อง)</label>
+                                    <select id="detail-map-id" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">${mapOpts}</select>
                                 </div>
-                                <select id="detail-license-type" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-amber-300 font-medium text-xs focus:outline-none focus:border-emerald-500">
-                                    ${licenseOpts}
-                                </select>
+                                <div id="detail-license-container" class="${devCategory === 'software' ? '' : 'hidden'}">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="text-[11px] text-amber-400 font-medium">ชนิดสิทธิ์ (License Type)</label>
+                                        <button type="button" onclick="runAdminAction(() => openTypeLicenseManager('licenses'))" class="text-[10px] text-amber-400 hover:text-amber-300 flex items-center gap-0.5 font-normal cursor-pointer" title="ตั้งค่า/แก้ไข/ลบ ชนิดสิทธิ์">
+                                            <i data-lucide="settings" class="w-3 h-3"></i> จัดการสิทธิ์
+                                        </button>
+                                    </div>
+                                    <select id="detail-license-type" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-amber-300 font-medium text-xs focus:outline-none focus:border-emerald-500">
+                                        ${licenseOpts}
+                                    </select>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div><label class="text-xs text-slate-400">ยี่ห้อ (Brand)</label><input type="text" id="detail-brand" value="${cam.brand || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
-                            <div><label class="text-xs text-slate-400">รุ่น (Model)</label><input type="text" id="detail-model" value="${cam.model || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div><label class="text-xs text-slate-400">ผู้ถือครอง / ผู้ใช้งาน (Holder)</label><input type="text" id="detail-thai-name" value="${cam.holder || cam.thai_name || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
-                            <div><label class="text-xs text-slate-400">ชื่อทรัพย์สิน / อุปกรณ์ (Asset Name)</label><input type="text" id="detail-eng-name" value="${cam.asset_name || cam.eng_name || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <!-- Col 4 -->
                             <div>
-                                <label class="text-xs text-slate-400">วันที่ซื้อ / รับเข้า (Purchase Date)</label>
-                                <input type="date" id="detail-purchase-date" value="${resolvedPurchaseDate || ''}" onchange="updateDetailDepreciationLive()" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                                <label class="text-[11px] text-slate-400 block mb-1">Serial Number</label>
+                                <input type="text" id="detail-serial" value="${cam.serial || ''}" placeholder="S/N" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
                             </div>
+
+                            <!-- Row 3 -->
+                            <!-- Col 1 -->
                             <div>
-                                <label class="text-xs text-slate-400">ราคาซื้อ / ทุนทรัพย์สิน (บาท)</label>
-                                <input type="number" id="detail-price" value="${resolvedPrice || ''}" min="0" step="any" oninput="updateDetailDepreciationLive()" placeholder="เช่น 25000" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                                <label class="text-[11px] text-slate-400 block mb-1">ชื่อทรัพย์สิน (Asset Name)</label>
+                                <input type="text" id="detail-eng-name" value="${cam.asset_name || cam.eng_name || ''}" placeholder="เช่น PC-Acc-01" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                            </div>
+
+                            <!-- Col 2 -->
+                            <div>
+                                <label class="text-[11px] text-slate-400 block mb-1">ผู้ถือครอง / ผู้ใช้งาน (Holder)</label>
+                                <input type="text" id="detail-thai-name" value="${cam.holder || cam.thai_name || ''}" placeholder="ชื่อผู้ใช้งาน" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                            </div>
+
+                            <!-- Col 3 -->
+                            <div>
+                                <label class="text-[11px] text-slate-400 block mb-1">ยี่ห้อ (Brand)</label>
+                                <input type="text" id="detail-brand" value="${cam.brand || ''}" placeholder="เช่น Dell, HP" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                            </div>
+
+                            <!-- Col 4 -->
+                            <div>
+                                <label class="text-[11px] text-slate-400 block mb-1">รุ่น (Model)</label>
+                                <input type="text" id="detail-model" value="${cam.model || ''}" placeholder="เช่น OptiPlex 7090" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                            </div>
+
+                            <!-- Row 4 -->
+                            <!-- Col 1 -->
+                            <div>
+                                <label class="text-[11px] text-slate-400 block mb-1">วันที่ซื้อ / รับเข้า (Purchase Date)</label>
+                                <input type="date" id="detail-purchase-date" value="${resolvedPurchaseDate || ''}" onchange="updateDetailDepreciationLive()" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                            </div>
+
+                            <!-- Col 2 -->
+                            <div>
+                                <label class="text-[11px] text-slate-400 block mb-1">ราคาซื้อ / ทุนทรัพย์สิน (บาท)</label>
+                                <input type="number" id="detail-price" value="${resolvedPrice || ''}" min="0" step="any" oninput="updateDetailDepreciationLive()" placeholder="เช่น 25000" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                            </div>
+
+                            <!-- Col 3 -->
+                            <div id="detail-ip-box" class="${devCategory === 'software' ? 'hidden' : ''}">
+                                <label class="text-[11px] text-slate-400 block mb-1">IP Address</label>
+                                <input type="text" id="detail-ip" value="${cam.ip || ''}" placeholder="192.168.x.x" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                            </div>
+
+                            <!-- Col 4 -->
+                            <div id="detail-mac-box" class="${devCategory === 'software' ? 'hidden' : ''}">
+                                <label class="text-[11px] text-slate-400 block mb-1">MAC Address</label>
+                                <input type="text" id="detail-mac" value="${cam.mac_address || ''}" placeholder="AA:BB:CC:DD:EE:FF" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
                             </div>
                         </div>
 
@@ -4616,28 +4670,37 @@
                             ${getDeviceDepreciationHtml(cam, resolvedPurchaseDate, resolvedPrice)}
                         </div>
 
-                        <div id="detail-network-container" class="${devCategory === 'software' ? 'hidden' : ''} grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div><label class="text-xs text-slate-400">IP Address</label><input type="text" id="detail-ip" value="${cam.ip || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
-                            <div><label class="text-xs text-slate-400">MAC Address</label><input type="text" id="detail-mac" value="${cam.mac_address || ''}" class="w-full mt-1 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500"></div>
-                        </div>
+                        <!-- 2-Column Section for Image & Actions + Maintenance History -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-2 border-t border-slate-700/80">
+                            <!-- Left: Image Preview & Upload & Actions -->
+                            <div class="space-y-2.5 bg-slate-900/40 p-3 rounded-xl border border-slate-700/60 flex flex-col justify-between">
+                                <div>
+                                    <div class="flex items-center justify-between mb-2">
+                                        <label class="text-xs text-slate-300 font-semibold flex items-center gap-1.5">
+                                            <i data-lucide="image" class="w-3.5 h-3.5 text-emerald-400"></i> ภาพถ่ายอุปกรณ์จริง
+                                        </label>
+                                        <label class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium cursor-pointer transition-all flex items-center gap-1 shadow-sm">
+                                            <i data-lucide="upload" class="w-3 h-3"></i> อัปโหลดรูป
+                                            <input type="file" accept="image/*" class="hidden" onchange="uploadDetailDeviceImage(this, '${cam._recordId}')">
+                                        </label>
+                                    </div>
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <input type="text" id="detail-image-url" value="${(cam.image_url || cam.go2rtc || cam.image || LocalImageStore.get(cam.id) || LocalImageStore.get(cam._recordId) || '').replace(/"/g, '&quot;')}" placeholder="URL ภาพอุปกรณ์ หรืออัปโหลดไฟล์" class="w-full px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
+                                    </div>
+                                    ${imageHtml}
+                                </div>
+                                <div class="pt-2 border-t border-slate-800">
+                                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-semibold transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5">
+                                        <i data-lucide="save" class="w-4 h-4"></i> บันทึกการเปลี่ยนแปลง
+                                    </button>
+                                </div>
+                            </div>
 
-                        <!-- อัปโหลดภาพอุปกรณ์ในหน้าแก้ไข -->
-                        <div class="bg-slate-700/60 p-3 rounded-xl border border-slate-600 space-y-2">
-                            <label class="text-xs text-slate-300 font-medium flex items-center gap-1.5">
-                                <i data-lucide="image" class="w-3.5 h-3.5 text-emerald-400"></i> ลิงก์ / ไฟล์ภาพถ่ายอุปกรณ์
-                            </label>
-                            <div class="flex items-center gap-2">
-                                <input type="text" id="detail-image-url" value="${(cam.image_url || cam.go2rtc || cam.image || LocalImageStore.get(cam.id) || LocalImageStore.get(cam._recordId) || '').replace(/"/g, '&quot;')}" placeholder="URL ภาพอุปกรณ์ หรืออัปโหลดไฟล์" class="flex-1 px-2.5 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
-                                <label class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium cursor-pointer transition-all shrink-0 flex items-center gap-1">
-                                    <i data-lucide="upload" class="w-3 h-3"></i> อัปโหลดรูป
-                                    <input type="file" accept="image/*" class="hidden" onchange="uploadDetailDeviceImage(this, '${cam._recordId}')">
-                                </label>
+                            <!-- Right: Maintenance & Repair History -->
+                            <div class="bg-slate-900/40 p-3 rounded-xl border border-slate-700/60 overflow-hidden">
+                                ${maintHtml}
                             </div>
                         </div>
-
-                        ${imageHtml}
-                        ${maintHtml}
-                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-sm font-semibold transition-all mt-3 shadow-md shadow-emerald-600/20">บันทึกการเปลี่ยนแปลง</button>
                     </form>`;
             } else {
                 const scanBanner = !currentUser ? `
@@ -4667,43 +4730,46 @@
                 content.innerHTML = `
                     ${scanBanner}
                     <div class="text-center mb-4">
-                        <div class="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-2 shadow-lg text-white" style="background:${gColor}">
-                            <i data-lucide="${iconName}" class="w-7 h-7"></i>
+                        <div class="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center mb-2 shadow-lg text-white" style="background:${gColor}">
+                            <i data-lucide="${iconName}" class="w-6 h-6"></i>
                         </div>
-                        <h4 class="text-lg font-bold text-white">${displayName}</h4>
-                        <div class="flex items-center justify-center gap-2 mt-1">
+                        <h4 class="text-base font-bold text-white">${displayName}</h4>
+                        <div class="flex items-center justify-center flex-wrap gap-1.5 mt-1">
                             <span class="group-tag inline-block" style="background:${gColor}33;color:${gColor}">${cam.department || '-'}</span>
                             <span class="text-[11px] bg-slate-700 text-emerald-400 px-2 py-0.5 rounded font-medium">${devType}</span>
                             <span class="text-[11px] ${devCategory === 'software' ? 'bg-cyan-900/60 text-cyan-300 border border-cyan-700/50' : 'bg-slate-700 text-slate-300'} px-2 py-0.5 rounded font-medium">${devCategory === 'software' ? 'Software' : 'Hardware'}</span>
                             <span class="text-[11px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded">${cam.status || 'Active'}</span>
                         </div>
                     </div>
-                    <div class="space-y-2 text-xs bg-slate-900/50 p-3 rounded-xl border border-slate-700/60">
-                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">รหัสทรัพย์สิน (Asset Code)</span><span class="text-right font-mono font-bold text-emerald-400">${cam.asset_code || cam.account_no || cam.id || '-'}</span></div>
-                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">หมวดหมู่อุปกรณ์</span><span class="text-right font-medium ${devCategory === 'software' ? 'text-cyan-400' : 'text-slate-300'}">${devCategory === 'software' ? 'Software (ซอฟต์แวร์)' : 'Hardware (ฮาร์ดแวร์)'}</span></div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs bg-slate-900/50 p-3 rounded-xl border border-slate-700/60">
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">รหัสทรัพย์สิน</span><span class="font-mono font-bold text-emerald-400 text-xs">${cam.asset_code || cam.account_no || cam.id || '-'}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">หมวดหมู่อุปกรณ์</span><span class="font-medium text-xs ${devCategory === 'software' ? 'text-cyan-400' : 'text-slate-200'}">${devCategory === 'software' ? 'Software (ซอฟต์แวร์)' : 'Hardware (ฮาร์ดแวร์)'}</span></div>
                         ${devCategory === 'software' ? `
-                            <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">ชนิดสิทธิ์ (License Type)</span><span class="text-right font-semibold text-amber-300 uppercase">${cam.license_type || 'Volume'}</span></div>
+                            <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ชนิดสิทธิ์ (License)</span><span class="font-semibold text-amber-300 uppercase text-xs">${cam.license_type || 'Volume'}</span></div>
                         ` : `
-                            <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">แผนผังที่ติดตั้ง (ผังห้อง)</span><span class="text-right text-slate-300">${mapLabel || '-'}</span></div>
+                            <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">แผนผังที่ติดตั้ง (ผังห้อง)</span><span class="text-slate-200 text-xs">${mapLabel || '-'}</span></div>
                         `}
-                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">ชื่อทรัพย์สิน / อุปกรณ์</span><span class="text-right font-medium">${cam.asset_name || cam.eng_name || '-'}</span></div>
-                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">ผู้ถือครอง / ผู้ใช้งาน</span><span class="text-right font-medium text-emerald-300">${cam.holder || cam.thai_name || '-'}</span></div>
-                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">ชนิดอุปกรณ์</span><span class="text-right font-medium">${devType}</span></div>
-                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">ยี่ห้อ (Brand)</span><span class="text-right">${cam.brand || '-'}</span></div>
-                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">รุ่น (Model)</span><span class="text-right">${cam.model || '-'}</span></div>
-                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">Serial Number</span><span class="text-right font-mono text-[11px] text-slate-300">${cam.serial || '-'}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">สถานะ</span><span class="font-medium text-slate-200 text-xs">${cam.status || 'Active'}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">แผนก / หน่วยงาน</span><span class="font-medium text-emerald-400 text-xs">${cam.department || '-'}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ไซต์ / สาขา (Site)</span><span class="font-medium text-cyan-300 text-xs">${cam.site || '-'}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ชื่อทรัพย์สิน / อุปกรณ์</span><span class="font-medium text-slate-200 text-xs">${cam.asset_name || cam.eng_name || '-'}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ผู้ถือครอง / ผู้ใช้งาน</span><span class="font-medium text-emerald-300 text-xs">${cam.holder || cam.thai_name || '-'}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ชนิดอุปกรณ์</span><span class="font-medium text-slate-200 text-xs">${devType}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ยี่ห้อ (Brand)</span><span class="text-slate-200 text-xs">${cam.brand || '-'}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">รุ่น (Model)</span><span class="text-slate-200 text-xs">${cam.model || '-'}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">Serial Number</span><span class="font-mono text-slate-300 text-xs">${cam.serial || '-'}</span></div>
                         ${devCategory === 'software' ? '' : `
-                            <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">IP Address</span><span class="text-right font-mono text-emerald-400">${cam.ip || '-'}</span></div>
-                            <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">MAC Address</span><span class="text-right font-mono text-[11px] text-slate-400">${cam.mac_address || '-'}</span></div>
+                            <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">IP Address</span><span class="font-mono text-emerald-400 text-xs">${cam.ip || '-'}</span></div>
+                            <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">MAC Address</span><span class="font-mono text-slate-300 text-xs">${cam.mac_address || '-'}</span></div>
                         `}
-                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">วันที่ซื้อ / รับเข้า</span><span class="text-right font-mono text-slate-200">${resolvedPurchaseDate || '-'}</span></div>
-                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">ค่าเสื่อมราคา / มูลค่าคงเหลือ</span><span class="text-right font-bold font-mono ${depSummaryClass}">${depSummaryText}</span></div>
-                        <div class="flex justify-between py-1 border-b border-slate-800"><span class="text-slate-400">แผนก</span><span class="text-right font-medium text-emerald-400">${cam.department || '-'}</span></div>
-                        <div class="flex justify-between py-1"><span class="text-slate-400">ไซต์ / สาขา (Site)</span><span class="text-right font-medium text-cyan-300">${cam.site || '-'}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">วันที่ซื้อ / รับเข้า</span><span class="font-mono text-slate-200 text-xs">${resolvedPurchaseDate || '-'}</span></div>
+                        <div class="p-2 bg-slate-800/60 rounded-lg border border-slate-700/50"><span class="text-slate-400 block text-[10px]">ค่าเสื่อม / มูลค่าคงเหลือ</span><span class="font-bold font-mono text-xs ${depSummaryClass}">${depSummaryText}</span></div>
                     </div>
                     ${depHtml}
-                    ${imageHtml}
-                    ${maintHtml}
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-2">
+                        <div class="bg-slate-900/40 p-3 rounded-xl border border-slate-700/60">${imageHtml}</div>
+                        <div class="bg-slate-900/40 p-3 rounded-xl border border-slate-700/60">${maintHtml}</div>
+                    </div>
                     <div class="flex gap-2 mt-3">
                         <button type="button" onclick="openAssetQrCode('${cam._recordId || cam.id}')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-emerald-400 hover:text-white py-2 rounded-xl text-xs font-semibold transition-all border border-slate-600 flex items-center justify-center gap-1.5 shadow-sm">
                             <i data-lucide="qr-code" class="w-4 h-4"></i> ป้าย QR Tag
