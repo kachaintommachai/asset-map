@@ -3488,8 +3488,15 @@
                 return;
             }
 
-            if (!visibleMaps.some(m => String(m.map_id) === String(selectedMapId) || String(m._recordId) === String(selectedMapId))) {
-                selectedMapId = String(visibleMaps[0].map_id);
+            const mapsWithDevices = visibleMaps.filter(m => {
+                const count = cameras.filter(c => isCameraOnMap(c, String(m.map_id))).length;
+                return count > 0;
+            });
+            // หากทุกแผนผังมี 0 อุปกรณ์ ให้แสดงตามปกติเพื่อไม่ให้หน้าว่างเปล่า
+            const mapsToRender = mapsWithDevices.length > 0 ? mapsWithDevices : visibleMaps;
+
+            if (!mapsToRender.some(m => String(m.map_id) === String(selectedMapId) || String(m._recordId) === String(selectedMapId))) {
+                selectedMapId = String(mapsToRender[0].map_id);
             }
             
             const countEl = document.getElementById('map-device-count');
@@ -3505,7 +3512,7 @@
                 countEl.textContent = text;
             }
 
-            visibleMaps.forEach(m => {
+            mapsToRender.forEach(m => {
                 const isSelected = String(m.map_id) === String(selectedMapId) || String(m._recordId) === String(selectedMapId);
                 const label = m.map_name || `แผนผัง ${m.map_id}`;
                 const devCount = cameras.filter(c => isCameraOnMap(c, String(m.map_id))).length;
@@ -3644,8 +3651,8 @@
                 counts[t] = (counts[t] || 0) + 1;
             });
 
-            // สร้างรายการตัวกรองจาก customDeviceTypes ทั้งหมด
-            const types = ['ALL', ...customDeviceTypes.map(d => d.name)];
+            // สร้างรายการตัวกรองจาก customDeviceTypes ทั้งหมด (แสดงเฉพาะชนิดที่มีอุปกรณ์ > 0 หรือปุ่ม ALL)
+            const types = ['ALL', ...customDeviceTypes.map(d => d.name).filter(t => (counts[t] || 0) > 0)];
             container.innerHTML = types.map(t => {
                 const isSelected = selectedTypeFilter === t;
                 const c = counts[t] || 0;
@@ -3922,24 +3929,21 @@
         function renderGroupFilter() {
             const container = document.getElementById('group-filter');
             if (!container) return;
-            const visibleGroups = [...new Set(getVisibleCameras().map(c => c.group || c.department || 'ไม่มีแผนก'))];
-            const isAdmin = currentUser && currentUser.isAdmin;
-            
-            const groupSet = new Set();
-            if (isAdmin) {
-                departments.forEach(d => groupSet.add(d));
-                visibleGroups.forEach(g => groupSet.add(g));
-            } else if (currentUser && Array.isArray(currentUser.departments) && currentUser.departments.length > 0) {
-                currentUser.departments.forEach(d => groupSet.add(d));
-                visibleGroups.forEach(g => groupSet.add(g));
-            } else {
-                visibleGroups.forEach(g => groupSet.add(g));
-                departments.forEach(d => groupSet.add(d));
-            }
+            const visible = getVisibleCameras();
+            // นับจำนวนอุปกรณ์ในแต่ละแผนกบนแผนผังปัจจุบัน
+            const groupCounts = {};
+            visible.forEach(c => {
+                const g = c.group || c.department || 'ไม่มีแผนก';
+                groupCounts[g] = (groupCounts[g] || 0) + 1;
+            });
 
-            const groups = Array.from(groupSet).filter(Boolean).sort(compareText);
+            // แสดงเฉพาะแผนกที่มีอุปกรณ์ > 0 บนแผนผังนี้
+            const groups = Object.keys(groupCounts).filter(g => groupCounts[g] > 0).sort(compareText);
             container.innerHTML = '';
-            if (groups.length === 0) { container.innerHTML = '<span class="text-xs text-slate-500">ยังไม่มีแผนก</span>'; return; }
+            if (groups.length === 0) { 
+                container.innerHTML = '<span class="text-xs text-slate-500">ไม่มีอุปกรณ์ในแผนผังนี้</span>'; 
+                return; 
+            }
             
             const allBtn = document.createElement('button');
             allBtn.className = `group-tag font-medium transition-all ${activeGroups.size === 0 ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300'}`;
@@ -3950,10 +3954,11 @@
             groups.forEach((g, i) => {
                 const btn = document.createElement('button');
                 const active = activeGroups.has(g);
-                btn.className = 'group-tag font-medium transition-all';
+                const count = groupCounts[g] || 0;
+                btn.className = 'group-tag font-medium transition-all flex items-center gap-1';
                 btn.style.background = active ? (getGroupColor(g) || groupColors[i % groupColors.length]) : '#334155';
                 btn.style.color = active ? 'white' : '#94a3b8';
-                btn.textContent = g;
+                btn.innerHTML = `<span>${g}</span><span class="opacity-70 text-[10px]">(${count})</span>`;
                 btn.onclick = () => {
                     if (activeGroups.has(g)) activeGroups.delete(g);
                     else activeGroups.add(g);
