@@ -319,6 +319,18 @@ function preparePayloadForSupabase(tName, fields) {
     return { name: String(f.Name || f.name || '').trim() };
   }
 
+  if (target === 'type') {
+    const payload = {};
+    const tId = f.type_id !== undefined ? f.type_id : (f.type_ID !== undefined ? f.type_ID : f.name);
+    if (tId !== undefined) payload.type_id = String(tId).trim();
+    if (f.category !== undefined) payload.category = String(f.category).toLowerCase().trim();
+    if (f.discription !== undefined) payload.discription = String(f.discription).trim();
+    if (f.description !== undefined && payload.discription === undefined) payload.discription = String(f.description).trim();
+    if (f.depreciation !== undefined) payload.depreciation = parseFloat(f.depreciation) || 0;
+    if (f.icon !== undefined) payload.icon = String(f.icon).trim();
+    return payload;
+  }
+
   return f;
 }
 
@@ -559,6 +571,9 @@ module.exports = async (req, res) => {
         patchUrl += `?department=eq.${encodeURIComponent(rawId)}`;
       } else if (supabaseTable === 'site') {
         patchUrl += `?name=eq.${encodeURIComponent(rawId)}`;
+      } else if (supabaseTable === 'type') {
+        const isNumeric = /^\d+$/.test(rawId);
+        patchUrl += isNumeric ? `?or=(id.eq.${encodeURIComponent(rawId)},type_id.eq.${encodeURIComponent(rawId)})` : `?type_id=eq.${encodeURIComponent(rawId)}`;
       } else {
         patchUrl += `?id=eq.${encodeURIComponent(rawId)}`;
       }
@@ -613,6 +628,9 @@ module.exports = async (req, res) => {
       deleteUrl += `?department=eq.${encodeURIComponent(rawId)}`;
     } else if (supabaseTable === 'site') {
       deleteUrl += `?name=eq.${encodeURIComponent(rawId)}`;
+    } else if (supabaseTable === 'type') {
+      const isNumeric = /^\d+$/.test(rawId);
+      deleteUrl += isNumeric ? `?or=(id.eq.${encodeURIComponent(rawId)},type_id.eq.${encodeURIComponent(rawId)})` : `?type_id=eq.${encodeURIComponent(rawId)}`;
     } else {
       deleteUrl += `?id=eq.${encodeURIComponent(rawId)}`;
     }

@@ -2311,10 +2311,12 @@
 
             try {
                 const payload = {
+                    type_id: newTypeId,
                     type_ID: newTypeId,
                     category: newCat,
                     discription: newDesc,
-                    depreciation: newDep
+                    depreciation: newDep,
+                    icon: newIcon
                 };
                 if (oldItem._recordId) {
                     await apiUpdate('type', oldItem._recordId, payload);
@@ -2395,17 +2397,19 @@
 
             try {
                 await apiCreate('type', {
+                    type_id: typeId,
                     type_ID: typeId,
                     category: category,
                     discription: desc,
-                    depreciation: depreciation
+                    depreciation: depreciation,
+                    icon: icon
                 });
                 await fetchTypesFromTable();
             } catch (err) {
                 console.warn('apiCreate type failed, adding locally:', err);
                 const name = desc || typeId;
                 const label = desc && typeId && desc !== typeId ? `${desc} (${typeId})` : (desc || typeId);
-                customDeviceTypes.push({ type_ID: typeId, name, label, category, discription: desc, depreciation, icon });
+                customDeviceTypes.push({ type_ID: typeId, type_id: typeId, name, label, category, discription: desc, depreciation, icon });
                 await saveSettingsToServer();
             }
 
