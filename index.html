@@ -1696,7 +1696,7 @@
         let selectedMapId = null;
         let selectedSiteFilter = '';
         let activeGroups = new Set();
-        let selectedTypeFilter = 'ALL';
+        let selectedTypeFilters = new Set(); // Multi-select Set for device types
         let dragTarget = null;
         let deleteTargetId = null;
         let deleteTargetType = null;
@@ -2583,7 +2583,7 @@
             maintenances = [];
             selectedMapId = null;
             activeGroups.clear();
-            selectedTypeFilter = 'ALL';
+            selectedTypeFilters.clear();
             document.getElementById('app').classList.add('hidden');
             document.getElementById('login-screen').classList.remove('hidden');
             const adminBtn = document.getElementById('admin-menu-btn');
@@ -3543,6 +3543,7 @@
         function selectMap(mapId) {
             selectedMapId = String(mapId);
             activeGroups.clear();
+            selectedTypeFilters.clear();
             showFloorPlan();
             renderMapSelector();
             renderCameras();
@@ -3565,6 +3566,7 @@
                 selectedMapId = null;
             }
             activeGroups.clear();
+            selectedTypeFilters.clear();
             renderMapSelector();
             showFloorPlan();
             renderTypeFilter();
@@ -3606,14 +3608,14 @@
                 list = list.filter(c => !c.site || c.site === selectedSiteFilter);
             }
             
-            // กรองตามแผนก
+            // กรองตามแผนก (เลือกได้หลายรายการ)
             if (activeGroups.size > 0) {
-                list = list.filter(c => activeGroups.has(c.group || 'ไม่มีแผนก'));
+                list = list.filter(c => activeGroups.has(c.group || c.department || 'ไม่มีแผนก'));
             }
 
-            // กรองตามชนิดอุปกรณ์
-            if (selectedTypeFilter && selectedTypeFilter !== 'ALL') {
-                list = list.filter(c => getDeviceType(c.type) === selectedTypeFilter);
+            // กรองตามชนิดอุปกรณ์ (เลือกได้หลายรายการ)
+            if (selectedTypeFilters.size > 0) {
+                list = list.filter(c => selectedTypeFilters.has(getDeviceType(c.type)));
             }
 
             // ค้นหาตามข้อความ (search)
@@ -3640,7 +3642,7 @@
             return list;
         }
 
-        // ─── TYPE FILTER BAR ───
+        // ─── TYPE FILTER BAR (MULTI-SELECT) ───
         function renderTypeFilter() {
             const container = document.getElementById('type-filter');
             if (!container) return;
@@ -3651,31 +3653,53 @@
                 counts[t] = (counts[t] || 0) + 1;
             });
 
-            // สร้างรายการตัวกรองจาก customDeviceTypes ทั้งหมด (แสดงเฉพาะชนิดที่มีอุปกรณ์ > 0 หรือปุ่ม ALL)
-            const types = ['ALL', ...customDeviceTypes.map(d => d.name).filter(t => (counts[t] || 0) > 0)];
-            container.innerHTML = types.map(t => {
-                const isSelected = selectedTypeFilter === t;
+            // สร้างรายการตัวกรองจาก customDeviceTypes ทั้งหมด (แสดงเฉพาะชนิดที่มีอุปกรณ์ > 0)
+            const availableTypes = customDeviceTypes.map(d => d.name).filter(t => (counts[t] || 0) > 0);
+            
+            // ปุ่ม "ทั้งหมด"
+            const isAll = selectedTypeFilters.size === 0;
+            let html = `
+                <button onclick="toggleTypeFilter('ALL')" class="group-tag flex items-center gap-1 transition-all ${isAll ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}">
+                    <i data-lucide="grid" class="w-3 h-3"></i>
+                    <span>ทั้งหมด</span>
+                    <span class="opacity-70 text-[10px]">(${counts['ALL'] || 0})</span>
+                </button>
+            `;
+
+            availableTypes.forEach(t => {
+                const isSelected = selectedTypeFilters.has(t);
                 const c = counts[t] || 0;
                 const item = customDeviceTypes.find(d => d.name === t);
-                const label = t === 'ALL' ? 'ทั้งหมด' : (item ? (item.label || item.name) : t);
-                const iconName = t === 'ALL' ? 'grid' : getDeviceIconName(t);
-                return `
-                    <button onclick="setTypeFilter('${t}')" class="group-tag flex items-center gap-1 transition-all ${isSelected ? 'bg-emerald-600 text-white font-semibold' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}">
+                const label = item ? (item.label || item.name) : t;
+                const iconName = getDeviceIconName(t);
+                html += `
+                    <button onclick="toggleTypeFilter('${t}')" class="group-tag flex items-center gap-1 transition-all ${isSelected ? 'bg-emerald-600 text-white font-semibold ring-1 ring-emerald-400' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}">
                         <i data-lucide="${iconName}" class="w-3 h-3"></i>
                         <span>${label}</span>
                         <span class="opacity-70 text-[10px]">(${c})</span>
                     </button>
                 `;
-            }).join('');
+            });
+
+            container.innerHTML = html;
             lucide.createIcons();
         }
 
-        function setTypeFilter(t) {
-            selectedTypeFilter = t;
+        function toggleTypeFilter(t) {
+            if (t === 'ALL') {
+                selectedTypeFilters.clear();
+            } else {
+                if (selectedTypeFilters.has(t)) {
+                    selectedTypeFilters.delete(t);
+                } else {
+                    selectedTypeFilters.add(t);
+                }
+            }
             renderTypeFilter();
             renderCameras();
             renderCameraList();
         }
+        const setTypeFilter = toggleTypeFilter;
 
         // ─── FLOOR PLAN ───
         function showFloorPlan() {
