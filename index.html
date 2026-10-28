@@ -1808,6 +1808,43 @@
                 .replace(/'/g, '&#039;');
         }
 
+        function showToastNotification(message, type = 'success') {
+            let container = document.getElementById('global-toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'global-toast-container';
+                container.className = 'fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4';
+                document.body.appendChild(container);
+            }
+
+            const toast = document.createElement('div');
+            const isSuccess = type === 'success';
+            const bgClass = isSuccess ? 'bg-emerald-950/95 border-emerald-500/80 text-emerald-100 shadow-emerald-950/60' : 'bg-red-950/95 border-red-500/80 text-red-100 shadow-red-950/60';
+            const iconName = isSuccess ? 'check-circle' : 'alert-triangle';
+
+            toast.className = `flex items-center gap-2.5 px-4 py-3 rounded-xl border shadow-2xl backdrop-blur-md text-xs font-medium transition-all duration-300 transform translate-y-4 opacity-0 pointer-events-auto ${bgClass}`;
+            toast.innerHTML = `
+                <i data-lucide="${iconName}" class="w-4 h-4 shrink-0 ${isSuccess ? 'text-emerald-400' : 'text-red-400'}"></i>
+                <span class="flex-1">${escapeHtml(message)}</span>
+            `;
+
+            container.appendChild(toast);
+            if (window.lucide) lucide.createIcons();
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-4', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+            });
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-4', 'opacity-0');
+                setTimeout(() => {
+                    if (toast.parentNode) toast.parentNode.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+
         // ─── IT DEVICE TYPE & LICENSE TYPE STORE & LOGIC ───
         const DEFAULT_DEVICE_TYPES = [
             { name: 'PC', label: 'คอมพิวเตอร์ (PC)', category: 'hardware', icon: 'monitor', depreciation: 5 },
@@ -2373,7 +2410,7 @@
             renderTypeLicenseLists();
             if (typeof renderTypeFilter === 'function') renderTypeFilter();
             if (typeof renderCameraList === 'function') renderCameraList();
-            alert('บันทึกข้อมูลลงตาราง type เรียบร้อยแล้ว');
+            showToastNotification('บันทึกข้อมูลลงตาราง type เรียบร้อยแล้ว', 'success');
         }
 
         async function deleteDeviceTypeRow(idx) {
@@ -2381,7 +2418,7 @@
             if (!item) return;
 
             if (customDeviceTypes.length <= 1) {
-                alert('ไม่สามารถลบได้ ต้องมีข้อมูลในตารางอย่างน้อย 1 รายการ');
+                showToastNotification('ไม่สามารถลบได้ ต้องมีข้อมูลในตารางอย่างน้อย 1 รายการ', 'error');
                 return;
             }
 
@@ -2412,7 +2449,7 @@
             renderTypeLicenseLists();
             if (typeof renderTypeFilter === 'function') renderTypeFilter();
             if (typeof renderCameraList === 'function') renderCameraList();
-            alert(`ลบรายการ "${item.label || item.name}" สำเร็จ`);
+            showToastNotification(`ลบรายการ "${item.label || item.name}" สำเร็จ`, 'success');
         }
 
         async function addDeviceTypeSubmit(e) {
@@ -2430,7 +2467,7 @@
             const icon = iconEl?.value || detectIconForType(desc || typeId, category);
 
             if (!typeId && !desc) {
-                alert('กรุณากรอกรหัสชนิด/สิทธิ์ หรือคำอธิบาย');
+                showToastNotification('กรุณากรอกรหัสชนิด/สิทธิ์ หรือคำอธิบาย', 'error');
                 return;
             }
 
@@ -2459,7 +2496,7 @@
 
             if (nameEl) nameEl.value = '';
             if (labelEl) labelEl.value = '';
-            alert(`บันทึกข้อมูล "${desc || typeId}" ลงในตาราง type สำเร็จ`);
+            showToastNotification(`บันทึกข้อมูล "${desc || typeId}" สำเร็จ`, 'success');
         }
 
         async function resetDeviceTypesToDefault() {
@@ -2470,7 +2507,7 @@
             renderTypeLicenseLists();
             if (typeof renderTypeFilter === 'function') renderTypeFilter();
             if (typeof renderCameraList === 'function') renderCameraList();
-            alert('รีเซ็ตชนิดอุปกรณ์กลับเป็นค่าเริ่มต้นเรียบร้อยแล้ว');
+            showToastNotification('รีเซ็ตชนิดอุปกรณ์กลับเป็นค่าเริ่มต้นเรียบร้อยแล้ว', 'success');
         }
 
         async function resetLicenseTypesToDefault() {
@@ -2479,7 +2516,7 @@
             await saveSettingsToServer();
             populateAllTypeAndLicenseSelects();
             renderTypeLicenseLists();
-            alert('รีเซ็ตชนิดสิทธิ์ใช้งานกลับเป็นค่าเริ่มต้นเรียบร้อยแล้ว');
+            showToastNotification('รีเซ็ตชนิดสิทธิ์ใช้งานกลับเป็นค่าเริ่มต้นเรียบร้อยแล้ว', 'success');
         }
 
         // ─── PASSWORD UTILS ───
@@ -4911,9 +4948,9 @@
                     renderCameras();
                     renderBookmarks();
                 }
-                alert('อัปโหลดภาพอุปกรณ์เรียบร้อยแล้ว');
+                showToastNotification('อัปโหลดภาพอุปกรณ์เรียบร้อยแล้ว', 'success');
             } catch (err) {
-                alert('เกิดข้อผิดพลาดในการอัปโหลด: ' + err.message);
+                showToastNotification('เกิดข้อผิดพลาดในการอัปโหลด: ' + err.message, 'error');
             }
         }
 
@@ -4995,7 +5032,7 @@
                     renderDeviceManagerList();
                 }
                 showToastNotification(`บันทึกการเปลี่ยนแปลงรหัส "${assetCode}" สำเร็จ`, 'success');
-            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+            } catch (err) { showToastNotification('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
         }
 
         // ─── BOOKMARKS (อุปกรณ์ที่ปักหมุด) ───
@@ -5401,7 +5438,7 @@
                     renderDeviceManagerList();
                 }
             } catch (err) {
-                alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
+                showToastNotification('เกิดข้อผิดพลาดในการบันทึก: ' + err.message, 'error');
             } finally {
                 if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText; }
             }
@@ -5541,8 +5578,8 @@
                     renderGroupFilter();
                     populateDepartmentSelects();
                 }
-                alert('ลบเรียบร้อยแล้ว');
-            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+                showToastNotification('ลบเรียบร้อยแล้ว', 'success');
+            } catch (err) { showToastNotification('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
             deleteTargetId = null;
             deleteTargetType = null;
             closeModal('modal-delete');
@@ -5612,16 +5649,16 @@
             const siteSel = document.getElementById('new-user-site');
             const pickedSites = siteSel ? Array.from(siteSel.selectedOptions).map(o => o.value).filter(Boolean) : [];
             if (!name || !pass) return;
-            if (depts.length === 0) { alert('กรุณาเลือกแผนกอย่างน้อย 1 แผนก'); return; }
+            if (depts.length === 0) { showToastNotification('กรุณาเลือกแผนกอย่างน้อย 1 แผนก', 'error'); return; }
             try {
                 const payload = { Name: name, password: pass, department: depts.join(',') };
-                if (pickedSites.length > 0) payload.site = pickedSites.join(',');
+                if (pickedSites.length > 0) payload.site = pickedSites.join(',') ;
                 await apiCreate('user', payload);
                 document.getElementById('add-user-form').reset();
                 await fetchAllUsers();
                 renderUsersList();
-                alert('เพิ่มผู้ใช้เรียบร้อย');
-            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+                showToastNotification('เพิ่มผู้ใช้เรียบร้อยแล้ว', 'success');
+            } catch (err) { showToastNotification('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
         }
 
         function editUserSites(recordId, userName) {
@@ -5651,8 +5688,8 @@
                 await fetchAllUsers();
                 renderUsersList();
                 closeModal('modal-user-sites');
-                alert('บันทึกสิทธิ์ไซต์เรียบร้อย');
-            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+                showToastNotification('บันทึกสิทธิ์ไซต์เรียบร้อยแล้ว', 'success');
+            } catch (err) { showToastNotification('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
         }
 
         function editUserDepartments(recordId, userName) {
@@ -5699,21 +5736,21 @@
                 await fetchAllUsers();
                 renderUsersList();
                 closeModal('modal-user-maps');
-                alert('บันทึกสิทธิ์การดูแผนผังเรียบร้อย');
-            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+                showToastNotification('บันทึกสิทธิ์การดูแผนผังเรียบร้อยแล้ว', 'success');
+            } catch (err) { showToastNotification('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
         }
 
         async function saveUserDepartments() {
             const recordId = document.getElementById('user-depts-rec-id').value;
             const picked = Array.from(document.querySelectorAll('.user-dept-cb:checked')).map(cb => cb.value);
-            if (picked.length === 0) { alert('ต้องเลือกอย่างน้อย 1 แผนก'); return; }
+            if (picked.length === 0) { showToastNotification('ต้องเลือกอย่างน้อย 1 แผนก', 'error'); return; }
             try {
                 await apiUpdate('user', recordId, { department: picked.join(',') });
                 await fetchAllUsers();
                 renderUsersList();
                 closeModal('modal-user-depts');
-                alert('บันทึกแผนกเรียบร้อย');
-            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+                showToastNotification('บันทึกแผนกเรียบร้อยแล้ว', 'success');
+            } catch (err) { showToastNotification('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
         }
 
         function changePassword(recordId, userName) {
@@ -5736,8 +5773,8 @@
                 await fetchAllUsers();
                 renderUsersList();
                 closeModal('modal-change-pass');
-                alert('เปลี่ยนรหัสผ่านเรียบร้อย');
-            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+                showToastNotification('เปลี่ยนรหัสผ่านเรียบร้อยแล้ว', 'success');
+            } catch (err) { showToastNotification('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
         }
 
         // ─── DEVICE MANAGER (ADMIN) ───
@@ -6212,43 +6249,6 @@
             }
         }
 
-        function showToastNotification(message, type = 'success') {
-            let container = document.getElementById('global-toast-container');
-            if (!container) {
-                container = document.createElement('div');
-                container.id = 'global-toast-container';
-                container.className = 'fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4';
-                document.body.appendChild(container);
-            }
-
-            const toast = document.createElement('div');
-            const isSuccess = type === 'success';
-            const bgClass = isSuccess ? 'bg-emerald-950/95 border-emerald-500/80 text-emerald-100 shadow-emerald-950/60' : 'bg-red-950/95 border-red-500/80 text-red-100 shadow-red-950/60';
-            const iconName = isSuccess ? 'check-circle' : 'alert-triangle';
-
-            toast.className = `flex items-center gap-2.5 px-4 py-3 rounded-xl border shadow-2xl backdrop-blur-md text-xs font-medium transition-all duration-300 transform translate-y-4 opacity-0 pointer-events-auto ${bgClass}`;
-            toast.innerHTML = `
-                <i data-lucide="${iconName}" class="w-4 h-4 shrink-0 ${isSuccess ? 'text-emerald-400' : 'text-red-400'}"></i>
-                <span class="flex-1">${escapeHtml(message)}</span>
-            `;
-
-            container.appendChild(toast);
-            if (window.lucide) lucide.createIcons();
-
-            requestAnimationFrame(() => {
-                toast.classList.remove('translate-y-4', 'opacity-0');
-                toast.classList.add('translate-y-0', 'opacity-100');
-            });
-
-            setTimeout(() => {
-                toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('translate-y-4', 'opacity-0');
-                setTimeout(() => {
-                    if (toast.parentNode) toast.parentNode.removeChild(toast);
-                }, 300);
-            }, 3000);
-        }
-
         // ─── MAP MANAGER ───
         function openMapManager() {
             renderMapsList();
@@ -6426,9 +6426,9 @@
                 renderMapsList();
                 renderMapSelector();
                 showFloorPlan();
-                alert('บันทึกข้อมูลแผนผังเรียบร้อย');
+                showToastNotification('บันทึกข้อมูลแผนผังเรียบร้อยแล้ว', 'success');
             } catch (err) {
-                alert('เกิดข้อผิดพลาด: ' + err.message);
+                showToastNotification('เกิดข้อผิดพลาด: ' + err.message, 'error');
                 if (idInput) { idInput.focus(); idInput.select(); }
             }
         }
@@ -6508,10 +6508,9 @@
                 await fetchMaps();
                 renderMapsList();
                 renderMapSelector();
-                populateMapSelects();
-                alert(`เพิ่มแผนผัง "${mapName}" (รหัส ID: ${mapId}) เรียบร้อย`);
+                showToastNotification(`เพิ่มแผนผัง "${mapName}" เรียบร้อยแล้ว`, 'success');
             } catch (err) {
-                alert('เกิดข้อผิดพลาด: ' + err.message);
+                showToastNotification('เกิดข้อผิดพลาด: ' + err.message, 'error');
                 if (mapIdInput) { mapIdInput.focus(); mapIdInput.select(); }
             }
             finally {
@@ -6601,8 +6600,8 @@
                 renderGroupFilter();
                 renderCameraList();
                 populateDepartmentSelects();
-                alert('บันทึกแผนกเรียบร้อย');
-            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+                showToastNotification('บันทึกแผนกเรียบร้อยแล้ว', 'success');
+            } catch (err) { showToastNotification('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
         }
 
         async function addDepartment(e) {
@@ -6616,8 +6615,8 @@
                 renderGroupsList();
                 renderGroupFilter();
                 populateDepartmentSelects();
-                alert('เพิ่มแผนกเรียบร้อย');
-            } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
+                showToastNotification('เพิ่มแผนกเรียบร้อยแล้ว', 'success');
+            } catch (err) { showToastNotification('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
         }
 
         // ─── MAINTENANCE & REPAIR MANAGER (ADMIN / ALL DEVICES) ───
@@ -6919,11 +6918,10 @@
                 }
 
                 closeModal('modal-maintenance');
-                const targetTable = saveRes && saveRes.targetTable ? saveRes.targetTable : 'repair';
-                alert((id ? 'แก้ไขข้อมูลเรียบร้อยแล้ว' : 'บันทึกประวัติการซื้อ/ซ่อมบำรุงเรียบร้อยแล้ว') + `\n(บันทึกไปยัง: Supabase [${targetTable}])`);
+                showToastNotification(id ? 'แก้ไขข้อมูลเรียบร้อยแล้ว' : 'บันทึกประวัติการซื้อ/ซ่อมบำรุงเรียบร้อยแล้ว', 'success');
             } catch (err) {
                 console.error('Failed to save maintenance:', err);
-                alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
+                showToastNotification('เกิดข้อผิดพลาดในการบันทึก: ' + err.message, 'error');
             } finally {
                 if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'บันทึกข้อมูล'; }
             }
@@ -7381,16 +7379,16 @@
             if (!input) return;
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(input.value).then(() => {
-                    alert('คัดลอกลิงก์ไปยังคลิปบอร์ดแล้ว: ' + input.value);
+                    showToastNotification('คัดลอกลิงก์ไปยังคลิปบอร์ดแล้ว', 'success');
                 }).catch(() => {
                     input.select();
                     document.execCommand('copy');
-                    alert('คัดลอกลิงก์เรียบร้อย');
+                    showToastNotification('คัดลอกลิงก์เรียบร้อยแล้ว', 'success');
                 });
             } else {
                 input.select();
                 document.execCommand('copy');
-                alert('คัดลอกลิงก์เรียบร้อย');
+                showToastNotification('คัดลอกลิงก์เรียบร้อยแล้ว', 'success');
             }
         }
 
