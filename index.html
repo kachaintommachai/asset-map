@@ -4994,7 +4994,7 @@
                 if (document.getElementById('modal-devices') && !document.getElementById('modal-devices').classList.contains('hidden')) {
                     renderDeviceManagerList();
                 }
-                alert(`บันทึกการเปลี่ยนแปลงรหัส "${assetCode}" สำเร็จ!\n• ตารางใน Supabase: "${saveRes.targetTable || 'device'}"\n• Record ID: "${saveRes.id}"`);
+                showToastNotification(`บันทึกการเปลี่ยนแปลงรหัส "${assetCode}" สำเร็จ`, 'success');
             } catch (err) { alert('เกิดข้อผิดพลาด: ' + err.message); }
         }
 
@@ -5382,10 +5382,10 @@
                 let saveRes;
                 if (recordId) {
                     saveRes = await apiUpdate('device', recordId, fields);
-                    alert(`อัปเดตข้อมูลอุปกรณ์รหัส "${assetCode}" สำเร็จ!\n• ตารางใน Supabase: "${saveRes.targetTable || 'device'}"\n• Record ID: "${saveRes.id}"`);
+                    showToastNotification(`อัปเดตข้อมูลอุปกรณ์รหัส "${assetCode}" สำเร็จ`, 'success');
                 } else {
                     saveRes = await apiCreate('device', fields);
-                    alert(`เพิ่มอุปกรณ์ไอทีรหัส "${assetCode}" สำเร็จ!\n• ตารางใน Supabase: "${saveRes.targetTable || 'device'}"\n• Record ID: "${saveRes.id}"`);
+                    showToastNotification(`เพิ่มอุปกรณ์ไอทีรหัส "${assetCode}" สำเร็จ`, 'success');
                 }
                 console.log('[saveCamera] Response:', saveRes);
                 if (saveRes._debug) console.log('[saveCamera] Debug Log:', JSON.stringify(saveRes._debug, null, 2));
