@@ -491,7 +491,8 @@ module.exports = async (req, res) => {
     if (query.id) {
       const rawId = query.id.trim();
       if (supabaseTable === 'device') {
-        fetchUrl += `&asset_code=eq.${encodeURIComponent(rawId)}`;
+        const isNumeric = /^\d+$/.test(rawId);
+        fetchUrl += isNumeric ? `&or=(id.eq.${encodeURIComponent(rawId)},asset_code.eq.${encodeURIComponent(rawId)})` : `&asset_code=eq.${encodeURIComponent(rawId)}`;
       } else if (supabaseTable === 'map') {
         fetchUrl += `&or=(id.eq.${encodeURIComponent(rawId)},map_id.eq.${encodeURIComponent(rawId)})`;
       } else if (supabaseTable === 'departments') {
@@ -602,7 +603,8 @@ module.exports = async (req, res) => {
     let patchUrl = `${supabaseUrl}/rest/v1/${supabaseTable}`;
     if (rawId) {
       if (supabaseTable === 'device') {
-        patchUrl += `?asset_code=eq.${encodeURIComponent(rawId)}`;
+        const isNumeric = /^\d+$/.test(rawId);
+        patchUrl += isNumeric ? `?or=(id.eq.${encodeURIComponent(rawId)},asset_code.eq.${encodeURIComponent(rawId)})` : `?asset_code=eq.${encodeURIComponent(rawId)}`;
       } else if (supabaseTable === 'map') {
         const isNumeric = /^\d+$/.test(rawId);
         patchUrl += isNumeric ? `?or=(id.eq.${encodeURIComponent(rawId)},map_id.eq.${encodeURIComponent(rawId)})` : `?map_id=eq.${encodeURIComponent(rawId)}`;
@@ -661,7 +663,8 @@ module.exports = async (req, res) => {
 
     let deleteUrl = `${supabaseUrl}/rest/v1/${supabaseTable}`;
     if (supabaseTable === 'device') {
-      deleteUrl += `?asset_code=eq.${encodeURIComponent(rawId)}`;
+      const isNumeric = /^\d+$/.test(rawId);
+      deleteUrl += isNumeric ? `?or=(id.eq.${encodeURIComponent(rawId)},asset_code.eq.${encodeURIComponent(rawId)})` : `?asset_code=eq.${encodeURIComponent(rawId)}`;
     } else if (supabaseTable === 'map') {
       const isNumeric = /^\d+$/.test(rawId);
       deleteUrl += isNumeric ? `?or=(id.eq.${encodeURIComponent(rawId)},map_id.eq.${encodeURIComponent(rawId)})` : `?map_id=eq.${encodeURIComponent(rawId)}`;
