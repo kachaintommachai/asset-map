@@ -5986,14 +5986,15 @@
                 `;
 
                 const st = (c.status || 'Active').toLowerCase();
+                const isRetiredOrInactive = st === 'retired' || st === 'inactive';
                 const statusSelectHtml = `
                     <select onchange="quickUpdateDeviceStatus('${c._recordId}', this.value, this)" 
-                            class="text-[11px] font-semibold rounded-full px-2.5 py-1 border focus:outline-none focus:ring-1 focus:ring-emerald-400 transition-all cursor-pointer shadow-sm text-center ${getStatusBadgeClasses(c.status)}" 
+                            class="text-xs font-semibold rounded-lg px-2.5 py-1.5 border focus:outline-none focus:ring-1 focus:ring-emerald-400 transition-all cursor-pointer shadow-sm text-center min-w-[145px] ${getStatusBadgeClasses(c.status)}" 
                             title="คลิกเพื่อเปลี่ยนสถานะทันที">
-                        <option value="Active" class="bg-slate-800 text-emerald-400 font-medium" ${st === 'active' ? 'selected' : ''}>Active</option>
-                        <option value="Spare" class="bg-slate-800 text-amber-400 font-medium" ${st === 'spare' ? 'selected' : ''}>Spare</option>
-                        <option value="Repair" class="bg-slate-800 text-blue-400 font-medium" ${st === 'repair' ? 'selected' : ''}>Repair</option>
-                        <option value="Inactive" class="bg-slate-800 text-red-400 font-medium" ${st === 'inactive' ? 'selected' : ''}>Inactive</option>
+                        <option value="Active" class="bg-slate-800 text-emerald-400 font-medium" ${st === 'active' ? 'selected' : ''}>ใช้งานอยู่ (Active)</option>
+                        <option value="Spare" class="bg-slate-800 text-amber-400 font-medium" ${st === 'spare' ? 'selected' : ''}>สำรอง (Spare)</option>
+                        <option value="Repair" class="bg-slate-800 text-blue-400 font-medium" ${st === 'repair' ? 'selected' : ''}>ซ่อมบำรุง (Repair)</option>
+                        <option value="Retired" class="bg-slate-800 text-red-400 font-medium" ${isRetiredOrInactive ? 'selected' : ''}>จำหน่ายออก (Retired)</option>
                     </select>
                 `;
 
@@ -6111,7 +6112,7 @@
                 return 'bg-amber-950/90 text-amber-300 border-amber-700/80 hover:bg-amber-900/80 focus:ring-amber-500';
             } else if (st === 'repair') {
                 return 'bg-blue-950/90 text-blue-300 border-blue-700/80 hover:bg-blue-900/80 focus:ring-blue-500';
-            } else if (st === 'inactive') {
+            } else if (st === 'inactive' || st === 'retired') {
                 return 'bg-red-950/90 text-red-300 border-red-700/80 hover:bg-red-900/80 focus:ring-red-500';
             }
             return 'bg-emerald-950/90 text-emerald-300 border-emerald-700/80 hover:bg-emerald-900/80 focus:ring-emerald-500';
@@ -6119,7 +6120,7 @@
 
         function updateStatusSelectStyle(selectEl, status) {
             if (!selectEl) return;
-            const baseClasses = 'text-[11px] font-semibold rounded-full px-2.5 py-1 border focus:outline-none focus:ring-1 focus:ring-emerald-400 transition-all cursor-pointer shadow-sm text-center';
+            const baseClasses = 'text-xs font-semibold rounded-lg px-2.5 py-1.5 border focus:outline-none focus:ring-1 focus:ring-emerald-400 transition-all cursor-pointer shadow-sm text-center min-w-[145px]';
             selectEl.className = `${baseClasses} ${getStatusBadgeClasses(status)}`;
         }
 
@@ -6181,8 +6182,15 @@
                     }, 800);
                 }
 
+                const statusLabelMap = {
+                    'Active': 'ใช้งานอยู่ (Active)',
+                    'Spare': 'สำรอง (Spare)',
+                    'Repair': 'ซ่อมบำรุง (Repair)',
+                    'Retired': 'จำหน่ายออก (Retired)',
+                    'Inactive': 'จำหน่ายออก (Retired)'
+                };
                 const fieldLabel = fieldName === 'department' ? 'แผนก' : 'สถานะ';
-                const displayVal = newValue || (fieldName === 'department' ? 'ไม่ระบุ' : '-');
+                const displayVal = fieldName === 'status' ? (statusLabelMap[newValue] || newValue) : (newValue || 'ไม่ระบุ');
                 showToastNotification(`อัปเดต${fieldLabel}ของ "${assetCode}" เป็น "${displayVal}" สำเร็จ`, 'success');
 
                 // Sync UI
