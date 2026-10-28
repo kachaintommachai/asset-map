@@ -5972,14 +5972,15 @@
                 const allAvailableDepts = [...new Set([...departments, currentDept])].filter(Boolean);
                 sortNatural(allAvailableDepts);
                 const deptOptionsHtml = allAvailableDepts.map(d => 
-                    `<option value="${escapeHtml(d)}" class="bg-slate-800 text-slate-200" ${d === currentDept ? 'selected' : ''}>${escapeHtml(d)}</option>`
+                    `<option value="${escapeHtml(d)}" style="background-color: #1e293b; color: #f8fafc;" ${d === currentDept ? 'selected' : ''}>${escapeHtml(d)}</option>`
                 ).join('');
 
                 const deptSelectHtml = `
                     <select onchange="quickUpdateDeviceDepartment('${c._recordId}', this.value, this)" 
-                            class="bg-slate-750 hover:bg-slate-700 text-slate-200 text-xs rounded-lg px-2 py-1 border border-slate-600/80 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors w-full min-w-[120px] max-w-[160px] truncate cursor-pointer font-medium" 
+                            style="background-color: #1e293b; color: #f8fafc;"
+                            class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs rounded-lg px-2.5 py-1.5 border border-slate-600 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors w-full min-w-[125px] max-w-[170px] truncate cursor-pointer font-medium shadow-sm" 
                             title="คลิกเพื่อเลือกเปลี่ยนแผนกทันที">
-                        <option value="" class="bg-slate-800 text-slate-400">-- ไม่ระบุ --</option>
+                        <option value="" style="background-color: #1e293b; color: #94a3b8;">-- ไม่ระบุ --</option>
                         ${deptOptionsHtml}
                     </select>
                 `;
