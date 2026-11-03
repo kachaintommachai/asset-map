@@ -250,7 +250,8 @@ function formatRow(tName, row) {
       password: row.password || '',
       department: row.department || '',
       camera_user: row.camera_user || '',
-      map_user: row.map_user || ''
+      map_user: row.map_user || '',
+      site: row.site || ''
     };
   } else if (target === 'site') {
     fields = {
@@ -351,6 +352,7 @@ function preparePayloadForSupabase(tName, fields) {
     if (f.department !== undefined) payload.department = f.department;
     if (f.camera_user !== undefined) payload.camera_user = String(f.camera_user);
     if (f.map_user !== undefined) payload.map_user = String(f.map_user);
+    if (f.site !== undefined) payload.site = String(f.site);
     return payload;
   }
 

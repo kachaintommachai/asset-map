@@ -312,34 +312,34 @@
                     <span id="dept-display" class="text-[11px] text-slate-400 hidden md:inline"></span>
                 </div>
                 <div class="relative" id="admin-menu-wrap">
-                    <button onclick="toggleAdminMenu(event)" id="admin-menu-btn" class="hidden items-center gap-1 bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all" title="เมนูผู้ดูแลระบบ">
-                        <i data-lucide="settings" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400"></i> <span class="hidden sm:inline">Admin</span>
+                    <button onclick="toggleAdminMenu(event)" id="admin-menu-btn" class="hidden items-center gap-1 bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all" title="เมนูการจัดการ">
+                        <i data-lucide="settings" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400"></i> <span id="admin-menu-label" class="hidden sm:inline">Admin</span>
                         <i data-lucide="chevron-down" class="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400"></i>
                     </button>
                     <div id="admin-menu" class="hidden absolute right-0 mt-1 w-64 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
                         <div class="px-3 py-2 text-[11px] text-slate-500 uppercase tracking-wider border-b border-slate-700 font-semibold">ตั้งค่าระบบ</div>
-                        <button onclick="runAdminAction(openDeviceManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-emerald-400 font-semibold hover:bg-slate-700 transition-all text-left">
-                            <i data-lucide="monitor" class="w-4 h-4 text-emerald-400 shrink-0"></i> จัดการอุปกรณ์ (เพิ่ม/แก้ไข/ลบ)
+                        <button id="admin-menu-dev-btn" onclick="runAdminAction(openDeviceManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-emerald-400 font-semibold hover:bg-slate-700 transition-all text-left">
+                            <i data-lucide="monitor" class="w-4 h-4 text-emerald-400 shrink-0"></i> จัดการอุปกรณ์
                         </button>
-                        <button onclick="runAdminAction(openMaintenanceManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-cyan-300 font-semibold hover:bg-slate-700 transition-all text-left">
+                        <button id="admin-menu-maint-btn" onclick="runAdminAction(openMaintenanceManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-cyan-300 font-semibold hover:bg-slate-700 transition-all text-left">
                             <i data-lucide="wrench" class="w-4 h-4 text-cyan-400 shrink-0"></i> ประวัติการซื้อ / ซ่อมบำรุง
                         </button>
-                        <button onclick="runAdminAction(openAddDevice)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-all text-left">
+                        <button id="admin-menu-add-dev-btn" onclick="runAdminAction(openAddDevice)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-all text-left">
                             <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i> เพิ่มอุปกรณ์ใหม่
                         </button>
-                        <button onclick="runAdminAction(openGroupManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-all text-left">
+                        <button id="admin-menu-group-btn" onclick="runAdminAction(openGroupManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-all text-left">
                             <i data-lucide="layers" class="w-4 h-4 text-slate-400 shrink-0"></i> จัดการแผนก / กลุ่ม
                         </button>
-                        <button onclick="runAdminAction(openTypeLicenseManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-all text-left">
+                        <button id="admin-menu-type-btn" onclick="runAdminAction(openTypeLicenseManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-all text-left">
                             <i data-lucide="tag" class="w-4 h-4 text-emerald-400 shrink-0"></i> จัดการชนิดอุปกรณ์ / License
                         </button>
-                        <button onclick="runAdminAction(openMapManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-all text-left">
+                        <button id="admin-menu-map-btn" onclick="runAdminAction(openMapManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-all text-left">
                             <i data-lucide="map" class="w-4 h-4 text-slate-400 shrink-0"></i> จัดการแผนผัง
                         </button>
-                        <button onclick="runAdminAction(openUserManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-all text-left">
+                        <button id="admin-menu-user-btn" onclick="runAdminAction(openUserManager)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-all text-left">
                             <i data-lucide="users" class="w-4 h-4 text-slate-400 shrink-0"></i> จัดการผู้ใช้
                         </button>
-                        <button onclick="runAdminAction(checkAirtableStatus)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-amber-300 hover:bg-slate-700 transition-all text-left border-t border-slate-700">
+                        <button id="admin-menu-db-btn" onclick="runAdminAction(checkAirtableStatus)" class="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-amber-300 hover:bg-slate-700 transition-all text-left border-t border-slate-700">
                             <i data-lucide="database" class="w-4 h-4 text-amber-400 shrink-0"></i> ตรวจสอบสถานะ Airtable
                         </button>
                     </div>
@@ -538,7 +538,7 @@
                     <button type="button" onclick="checkAirtableStatus()" class="hidden md:flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl font-medium transition-all border border-slate-600" title="ตรวจสอบ Airtable">
                         <i data-lucide="database" class="w-3.5 h-3.5 text-cyan-400"></i> ตรวจสอบ Airtable
                     </button>
-                    <button onclick="openAddDevice()" class="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-semibold transition-all shadow-lg shadow-emerald-900/30">
+                    <button id="dev-mgr-add-btn" onclick="openAddDevice()" class="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-semibold transition-all shadow-lg shadow-emerald-900/30">
                         <i data-lucide="plus-circle" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i> <span class="hidden sm:inline">เพิ่มอุปกรณ์ใหม่</span><span class="sm:hidden">เพิ่ม</span>
                     </button>
                     <button onclick="closeModal('modal-devices')" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-700 transition-colors">
@@ -1028,7 +1028,7 @@
                 <div id="maps-list" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
 
                 <!-- Add New Map Form -->
-                <div class="border-t border-slate-700/80 pt-3 bg-slate-800/90 rounded-xl">
+                <div id="add-map-container" class="border-t border-slate-700/80 pt-3 bg-slate-800/90 rounded-xl">
                     <h4 class="text-xs font-semibold uppercase tracking-wider mb-2.5 text-slate-300 flex items-center gap-1.5">
                         <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i> เพิ่มแผนผังใหม่
                     </h4>
@@ -1068,46 +1068,202 @@
     </div>
 
     <!-- User Manager Modal -->
-    <div id="modal-users" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
-        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-lg mx-4 border border-slate-700 shadow-2xl">
-            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <i data-lucide="users" class="w-5 h-5 text-emerald-400"></i> จัดการผู้ใช้
+    <div id="modal-users" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay p-3">
+        <div class="bg-slate-800 rounded-2xl p-5 sm:p-6 w-full max-w-2xl mx-auto border border-slate-700 shadow-2xl max-h-[92vh] flex flex-col">
+            <h3 class="text-lg font-bold text-white mb-3 flex items-center justify-between shrink-0">
+                <span class="flex items-center gap-2">
+                    <i data-lucide="users" class="w-5 h-5 text-emerald-400"></i> จัดการผู้ใช้และสิทธิ์การใช้งาน
+                </span>
+                <button type="button" onclick="closeModal('modal-users')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-700 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
             </h3>
-            <div id="users-list" class="space-y-2 max-h-60 overflow-y-auto mb-4"></div>
-            <div class="border-t border-slate-700 pt-4">
-                <h4 class="text-sm font-medium mb-3 text-slate-200">เพิ่มผู้ใช้ใหม่</h4>
-                <form id="add-user-form" class="space-y-2" onsubmit="addUser(event)">
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="text-xs text-slate-400">ชื่อผู้ใช้</label>
-                            <input type="text" id="new-user-name" required class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
-                        </div>
-                        <div>
-                            <label class="text-xs text-slate-400">รหัสผ่าน</label>
-                            <div class="relative mt-1">
-                                <input type="password" id="new-user-pass" required class="w-full px-3 py-2 pr-9 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
-                                <button type="button" onclick="togglePasswordVisibility('new-user-pass', this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1">
-                                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-                                </button>
+            <div class="flex-1 overflow-y-auto space-y-4 pr-1">
+                <div>
+                    <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">รายชื่อผู้ใช้ทั้งหมด</h4>
+                    <div id="users-list" class="space-y-2 max-h-56 overflow-y-auto"></div>
+                </div>
+                <div class="border-t border-slate-700 pt-3">
+                    <h4 class="text-sm font-medium mb-2.5 text-slate-200 flex items-center gap-2">
+                        <i data-lucide="user-plus" class="w-4 h-4 text-emerald-400"></i> เพิ่มผู้ใช้ใหม่
+                    </h4>
+                    <form id="add-user-form" class="space-y-3 bg-slate-750 p-3.5 rounded-xl border border-slate-700/80" onsubmit="addUser(event)">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <div>
+                                <label class="text-xs text-slate-300 font-medium">ชื่อผู้ใช้ <span class="text-red-400">*</span></label>
+                                <input type="text" id="new-user-name" required placeholder="เช่น it_manager, accountant1" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-300 font-medium">รหัสผ่าน <span class="text-red-400">*</span></label>
+                                <div class="relative mt-1">
+                                    <input type="password" id="new-user-pass" required placeholder="กำหนดรหัสผ่าน" class="w-full px-3 py-2 pr-9 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500">
+                                    <button type="button" onclick="togglePasswordVisibility('new-user-pass', this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1">
+                                        <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div>
-                            <label class="text-xs text-slate-400">แผนก (เลือกได้หลายแผนก)</label>
-                            <select id="new-user-dept" multiple size="4" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
-                            <p class="text-[10px] text-slate-500 mt-0.5">กด Ctrl/Cmd เพื่อเลือกหลายแผนก</p>
+
+                        <!-- Role Presets & Permissions -->
+                        <div class="bg-slate-800/90 p-3 rounded-xl border border-slate-700 space-y-2.5">
+                            <div class="flex items-center justify-between flex-wrap gap-2">
+                                <label class="text-xs text-emerald-400 font-semibold flex items-center gap-1.5">
+                                    <i data-lucide="shield" class="w-3.5 h-3.5"></i> กำหนดสิทธิ์แต่ละฟอร์ม
+                                </label>
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="text-[11px] text-slate-400">เลือกด่วนตามตำแหน่ง:</span>
+                                    <button type="button" onclick="applyAddUserRolePreset('admin')" class="px-2 py-0.5 rounded text-[11px] font-medium bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all">Admin</button>
+                                    <button type="button" onclick="applyAddUserRolePreset('manager')" class="px-2 py-0.5 rounded text-[11px] font-medium bg-blue-500/20 text-blue-300 border border-blue-500/40 hover:bg-blue-500/30 transition-all">ผู้จัดการ</button>
+                                    <button type="button" onclick="applyAddUserRolePreset('accountant')" class="px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all">บัญชี</button>
+                                    <button type="button" onclick="applyAddUserRolePreset('viewer')" class="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600 transition-all">ดูอย่างเดียว</button>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                <!-- Map Perms -->
+                                <div class="p-2.5 bg-slate-700/60 rounded-lg border border-slate-600/70">
+                                    <div class="font-semibold text-slate-200 mb-1.5 flex items-center gap-1.5">
+                                        <i data-lucide="map" class="w-3.5 h-3.5 text-cyan-400"></i> หน้าแผนผัง
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-300">
+                                            <input type="checkbox" id="perm-new-map-add" class="accent-emerald-500"> <span>เพิ่ม</span>
+                                        </label>
+                                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-300">
+                                            <input type="checkbox" id="perm-new-map-edit" class="accent-emerald-500"> <span>แก้ไข</span>
+                                        </label>
+                                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-300">
+                                            <input type="checkbox" id="perm-new-map-delete" class="accent-emerald-500"> <span>ลบ</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Device Perms -->
+                                <div class="p-2.5 bg-slate-700/60 rounded-lg border border-slate-600/70">
+                                    <div class="font-semibold text-slate-200 mb-1.5 flex items-center gap-1.5">
+                                        <i data-lucide="monitor" class="w-3.5 h-3.5 text-emerald-400"></i> หน้าจัดการอุปกรณ์
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-300">
+                                            <input type="checkbox" id="perm-new-device-add" class="accent-emerald-500"> <span>เพิ่ม</span>
+                                        </label>
+                                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-300">
+                                            <input type="checkbox" id="perm-new-device-edit" class="accent-emerald-500"> <span>แก้ไข</span>
+                                        </label>
+                                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-300">
+                                            <input type="checkbox" id="perm-new-device-delete" class="accent-emerald-500"> <span>ลบ</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label class="text-xs text-slate-400">ไซต์ / สาขาที่เข้าถึงได้ (เลือกได้หลายไซต์)</label>
-                            <select id="new-user-site" multiple size="4" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"></select>
-                            <p class="text-[10px] text-slate-500 mt-0.5">* ไม่เลือก = ดูได้ทุกไซต์</p>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <div>
+                                <label class="text-xs text-slate-400">แผนก (เลือกได้หลายแผนก)</label>
+                                <select id="new-user-dept" multiple size="3" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></select>
+                                <p class="text-[10px] text-slate-500 mt-0.5">กด Ctrl/Cmd เพื่อเลือกหลายแผนก</p>
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400">ไซต์ / สาขาที่เข้าถึงได้ (เลือกได้หลายไซต์)</label>
+                                <select id="new-user-site" multiple size="3" class="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500"></select>
+                                <p class="text-[10px] text-slate-500 mt-0.5">* ไม่เลือก = ดูได้ทุกไซต์</p>
+                            </div>
                         </div>
-                    </div>
-                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-medium transition-all mt-2">เพิ่มผู้ใช้</button>
-                </form>
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-medium transition-all shadow-md">เพิ่มผู้ใช้</button>
+                    </form>
+                </div>
             </div>
-            <button onclick="closeModal('modal-users')" class="w-full mt-3 bg-slate-600 hover:bg-slate-500 text-white py-2 rounded-lg text-sm font-medium transition-all">ปิด</button>
+            <div class="pt-3 border-t border-slate-700 shrink-0">
+                <button onclick="closeModal('modal-users')" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium transition-all">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Permissions Modal -->
+    <div id="modal-user-permissions" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay p-3">
+        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-md mx-auto border border-slate-700 shadow-2xl">
+            <h3 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+                <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i> สิทธิ์การใช้งานแต่ละฟอร์ม
+            </h3>
+            <p id="user-perms-name" class="text-xs text-slate-400 mb-3"></p>
+            <input type="hidden" id="user-perms-rec-id">
+
+            <!-- Presets -->
+            <div class="mb-4 p-2.5 bg-slate-750 rounded-xl border border-slate-700">
+                <span class="text-xs text-slate-300 font-medium block mb-1.5">เลือกสิทธิ์สำเร็จรูปตามตำแหน่ง:</span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <button type="button" onclick="applyEditUserRolePreset('admin')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all">
+                        👑 Admin
+                    </button>
+                    <button type="button" onclick="applyEditUserRolePreset('manager')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/40 hover:bg-blue-500/30 transition-all">
+                        💼 ผู้จัดการ
+                    </button>
+                    <button type="button" onclick="applyEditUserRolePreset('accountant')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all">
+                        📊 บัญชี
+                    </button>
+                    <button type="button" onclick="applyEditUserRolePreset('viewer')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600 transition-all">
+                        👀 ดูอย่างเดียว
+                    </button>
+                </div>
+                <div class="text-[11px] text-slate-400 mt-2 space-y-0.5">
+                    <div>• <strong class="text-amber-300">Admin</strong>: เพิ่ม/แก้ไข/ลบ หน้าแผนผัง & จัดการอุปกรณ์</div>
+                    <div>• <strong class="text-blue-300">ผู้จัดการ</strong>: เพิ่ม/แก้ไข หน้าจัดการอุปกรณ์</div>
+                    <div>• <strong class="text-emerald-300">บัญชี</strong>: เพิ่ม หน้าจัดการอุปกรณ์</div>
+                </div>
+            </div>
+
+            <!-- Permission Checkboxes -->
+            <div class="space-y-3 mb-5">
+                <!-- Map Form Perms -->
+                <div class="p-3 bg-slate-750 rounded-xl border border-slate-700">
+                    <div class="text-xs font-semibold text-slate-200 mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><i data-lucide="map" class="w-4 h-4 text-cyan-400"></i> หน้าแผนผัง</span>
+                        <span class="text-[10px] text-slate-500">Map Manager</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="flex items-center gap-2 p-2 bg-slate-700/60 rounded-lg cursor-pointer hover:bg-slate-700">
+                            <input type="checkbox" id="perm-edit-map-add" class="accent-emerald-500">
+                            <span class="text-xs text-slate-200">เพิ่ม</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2 bg-slate-700/60 rounded-lg cursor-pointer hover:bg-slate-700">
+                            <input type="checkbox" id="perm-edit-map-edit" class="accent-emerald-500">
+                            <span class="text-xs text-slate-200">แก้ไข</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2 bg-slate-700/60 rounded-lg cursor-pointer hover:bg-slate-700">
+                            <input type="checkbox" id="perm-edit-map-delete" class="accent-emerald-500">
+                            <span class="text-xs text-slate-200">ลบ</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Device Form Perms -->
+                <div class="p-3 bg-slate-750 rounded-xl border border-slate-700">
+                    <div class="text-xs font-semibold text-slate-200 mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><i data-lucide="monitor" class="w-4 h-4 text-emerald-400"></i> หน้าจัดการอุปกรณ์</span>
+                        <span class="text-[10px] text-slate-500">Device Manager</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="flex items-center gap-2 p-2 bg-slate-700/60 rounded-lg cursor-pointer hover:bg-slate-700">
+                            <input type="checkbox" id="perm-edit-device-add" class="accent-emerald-500">
+                            <span class="text-xs text-slate-200">เพิ่ม</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2 bg-slate-700/60 rounded-lg cursor-pointer hover:bg-slate-700">
+                            <input type="checkbox" id="perm-edit-device-edit" class="accent-emerald-500">
+                            <span class="text-xs text-slate-200">แก้ไข</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2 bg-slate-700/60 rounded-lg cursor-pointer hover:bg-slate-700">
+                            <input type="checkbox" id="perm-edit-device-delete" class="accent-emerald-500">
+                            <span class="text-xs text-slate-200">ลบ</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="saveUserPermissions()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-medium transition-all shadow-md">บันทึกสิทธิ์</button>
+                <button onclick="closeModal('modal-user-permissions')" class="flex-1 bg-slate-600 hover:bg-slate-500 text-white py-2 rounded-lg text-sm font-medium transition-all">ยกเลิก</button>
+            </div>
         </div>
     </div>
 
@@ -2645,6 +2801,123 @@
             return data;
         }
 
+        // ─── PERMISSION SYSTEM (FORM & ACTION BASED) ───
+        const DEFAULT_PERMISSIONS = {
+            map: { add: false, edit: false, delete: false },
+            device: { add: false, edit: false, delete: false }
+        };
+
+        const ROLE_PRESETS = {
+            admin: {
+                map: { add: true, edit: true, delete: true },
+                device: { add: true, edit: true, delete: true }
+            },
+            manager: {
+                map: { add: false, edit: false, delete: false },
+                device: { add: true, edit: true, delete: false }
+            },
+            accountant: {
+                map: { add: false, edit: false, delete: false },
+                device: { add: true, edit: false, delete: false }
+            },
+            viewer: {
+                map: { add: false, edit: false, delete: false },
+                device: { add: false, edit: false, delete: false }
+            }
+        };
+
+        function parseUserPermissions(val, isAdmin = false) {
+            if (isAdmin) {
+                return JSON.parse(JSON.stringify(ROLE_PRESETS.admin));
+            }
+            const perms = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS));
+            if (!val) return perms;
+            const str = String(val).trim();
+            if (str.startsWith('perm:')) {
+                try {
+                    const parsed = JSON.parse(str.slice(5));
+                    if (parsed.map) {
+                        perms.map.add = !!parsed.map.add || (Array.isArray(parsed.map) && parsed.map.includes('add'));
+                        perms.map.edit = !!parsed.map.edit || (Array.isArray(parsed.map) && parsed.map.includes('edit'));
+                        perms.map.delete = !!parsed.map.delete || (Array.isArray(parsed.map) && parsed.map.includes('delete'));
+                    }
+                    if (parsed.device) {
+                        perms.device.add = !!parsed.device.add || (Array.isArray(parsed.device) && parsed.device.includes('add'));
+                        perms.device.edit = !!parsed.device.edit || (Array.isArray(parsed.device) && parsed.device.includes('edit'));
+                        perms.device.delete = !!parsed.device.delete || (Array.isArray(parsed.device) && parsed.device.includes('delete'));
+                    }
+                    return perms;
+                } catch (e) {
+                    console.warn('Failed to parse permission string:', e);
+                }
+            }
+            return perms;
+        }
+
+        function stringifyUserPermissions(perms) {
+            return 'perm:' + JSON.stringify(perms);
+        }
+
+        function hasUserPermission(form, action) {
+            if (!currentUser) return false;
+            if (currentUser.isAdmin) return true;
+            if (currentUser.permissions && currentUser.permissions[form]) {
+                return !!currentUser.permissions[form][action];
+            }
+            return false;
+        }
+
+        function updateAdminMenuUI() {
+            if (!currentUser) return;
+            const adminBtn = document.getElementById('admin-menu-btn');
+            const adminLabel = document.getElementById('admin-menu-label');
+            const sideAdminBtn = document.getElementById('sidebar-admin-dev-btn');
+
+            const canDevice = hasUserPermission('device', 'add') || hasUserPermission('device', 'edit') || hasUserPermission('device', 'delete');
+            const canMap = hasUserPermission('map', 'add') || hasUserPermission('map', 'edit') || hasUserPermission('map', 'delete');
+            const hasAnyManagement = currentUser.isAdmin || canDevice || canMap;
+
+            if (adminBtn) {
+                if (hasAnyManagement) {
+                    adminBtn.classList.remove('hidden');
+                    adminBtn.classList.add('flex');
+                    if (adminLabel) {
+                        adminLabel.textContent = currentUser.isAdmin ? 'Admin' : 'จัดการ';
+                    }
+                } else {
+                    adminBtn.classList.add('hidden');
+                    adminBtn.classList.remove('flex');
+                }
+            }
+
+            if (sideAdminBtn) {
+                if (currentUser.isAdmin || canDevice) {
+                    sideAdminBtn.classList.remove('hidden');
+                } else {
+                    sideAdminBtn.classList.add('hidden');
+                }
+            }
+
+            // Menu Items Visibility
+            const btnDev = document.getElementById('admin-menu-dev-btn');
+            const btnAddDev = document.getElementById('admin-menu-add-dev-btn');
+            const btnMaint = document.getElementById('admin-menu-maint-btn');
+            const btnGroup = document.getElementById('admin-menu-group-btn');
+            const btnType = document.getElementById('admin-menu-type-btn');
+            const btnMap = document.getElementById('admin-menu-map-btn');
+            const btnUser = document.getElementById('admin-menu-user-btn');
+            const btnDb = document.getElementById('admin-menu-db-btn');
+
+            if (btnDev) btnDev.style.display = (currentUser.isAdmin || canDevice) ? '' : 'none';
+            if (btnAddDev) btnAddDev.style.display = (currentUser.isAdmin || hasUserPermission('device', 'add')) ? '' : 'none';
+            if (btnMaint) btnMaint.style.display = currentUser.isAdmin ? '' : 'none';
+            if (btnGroup) btnGroup.style.display = currentUser.isAdmin ? '' : 'none';
+            if (btnType) btnType.style.display = currentUser.isAdmin ? '' : 'none';
+            if (btnMap) btnMap.style.display = (currentUser.isAdmin || canMap) ? '' : 'none';
+            if (btnUser) btnUser.style.display = currentUser.isAdmin ? '' : 'none';
+            if (btnDb) btnDb.style.display = currentUser.isAdmin ? '' : 'none';
+        }
+
         // ─── LOGIN ───
         async function handleLogin(e) {
             e.preventDefault();
@@ -2660,13 +2933,15 @@
                     const user = sanitizeFields(records[0].fields || {});
                     const userName = user.Name || user.name || user.username || username;
                     const depts = parseDepartments(user.department);
+                    const isAdmin = depts.includes('admin') || (userName || '').toLowerCase() === 'admin';
                     currentUser = {
                         name: userName,
                         department: user.department || '',
                         departments: depts,
                         site: user.site || '',
                         sites: parseSites(user.site),
-                        isAdmin: depts.includes('admin') || (userName || '').toLowerCase() === 'admin',
+                        isAdmin: isAdmin,
+                        permissions: parseUserPermissions(user.camera_user, isAdmin),
                         allowedMaps: parseMapUser(user.map_user),
                         extraCameras: parseCameraUser(user.camera_user)
                     };
@@ -2674,20 +2949,20 @@
                     document.getElementById('app').classList.remove('hidden');
                     document.getElementById('user-display').textContent = currentUser.name;
                     const siteText = currentUser.sites.length ? ` [ไซต์: ${currentUser.sites.join(', ')}]` : '';
-                    document.getElementById('dept-display').textContent = (currentUser.isAdmin ? '(Admin)'
-                        : `(${currentUser.departments.join(', ')}${currentUser.extraCameras.length ? ` +${currentUser.extraCameras.length} อุปกรณ์นอกแผนก` : ''})`) + siteText;
                     
-                    const adminBtn = document.getElementById('admin-menu-btn');
-                    const sideAdminBtn = document.getElementById('sidebar-admin-dev-btn');
+                    let roleBadgeText = '';
                     if (currentUser.isAdmin) {
-                        adminBtn.classList.remove('hidden');
-                        adminBtn.classList.add('flex');
-                        if (sideAdminBtn) sideAdminBtn.classList.remove('hidden');
+                        roleBadgeText = '(Admin)';
+                    } else if (hasUserPermission('device', 'edit') && hasUserPermission('device', 'add')) {
+                        roleBadgeText = '(ผู้จัดการ)';
+                    } else if (hasUserPermission('device', 'add')) {
+                        roleBadgeText = '(บัญชี)';
                     } else {
-                        adminBtn.classList.add('hidden');
-                        adminBtn.classList.remove('flex');
-                        if (sideAdminBtn) sideAdminBtn.classList.add('hidden');
+                        roleBadgeText = `(${currentUser.departments.join(', ')}${currentUser.extraCameras.length ? ` +${currentUser.extraCameras.length} อุปกรณ์นอกแผนก` : ''})`;
                     }
+                    document.getElementById('dept-display').textContent = roleBadgeText + siteText;
+
+                    updateAdminMenuUI();
                     await initializeApp();
                 } else {
                     errorEl.textContent = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
@@ -3884,6 +4159,8 @@
             overlay.innerHTML = '';
             const filtered = getFilteredCameras();
             const isAdmin = currentUser && currentUser.isAdmin;
+            const canAddDev = hasUserPermission('device', 'add');
+            const canEditDev = hasUserPermission('device', 'edit');
 
             // Notice if no devices exist at all
             if (!cameras || cameras.length === 0) {
@@ -3891,7 +4168,7 @@
                 noticeDiv.className = 'absolute top-3 left-3 z-30 bg-slate-900/90 text-slate-200 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs flex items-center gap-2.5 shadow-xl backdrop-blur-sm pointer-events-auto';
                 noticeDiv.innerHTML = `
                     <i data-lucide="info" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-                    <span>ยังไม่มีอุปกรณ์บนแผนผังนี้ ${isAdmin ? '<button type="button" onclick="openAddCamera()" class="ml-1 text-emerald-400 hover:text-emerald-300 font-semibold underline underline-offset-2 cursor-pointer">+ เพิ่มอุปกรณ์</button>' : ''}</span>
+                    <span>ยังไม่มีอุปกรณ์บนแผนผังนี้ ${canAddDev ? '<button type="button" onclick="openAddCamera()" class="ml-1 text-emerald-400 hover:text-emerald-300 font-semibold underline underline-offset-2 cursor-pointer">+ เพิ่มอุปกรณ์</button>' : ''}</span>
                 `;
                 overlay.appendChild(noticeDiv);
                 if (window.lucide) lucide.createIcons();
@@ -3905,7 +4182,7 @@
                 alertDiv.className = 'absolute top-3 left-3 z-30 bg-amber-950/90 text-amber-200 border border-amber-500/70 rounded-xl px-3 py-2 text-xs flex items-center gap-2 shadow-xl backdrop-blur-sm pointer-events-auto';
                 alertDiv.innerHTML = `
                     <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 shrink-0"></i>
-                    <span>มีอุปกรณ์ ${unplacedCount} เครื่องที่ยังไม่ได้วางตำแหน่งบนผัง ${isAdmin ? '(คลิกลากจากแถบด้านซ้ายมาวางบนผังได้เลย)' : ''}</span>
+                    <span>มีอุปกรณ์ ${unplacedCount} เครื่องที่ยังไม่ได้วางตำแหน่งบนผัง ${canEditDev ? '(คลิกลากจากแถบด้านซ้ายมาวางบนผังได้เลย)' : ''}</span>
                 `;
                 overlay.appendChild(alertDiv);
             }
@@ -3933,7 +4210,7 @@
                 `;
                 
                 dot.onclick = () => showCameraDetail(cam);
-                if (isAdmin) {
+                if (canEditDev) {
                     dot.draggable = true;
                     dot.style.cursor = 'grab';
                     dot.ondragstart = () => { dragTarget = cam; dot.classList.add('dragging'); };
@@ -3947,7 +4224,7 @@
                 container.ondragover = (e) => e.preventDefault();
                 container.ondrop = async (e) => {
                     e.preventDefault();
-                    if (!dragTarget || !currentUser || !currentUser.isAdmin) return;
+                    if (!dragTarget || !hasUserPermission('device', 'edit')) return;
                     const rect = container.getBoundingClientRect();
                     const x = Math.round(((e.clientX - rect.left) / rect.width) * 10000) / 100;
                     const y = Math.round(((e.clientY - rect.top) / rect.height) * 10000) / 100;
@@ -3997,7 +4274,9 @@
         function renderCameraList() {
             const list = document.getElementById('camera-list');
             const filtered = getFilteredCameras().slice().sort(compareCameraNames);
-            const isAdmin = currentUser && currentUser.isAdmin;
+            const canAddDev = hasUserPermission('device', 'add');
+            const canEditDev = hasUserPermission('device', 'edit');
+            const canDeleteDev = hasUserPermission('device', 'delete');
             list.innerHTML = '';
             
             if (filtered.length === 0) {
@@ -4007,7 +4286,7 @@
                             <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 text-slate-500"></i>
                             <p class="text-xs font-semibold text-slate-200">ยังไม่มีข้อมูลอุปกรณ์ในระบบ</p>
                             <p class="text-[11px] text-slate-400 mt-1">ฐานข้อมูล Airtable พร้อมใช้งาน</p>
-                            ${isAdmin ? '<button type="button" onclick="openAddCamera()" class="mt-3 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium inline-flex items-center gap-1 shadow-md shadow-emerald-900/30 transition-all cursor-pointer"><i data-lucide="plus" class="w-3.5 h-3.5"></i> เพิ่มอุปกรณ์เครื่องแรก</button>' : ''}
+                            ${canAddDev ? '<button type="button" onclick="openAddCamera()" class="mt-3 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium inline-flex items-center gap-1 shadow-md shadow-emerald-900/30 transition-all cursor-pointer"><i data-lucide="plus" class="w-3.5 h-3.5"></i> เพิ่มอุปกรณ์เครื่องแรก</button>' : ''}
                         </div>
                     `;
                     if (window.lucide) lucide.createIcons();
@@ -4050,10 +4329,12 @@
                     <button onclick="event.stopPropagation(); toggleBookmark('${cam.id}')" class="p-1.5 rounded-lg hover:bg-slate-700 ${isBookmarked ? 'text-amber-400' : 'text-slate-500 hover:text-amber-400'}" title="${isBookmarked ? 'เอาออกจากหมุด' : 'ปักหมุดดูภาพถ่าย'}">
                         <i data-lucide="bookmark" class="w-4 h-4" ${isBookmarked ? 'fill="currentColor"' : ''}></i>
                     </button>
-                    ${isAdmin ? `
+                    ${canEditDev ? `
                         <button onclick="event.stopPropagation(); openEditDevice('${cam._recordId}')" class="text-slate-400 hover:text-emerald-400 p-1 rounded hover:bg-slate-700" title="แก้ไข">
                             <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                         </button>
+                    ` : ''}
+                    ${canDeleteDev ? `
                         <button onclick="event.stopPropagation(); requestDelete('${cam._recordId}','device')" class="text-slate-400 hover:text-red-400 p-1 rounded hover:bg-slate-700" title="ลบ">
                             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                         </button>
@@ -4066,7 +4347,7 @@
                     showCameraDetail(cam);
                 };
 
-                if (isAdmin) {
+                if (canEditDev) {
                     div.draggable = true;
                     div.style.cursor = 'grab';
                     div.ondragstart = () => { dragTarget = cam; div.classList.add('opacity-50'); };
@@ -4565,12 +4846,13 @@
             const content = document.getElementById('detail-content');
             const gColor = getGroupColor(cam.group);
             const isAdmin = currentUser && currentUser.isAdmin;
+            const canEditDevice = isAdmin || hasUserPermission('device', 'edit');
             const devType = getDeviceType(cam.type);
             const devCategory = getDeviceCategory(cam);
             const devLicense = cam.license_type || 'volume';
             const iconName = getDeviceIconName(cam.type);
             const imageHtml = getDeviceImageHtml(cam);
-            const maintHtml = getDeviceMaintenanceHtml(cam, isAdmin);
+            const maintHtml = getDeviceMaintenanceHtml(cam, canEditDevice);
             const displayName = (cam.asset_name || cam.eng_name || cam.asset_code || cam.id) + (cam.holder || cam.thai_name ? ' - ' + (cam.holder || cam.thai_name) : '');
             const currentMapLabel = maps.find(m => String(m.map_id) === String(cam.map_id) || String(m._recordId) === String(cam.map_id));
             const mapLabel = currentMapLabel ? (currentMapLabel.map_name || `แผนผัง ${currentMapLabel.map_id}`) : (cam.map_id || '');
@@ -4588,7 +4870,7 @@
                 if (!resolvedPrice && pRec) resolvedPrice = pRec.cost || '';
             }
 
-            if (isAdmin) {
+            if (canEditDevice) {
                 let deptOpts = sortNatural(departments).map(d => `<option value="${d}" ${cam.department === d ? 'selected' : ''}>${d}</option>`).join('');
                 let siteOpts = sortNatural(sites).map(s => `<option value="${s}" ${cam.site === s ? 'selected' : ''}>${s}</option>`).join('');
                 let mapOpts = sortNatural(maps, m => m.map_name || m.map_id).map(m => `<option value="${m.map_id}" ${(String(m.map_id) === String(cam.map_id) || String(m._recordId) === String(cam.map_id)) ? 'selected' : ''}>${m.map_name || 'แผนผัง ' + m.map_id}</option>`).join('');
@@ -4956,6 +5238,10 @@
 
         async function saveDetailEdit(e, recordId) {
             e.preventDefault();
+            if (!hasUserPermission('device', 'edit')) {
+                showToastNotification('คุณไม่มีสิทธิ์แก้ไขอุปกรณ์ไอที', 'error');
+                return;
+            }
             const imageUrl = document.getElementById('detail-image-url').value.trim();
             const assetCode = document.getElementById('detail-id').value.trim();
             const assetName = document.getElementById('detail-eng-name').value.trim();
@@ -5144,6 +5430,10 @@
 
         // ─── ADD/EDIT DEVICE ───
         function openAddDevice() {
+            if (!hasUserPermission('device', 'add')) {
+                showToastNotification('คุณไม่มีสิทธิ์เพิ่มอุปกรณ์ไอที', 'error');
+                return;
+            }
             populateAllTypeAndLicenseSelects();
             document.getElementById('modal-camera-title').innerHTML = '<i data-lucide="plus-circle" class="w-5 h-5 text-emerald-400"></i><span>เพิ่มอุปกรณ์ไอที</span>';
             document.getElementById('cam-edit-rec-id').value = '';
@@ -5164,6 +5454,10 @@
         const openAddCamera = openAddDevice;
 
         function openEditDevice(recordId) {
+            if (!hasUserPermission('device', 'edit')) {
+                showToastNotification('คุณไม่มีสิทธิ์แก้ไขอุปกรณ์ไอที', 'error');
+                return;
+            }
             const cam = cameras.find(c => String(c._recordId) === String(recordId));
             if (!cam) return;
             populateAllTypeAndLicenseSelects();
@@ -5323,6 +5617,14 @@
         async function saveCamera(e) {
             e.preventDefault();
             const recordId = document.getElementById('cam-edit-rec-id').value;
+            if (recordId && !hasUserPermission('device', 'edit')) {
+                showToastNotification('คุณไม่มีสิทธิ์แก้ไขอุปกรณ์ไอที', 'error');
+                return;
+            }
+            if (!recordId && !hasUserPermission('device', 'add')) {
+                showToastNotification('คุณไม่มีสิทธิ์เพิ่มอุปกรณ์ไอที', 'error');
+                return;
+            }
             const imageUrl = document.getElementById('cam-image-url').value.trim();
             const assetCode = document.getElementById('cam-id').value.trim();
             if (!assetCode) {
@@ -5508,6 +5810,18 @@
 
         // ─── DELETE ───
         function requestDelete(recordId, type) {
+            if ((type === 'device' || type === 'camera') && !hasUserPermission('device', 'delete')) {
+                showToastNotification('คุณไม่มีสิทธิ์ลบอุปกรณ์ไอที', 'error');
+                return;
+            }
+            if (type === 'map' && !hasUserPermission('map', 'delete')) {
+                showToastNotification('คุณไม่มีสิทธิ์ลบแผนผัง', 'error');
+                return;
+            }
+            if ((type === 'user' || type === 'department') && (!currentUser || !currentUser.isAdmin)) {
+                showToastNotification('เฉพาะ Admin เท่านั้นที่มีสิทธิ์ลบส่วนนี้', 'error');
+                return;
+            }
             deleteTargetId = recordId;
             deleteTargetType = type;
             let label = recordId;
@@ -5533,6 +5847,21 @@
 
         async function confirmDelete() {
             if (!deleteTargetId) { closeModal('modal-delete'); return; }
+            if ((deleteTargetType === 'device' || deleteTargetType === 'camera') && !hasUserPermission('device', 'delete')) {
+                showToastNotification('คุณไม่มีสิทธิ์ลบอุปกรณ์ไอที', 'error');
+                closeModal('modal-delete');
+                return;
+            }
+            if (deleteTargetType === 'map' && !hasUserPermission('map', 'delete')) {
+                showToastNotification('คุณไม่มีสิทธิ์ลบแผนผัง', 'error');
+                closeModal('modal-delete');
+                return;
+            }
+            if ((deleteTargetType === 'user' || deleteTargetType === 'department') && (!currentUser || !currentUser.isAdmin)) {
+                showToastNotification('เฉพาะ Admin เท่านั้นที่มีสิทธิ์ลบส่วนนี้', 'error');
+                closeModal('modal-delete');
+                return;
+            }
             try {
                 const actualTable = (deleteTargetType === 'device' || deleteTargetType === 'camera') ? 'device' : deleteTargetType;
                 await apiDelete(actualTable, deleteTargetId);
@@ -5609,36 +5938,167 @@
             openModal('modal-users');
         }
 
+        function applyAddUserRolePreset(roleKey) {
+            const preset = ROLE_PRESETS[roleKey];
+            if (!preset) return;
+            const mapAdd = document.getElementById('perm-new-map-add');
+            const mapEdit = document.getElementById('perm-new-map-edit');
+            const mapDelete = document.getElementById('perm-new-map-delete');
+            const devAdd = document.getElementById('perm-new-device-add');
+            const devEdit = document.getElementById('perm-new-device-edit');
+            const devDelete = document.getElementById('perm-new-device-delete');
+
+            if (mapAdd) mapAdd.checked = preset.map.add;
+            if (mapEdit) mapEdit.checked = preset.map.edit;
+            if (mapDelete) mapDelete.checked = preset.map.delete;
+            if (devAdd) devAdd.checked = preset.device.add;
+            if (devEdit) devEdit.checked = preset.device.edit;
+            if (devDelete) devDelete.checked = preset.device.delete;
+        }
+
+        function applyEditUserRolePreset(roleKey) {
+            const preset = ROLE_PRESETS[roleKey];
+            if (!preset) return;
+            const mapAdd = document.getElementById('perm-edit-map-add');
+            const mapEdit = document.getElementById('perm-edit-map-edit');
+            const mapDelete = document.getElementById('perm-edit-map-delete');
+            const devAdd = document.getElementById('perm-edit-device-add');
+            const devEdit = document.getElementById('perm-edit-device-edit');
+            const devDelete = document.getElementById('perm-edit-device-delete');
+
+            if (mapAdd) mapAdd.checked = preset.map.add;
+            if (mapEdit) mapEdit.checked = preset.map.edit;
+            if (mapDelete) mapDelete.checked = preset.map.delete;
+            if (devAdd) devAdd.checked = preset.device.add;
+            if (devEdit) devEdit.checked = preset.device.edit;
+            if (devDelete) devDelete.checked = preset.device.delete;
+        }
+
         function renderUsersList() {
             const list = document.getElementById('users-list');
             list.innerHTML = '';
             allUsers.forEach(u => {
                 const div = document.createElement('div');
                 div.className = 'flex items-center gap-3 p-3 bg-slate-700 rounded-xl';
-                const extras = parseCameraUser(u.camera_user);
                 const depts = parseDepartments(u.department);
+                const isAdmin = depts.includes('admin') || (u.name || '').toLowerCase() === 'admin';
+                const perms = parseUserPermissions(u.camera_user, isAdmin);
                 const userMaps = parseMapUser(u.map_user);
                 const userSites = parseSites(u.site);
                 const mapNames = userMaps.length ? maps.filter(m => userMaps.includes(String(m.map_id))).map(m => m.map_name || ('แผนผัง ' + m.map_id)).join(', ') : 'ทุกแผนผัง';
                 const siteNames = userSites.length ? userSites.join(', ') : 'ทุกไซต์';
+
+                // Format Permission Badges
+                const mapPermList = [];
+                if (perms.map.add) mapPermList.push('เพิ่ม');
+                if (perms.map.edit) mapPermList.push('แก้ไข');
+                if (perms.map.delete) mapPermList.push('ลบ');
+
+                const devPermList = [];
+                if (perms.device.add) devPermList.push('เพิ่ม');
+                if (perms.device.edit) devPermList.push('แก้ไข');
+                if (perms.device.delete) devPermList.push('ลบ');
+
+                const permMapText = mapPermList.length ? `ผัง: ${mapPermList.join('/')}` : 'ผัง: ดู';
+                const permDevText = devPermList.length ? `อุปกรณ์: ${devPermList.join('/')}` : 'อุปกรณ์: ดู';
+
+                let roleBadge = '';
+                if (isAdmin) {
+                    roleBadge = '<span class="text-[10px] bg-amber-950/80 text-amber-300 border border-amber-700/60 px-1.5 py-0.2 rounded font-medium">👑 Admin</span>';
+                } else if (perms.device.edit && perms.device.add) {
+                    roleBadge = '<span class="text-[10px] bg-blue-950/80 text-blue-300 border border-blue-700/60 px-1.5 py-0.2 rounded font-medium">💼 ผู้จัดการ</span>';
+                } else if (perms.device.add) {
+                    roleBadge = '<span class="text-[10px] bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 px-1.5 py-0.2 rounded font-medium">📊 บัญชี</span>';
+                } else {
+                    roleBadge = '<span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.2 rounded font-normal">👀 ผู้ใช้ทั่วไป</span>';
+                }
+
                 div.innerHTML = `
                     <div class="flex-1 min-w-0">
-                        <div class="text-sm font-semibold text-white flex items-center gap-2">
+                        <div class="text-sm font-semibold text-white flex items-center gap-2 flex-wrap">
                             <span>${u.name}</span>
+                            ${roleBadge}
                             ${u.site ? `<span class="text-[10px] bg-cyan-900/60 text-cyan-300 border border-cyan-700/50 px-1.5 py-0.2 rounded font-normal">🏢 ${siteNames}</span>` : '<span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.2 rounded font-normal">🏢 ทุกไซต์</span>'}
                         </div>
-                        <div class="text-xs text-slate-300 truncate" title="แผนก: ${depts.join(', ')}">แผนก: ${depts.join(', ') || '-'}</div>
-                        <div class="text-[11px] text-emerald-400 truncate">🗺️ แผนผัง: ${mapNames}</div>
-                        ${extras.length ? `<div class="text-[11px] text-amber-400 truncate">+ อุปกรณ์นอกแผนก: ${extras.join(', ')}</div>` : ''}
+                        <div class="text-xs text-slate-300 truncate mt-0.5" title="แผนก: ${depts.join(', ')}">แผนก: ${depts.join(', ') || '-'}</div>
+                        <div class="text-[11px] text-emerald-400 truncate mt-0.5">🗺️ แผนผัง: ${mapNames}</div>
+                        <div class="flex items-center gap-1.5 mt-1 text-[11px] flex-wrap">
+                            <span class="bg-slate-800 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-900/40">🗺️ ${permMapText}</span>
+                            <span class="bg-slate-800 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-900/40">💻 ${permDevText}</span>
+                        </div>
                     </div>
-                    <button onclick="editUserDepartments('${u._recordId}','${u.name}')" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded transition-all">แผนก</button>
-                    <button onclick="editUserSites('${u._recordId}','${u.name}')" class="text-xs bg-cyan-700/80 hover:bg-cyan-600 text-white px-2 py-1 rounded transition-all">ไซต์</button>
-                    <button onclick="editUserMaps('${u._recordId}','${u.name}')" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded transition-all">แผนผัง</button>
-                    <button onclick="changePassword('${u._recordId}','${u.name}')" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded transition-all">รหัสผ่าน</button>
-                    <button onclick="requestDelete('${u._recordId}','user')" class="text-xs bg-red-600/80 hover:bg-red-500 text-white px-2 py-1 rounded transition-all">ลบ</button>
+                    <div class="flex flex-col sm:flex-row items-end sm:items-center gap-1 shrink-0">
+                        <button onclick="editUserPermissions('${u._recordId}','${u.name}')" class="text-xs bg-emerald-700/80 hover:bg-emerald-600 text-white px-2 py-1 rounded transition-all flex items-center gap-1" title="สิทธิ์การใช้งานแต่ละฟอร์ม">
+                            <i data-lucide="shield" class="w-3 h-3"></i> สิทธิ์ฟอร์ม
+                        </button>
+                        <button onclick="editUserDepartments('${u._recordId}','${u.name}')" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded transition-all">แผนก</button>
+                        <button onclick="editUserSites('${u._recordId}','${u.name}')" class="text-xs bg-cyan-700/80 hover:bg-cyan-600 text-white px-2 py-1 rounded transition-all">ไซต์</button>
+                        <button onclick="editUserMaps('${u._recordId}','${u.name}')" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded transition-all">แผนผัง</button>
+                        <button onclick="changePassword('${u._recordId}','${u.name}')" class="text-xs bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded transition-all">รหัสผ่าน</button>
+                        <button onclick="requestDelete('${u._recordId}','user')" class="text-xs bg-red-600/80 hover:bg-red-500 text-white px-2 py-1 rounded transition-all">ลบ</button>
+                    </div>
                 `;
                 list.appendChild(div);
             });
+            if (window.lucide) lucide.createIcons({ root: list });
+        }
+
+        function editUserPermissions(recordId, userName) {
+            const u = allUsers.find(u => String(u._recordId) === String(recordId));
+            if (!u) return;
+            const depts = parseDepartments(u.department);
+            const isAdmin = depts.includes('admin') || (u.name || '').toLowerCase() === 'admin';
+            const perms = parseUserPermissions(u.camera_user, isAdmin);
+
+            document.getElementById('user-perms-rec-id').value = recordId;
+            document.getElementById('user-perms-name').textContent = `ผู้ใช้: ${userName} ${isAdmin ? '(เป็น Admin อยู่แล้ว - มีสิทธิ์ทุกฟอร์ม)' : ''}`;
+
+            document.getElementById('perm-edit-map-add').checked = perms.map.add;
+            document.getElementById('perm-edit-map-edit').checked = perms.map.edit;
+            document.getElementById('perm-edit-map-delete').checked = perms.map.delete;
+
+            document.getElementById('perm-edit-device-add').checked = perms.device.add;
+            document.getElementById('perm-edit-device-edit').checked = perms.device.edit;
+            document.getElementById('perm-edit-device-delete').checked = perms.device.delete;
+
+            openModal('modal-user-permissions');
+        }
+
+        async function saveUserPermissions() {
+            const recordId = document.getElementById('user-perms-rec-id').value;
+            const u = allUsers.find(u => String(u._recordId) === String(recordId));
+            if (!u) return;
+
+            const perms = {
+                map: {
+                    add: document.getElementById('perm-edit-map-add').checked,
+                    edit: document.getElementById('perm-edit-map-edit').checked,
+                    delete: document.getElementById('perm-edit-map-delete').checked
+                },
+                device: {
+                    add: document.getElementById('perm-edit-device-add').checked,
+                    edit: document.getElementById('perm-edit-device-edit').checked,
+                    delete: document.getElementById('perm-edit-device-delete').checked
+                }
+            };
+
+            const permString = stringifyUserPermissions(perms);
+            try {
+                await apiUpdate('user', recordId, { camera_user: permString });
+                await fetchAllUsers();
+                renderUsersList();
+                
+                // If editing self, update currentUser session live
+                if (currentUser && String(currentUser.name).toLowerCase() === String(u.name).toLowerCase()) {
+                    currentUser.permissions = perms;
+                    updateAdminMenuUI();
+                }
+
+                closeModal('modal-user-permissions');
+                showToastNotification('บันทึกสิทธิ์แต่ละฟอร์มเรียบร้อยแล้ว', 'success');
+            } catch (err) {
+                showToastNotification('เกิดข้อผิดพลาด: ' + err.message, 'error');
+            }
         }
 
         async function addUser(e) {
@@ -5650,14 +6110,36 @@
             const pickedSites = siteSel ? Array.from(siteSel.selectedOptions).map(o => o.value).filter(Boolean) : [];
             if (!name || !pass) return;
             if (depts.length === 0) { showToastNotification('กรุณาเลือกแผนกอย่างน้อย 1 แผนก', 'error'); return; }
+
+            const perms = {
+                map: {
+                    add: document.getElementById('perm-new-map-add')?.checked || false,
+                    edit: document.getElementById('perm-new-map-edit')?.checked || false,
+                    delete: document.getElementById('perm-new-map-delete')?.checked || false
+                },
+                device: {
+                    add: document.getElementById('perm-new-device-add')?.checked || false,
+                    edit: document.getElementById('perm-new-device-edit')?.checked || false,
+                    delete: document.getElementById('perm-new-device-delete')?.checked || false
+                }
+            };
+            const permString = stringifyUserPermissions(perms);
+
             try {
-                const payload = { Name: name, password: pass, department: depts.join(',') };
-                if (pickedSites.length > 0) payload.site = pickedSites.join(',') ;
+                const payload = { 
+                    Name: name, 
+                    password: pass, 
+                    department: depts.join(','),
+                    camera_user: permString
+                };
+                if (pickedSites.length > 0) payload.site = pickedSites.join(',');
                 await apiCreate('user', payload);
                 document.getElementById('add-user-form').reset();
+                // Reset checkboxes to default
+                applyAddUserRolePreset('viewer');
                 await fetchAllUsers();
                 renderUsersList();
-                showToastNotification('เพิ่มผู้ใช้เรียบร้อยแล้ว', 'success');
+                showToastNotification('เพิ่มผู้ใช้และกำหนดสิทธิ์เรียบร้อยแล้ว', 'success');
             } catch (err) { showToastNotification('เกิดข้อผิดพลาด: ' + err.message, 'error'); }
         }
 
@@ -5846,6 +6328,14 @@
         function openDeviceManager() {
             populateDeviceManagerFilters();
             renderDeviceManagerList();
+            const addBtn = document.getElementById('dev-mgr-add-btn');
+            if (addBtn) {
+                if (hasUserPermission('device', 'add')) {
+                    addBtn.classList.remove('hidden');
+                } else {
+                    addBtn.classList.add('hidden');
+                }
+            }
             openModal('modal-devices');
             if (window.lucide) lucide.createIcons();
         }
@@ -5994,6 +6484,9 @@
                 return;
             }
 
+            const canEditDev = hasUserPermission('device', 'edit');
+            const canDeleteDev = hasUserPermission('device', 'delete');
+
             tbody.innerHTML = list.map(c => {
                 const uniqueKey = getDeviceUniqueKey(c);
                 const isChecked = selectedDeviceKeys.has(uniqueKey);
@@ -6012,7 +6505,7 @@
                     `<option value="${escapeHtml(d)}" style="background-color: #1e293b; color: #f8fafc;" ${d === currentDept ? 'selected' : ''}>${escapeHtml(d)}</option>`
                 ).join('');
 
-                const deptSelectHtml = `
+                const deptSelectHtml = canEditDev ? `
                     <select onchange="quickUpdateDeviceDepartment('${c._recordId}', this.value, this)" 
                             style="background-color: #1e293b; color: #f8fafc;"
                             class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs rounded-lg px-2.5 py-1.5 border border-slate-600 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors w-full min-w-[125px] max-w-[170px] truncate cursor-pointer font-medium shadow-sm" 
@@ -6020,11 +6513,13 @@
                         <option value="" style="background-color: #1e293b; color: #94a3b8;">-- ไม่ระบุ --</option>
                         ${deptOptionsHtml}
                     </select>
+                ` : `
+                    <span class="inline-block px-2 py-1 rounded bg-slate-800/80 text-slate-200 text-xs font-medium">${escapeHtml(currentDept || 'ไม่ระบุ')}</span>
                 `;
 
                 const st = (c.status || 'Active').toLowerCase();
                 const isRetiredOrInactive = st === 'retired' || st === 'inactive';
-                const statusSelectHtml = `
+                const statusSelectHtml = canEditDev ? `
                     <select onchange="quickUpdateDeviceStatus('${c._recordId}', this.value, this)" 
                             class="text-xs font-semibold rounded-lg px-2.5 py-1.5 border focus:outline-none focus:ring-1 focus:ring-emerald-400 transition-all cursor-pointer shadow-sm text-center min-w-[145px] ${getStatusBadgeClasses(c.status)}" 
                             title="คลิกเพื่อเปลี่ยนสถานะทันที">
@@ -6033,6 +6528,8 @@
                         <option value="Repair" class="bg-slate-800 text-blue-400 font-medium" ${st === 'repair' ? 'selected' : ''}>ซ่อมบำรุง (Repair)</option>
                         <option value="Retired" class="bg-slate-800 text-red-400 font-medium" ${isRetiredOrInactive ? 'selected' : ''}>จำหน่ายออก (Retired)</option>
                     </select>
+                ` : `
+                    <span class="inline-block text-xs font-semibold rounded-lg px-2.5 py-1.5 border text-center min-w-[100px] ${getStatusBadgeClasses(c.status)}">${c.status || 'Active'}</span>
                 `;
 
                 const brandModel = [c.brand, c.model].filter(Boolean).join(' ') || '';
@@ -6127,12 +6624,16 @@
                                 <button onclick="openAssetQrCode('${c._recordId || c.id}')" class="p-1.5 rounded-lg bg-slate-700 hover:bg-emerald-600 text-emerald-400 hover:text-white transition-all shrink-0" title="QR Code ป้ายทรัพย์สิน">
                                     <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
                                 </button>
-                                <button onclick="openEditDevice('${c._recordId}')" class="p-1.5 rounded-lg bg-slate-700 hover:bg-emerald-600 text-slate-300 hover:text-white transition-all shrink-0" title="แก้ไข">
-                                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
-                                </button>
-                                <button onclick="requestDelete('${c._recordId}', 'device')" class="p-1.5 rounded-lg bg-slate-700 hover:bg-red-600 text-slate-300 hover:text-white transition-all shrink-0" title="ลบ">
-                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                                </button>
+                                ${canEditDev ? `
+                                    <button onclick="openEditDevice('${c._recordId}')" class="p-1.5 rounded-lg bg-slate-700 hover:bg-emerald-600 text-slate-300 hover:text-white transition-all shrink-0" title="แก้ไข">
+                                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                ` : ''}
+                                ${canDeleteDev ? `
+                                    <button onclick="requestDelete('${c._recordId}', 'device')" class="p-1.5 rounded-lg bg-slate-700 hover:bg-red-600 text-slate-300 hover:text-white transition-all shrink-0" title="ลบ">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                ` : ''}
                             </div>
                         </td>
                     </tr>
@@ -6171,6 +6672,10 @@
         }
 
         async function quickUpdateDeviceField(recId, fieldName, newValue, selectEl) {
+            if (!hasUserPermission('device', 'edit')) {
+                showToastNotification('คุณไม่มีสิทธิ์แก้ไขอุปกรณ์ไอที', 'error');
+                return;
+            }
             const cam = cameras.find(c => String(c._recordId) === String(recId) || String(c.asset_code) === String(recId) || String(c.id) === String(recId));
             if (!cam) {
                 showToastNotification('ไม่พบข้อมูลอุปกรณ์นี้', 'error');
@@ -6251,6 +6756,10 @@
 
         // ─── MAP MANAGER ───
         function openMapManager() {
+            if (!currentUser || (!currentUser.isAdmin && !hasUserPermission('map', 'add') && !hasUserPermission('map', 'edit') && !hasUserPermission('map', 'delete'))) {
+                showToastNotification('คุณไม่มีสิทธิ์เข้าถึงหน้าจัดการแผนผัง', 'error');
+                return;
+            }
             renderMapsList();
             openModal('modal-maps');
         }
@@ -6258,6 +6767,20 @@
         function renderMapsList() {
             const stamp = document.getElementById('build-stamp');
             if (stamp) stamp.textContent = `เวอร์ชัน: ${APP_BUILD}`;
+            
+            // Toggle Add Map form visibility based on permission
+            const addMapCont = document.getElementById('add-map-container');
+            if (addMapCont) {
+                if (hasUserPermission('map', 'add')) {
+                    addMapCont.classList.remove('hidden');
+                } else {
+                    addMapCont.classList.add('hidden');
+                }
+            }
+
+            const canEditMap = hasUserPermission('map', 'edit');
+            const canDeleteMap = hasUserPermission('map', 'delete');
+
             const list = document.getElementById('maps-list');
             list.innerHTML = '';
             maps.forEach(m => {
@@ -6274,15 +6797,15 @@
                     <div class="grid grid-cols-12 gap-1.5 items-center">
                         <div class="col-span-3">
                             <label class="text-[9px] text-slate-400 block mb-0.5">รหัส ID <span class="text-red-400">*</span></label>
-                            <input type="text" id="map-id-${m._recordId}" value="${m.map_id || ''}" placeholder="ID" class="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500 text-center font-mono">
+                            <input type="text" id="map-id-${m._recordId}" value="${m.map_id || ''}" placeholder="ID" ${canEditMap ? '' : 'disabled'} class="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500 text-center font-mono disabled:opacity-60 disabled:cursor-not-allowed">
                         </div>
                         <div class="col-span-5">
                             <label class="text-[9px] text-slate-400 block mb-0.5">ชื่อแผนผัง <span class="text-red-400">*</span></label>
-                            <input type="text" id="map-name-${m._recordId}" value="${m.map_name || ''}" placeholder="ชื่อแผนผัง" class="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                            <input type="text" id="map-name-${m._recordId}" value="${m.map_name || ''}" placeholder="ชื่อแผนผัง" ${canEditMap ? '' : 'disabled'} class="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed">
                         </div>
                         <div class="col-span-4">
                             <label class="text-[9px] text-slate-400 block mb-0.5">ไซต์ / สาขา</label>
-                            <select id="map-site-${m._recordId}" class="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500">
+                            <select id="map-site-${m._recordId}" ${canEditMap ? '' : 'disabled'} class="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed">
                                 <option value="">-- ไม่ระบุ --</option>
                                 ${sites.map(s => `<option value="${s}" ${m.site === s ? 'selected' : ''}>${s}</option>`).join('')}
                             </select>
@@ -6293,22 +6816,30 @@
                             ${m.map_url ? `<img src="${m.map_url}" class="w-12 h-9 object-cover rounded-lg border border-slate-600 shadow-sm" onerror="this.style.display='none'">` : '<div class="w-12 h-9 rounded-lg border border-dashed border-slate-600 flex items-center justify-center text-[9px] text-slate-500">ไม่มีรูป</div>'}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <label class="inline-flex items-center gap-1.5 px-2 py-1.5 bg-slate-600 hover:bg-slate-500 border border-slate-500 border-dashed rounded-lg cursor-pointer transition-all max-w-full">
-                                <i data-lucide="upload" class="w-3.5 h-3.5 text-slate-300 shrink-0"></i>
-                                <span class="text-[11px] text-slate-200 truncate" id="map-file-label-${m._recordId}">${m.map_url ? 'เปลี่ยนไฟล์...' : 'เลือกไฟล์...'}</span>
-                                <input type="file" accept="image/*" class="hidden" onchange="uploadMapFile(this, '${m._recordId}', '${m.map_id || ''}')">
-                            </label>
-                            <span id="map-upload-status-${m._recordId}" class="text-[10px] text-slate-400 ml-1"></span>
+                            ${canEditMap ? `
+                                <label class="inline-flex items-center gap-1.5 px-2 py-1.5 bg-slate-600 hover:bg-slate-500 border border-slate-500 border-dashed rounded-lg cursor-pointer transition-all max-w-full">
+                                    <i data-lucide="upload" class="w-3.5 h-3.5 text-slate-300 shrink-0"></i>
+                                    <span class="text-[11px] text-slate-200 truncate" id="map-file-label-${m._recordId}">${m.map_url ? 'เปลี่ยนไฟล์...' : 'เลือกไฟล์...'}</span>
+                                    <input type="file" accept="image/*" class="hidden" onchange="uploadMapFile(this, '${m._recordId}', '${m.map_id || ''}')">
+                                </label>
+                                <span id="map-upload-status-${m._recordId}" class="text-[10px] text-slate-400 ml-1"></span>
+                            ` : `
+                                <span class="text-xs text-slate-400">${m.map_url ? 'มีไฟล์รูปภาพแผนผัง' : 'ไม่มีรูปภาพ'}</span>
+                            `}
                         </div>
                         <div class="flex items-center gap-1.5 shrink-0">
-                            <button onclick="saveMap('${m._recordId}')" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1.5 rounded-lg transition-all font-medium inline-flex items-center gap-1 shadow-sm" title="บันทึก">
-                                <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                                <span class="hidden sm:inline">บันทึก</span>
-                            </button>
-                            <button onclick="requestDelete('${m._recordId}','map')" class="text-xs bg-red-600/80 hover:bg-red-500 text-white px-2.5 py-1.5 rounded-lg transition-all font-medium inline-flex items-center gap-1 shadow-sm" title="ลบ">
-                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                                <span class="hidden sm:inline">ลบ</span>
-                            </button>
+                            ${canEditMap ? `
+                                <button onclick="saveMap('${m._recordId}')" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1.5 rounded-lg transition-all font-medium inline-flex items-center gap-1 shadow-sm" title="บันทึก">
+                                    <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                    <span class="hidden sm:inline">บันทึก</span>
+                                </button>
+                            ` : ''}
+                            ${canDeleteMap ? `
+                                <button onclick="requestDelete('${m._recordId}','map')" class="text-xs bg-red-600/80 hover:bg-red-500 text-white px-2.5 py-1.5 rounded-lg transition-all font-medium inline-flex items-center gap-1 shadow-sm" title="ลบ">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                    <span class="hidden sm:inline">ลบ</span>
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
                 `;
@@ -6318,6 +6849,10 @@
         }
 
         async function uploadMapFile(input, recordId, mapId) {
+            if (!hasUserPermission('map', 'edit')) {
+                showToastNotification('คุณไม่มีสิทธิ์อัปโหลดหรือแก้ไขรูปภาพแผนผัง', 'error');
+                return;
+            }
             let file = input.files[0];
             if (!file) return;
             const label = document.getElementById(`map-file-label-${recordId}`);
@@ -6380,6 +6915,10 @@
         }
 
         async function saveMap(recordId) {
+            if (!hasUserPermission('map', 'edit')) {
+                showToastNotification('คุณไม่มีสิทธิ์แก้ไขแผนผัง', 'error');
+                return;
+            }
             const nameInput = document.getElementById(`map-name-${recordId}`);
             const idInput = document.getElementById(`map-id-${recordId}`);
             const siteSel = document.getElementById(`map-site-${recordId}`);
@@ -6435,6 +6974,10 @@
 
         async function addMap(e) {
             e.preventDefault();
+            if (!hasUserPermission('map', 'add')) {
+                showToastNotification('คุณไม่มีสิทธิ์เพิ่มแผนผัง', 'error');
+                return;
+            }
             const mapIdInput = document.getElementById('new-map-id');
             const mapId = mapIdInput ? mapIdInput.value.trim() : '';
             const mapNameInput = document.getElementById('new-map-name');
