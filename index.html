@@ -1115,7 +1115,7 @@
                                     <button type="button" onclick="applyAddUserRolePreset('admin')" class="px-2 py-0.5 rounded text-[11px] font-medium bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all">Admin</button>
                                     <button type="button" onclick="applyAddUserRolePreset('manager')" class="px-2 py-0.5 rounded text-[11px] font-medium bg-blue-500/20 text-blue-300 border border-blue-500/40 hover:bg-blue-500/30 transition-all">ผู้จัดการ</button>
                                     <button type="button" onclick="applyAddUserRolePreset('accountant')" class="px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all">บัญชี</button>
-                                    <button type="button" onclick="applyAddUserRolePreset('viewer')" class="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600 transition-all">ดูอย่างเดียว</button>
+                                    <button type="button" onclick="applyAddUserRolePreset('readonly')" class="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600 transition-all">อ่านอย่างเดียว</button>
                                 </div>
                             </div>
 
@@ -1202,14 +1202,15 @@
                     <button type="button" onclick="applyEditUserRolePreset('accountant')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all">
                         📊 บัญชี
                     </button>
-                    <button type="button" onclick="applyEditUserRolePreset('viewer')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600 transition-all">
-                        👀 ดูอย่างเดียว
+                    <button type="button" onclick="applyEditUserRolePreset('readonly')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600 transition-all">
+                        👀 อ่านอย่างเดียว
                     </button>
                 </div>
                 <div class="text-[11px] text-slate-400 mt-2 space-y-0.5">
                     <div>• <strong class="text-amber-300">Admin</strong>: เพิ่ม/แก้ไข/ลบ หน้าแผนผัง & จัดการอุปกรณ์</div>
                     <div>• <strong class="text-blue-300">ผู้จัดการ</strong>: เพิ่ม/แก้ไข หน้าจัดการอุปกรณ์</div>
                     <div>• <strong class="text-emerald-300">บัญชี</strong>: เพิ่ม หน้าจัดการอุปกรณ์</div>
+                    <div>• <strong class="text-slate-300">อ่านอย่างเดียว</strong>: ดูข้อมูลอุปกรณ์และแผนผังอย่างเดียว ไม่สามารถเพิ่ม/แก้ไข/ลบได้</div>
                 </div>
             </div>
 
@@ -2820,6 +2821,10 @@
                 map: { add: false, edit: false, delete: false },
                 device: { add: true, edit: false, delete: false }
             },
+            readonly: {
+                map: { add: false, edit: false, delete: false },
+                device: { add: false, edit: false, delete: false }
+            },
             viewer: {
                 map: { add: false, edit: false, delete: false },
                 device: { add: false, edit: false, delete: false }
@@ -2951,12 +2956,16 @@
                     const siteText = currentUser.sites.length ? ` [ไซต์: ${currentUser.sites.join(', ')}]` : '';
                     
                     let roleBadgeText = '';
+                    const hasAnyDevAction = hasUserPermission('device', 'add') || hasUserPermission('device', 'edit') || hasUserPermission('device', 'delete');
+                    const hasAnyMapAction = hasUserPermission('map', 'add') || hasUserPermission('map', 'edit') || hasUserPermission('map', 'delete');
                     if (currentUser.isAdmin) {
                         roleBadgeText = '(Admin)';
                     } else if (hasUserPermission('device', 'edit') && hasUserPermission('device', 'add')) {
                         roleBadgeText = '(ผู้จัดการ)';
                     } else if (hasUserPermission('device', 'add')) {
                         roleBadgeText = '(บัญชี)';
+                    } else if (!hasAnyDevAction && !hasAnyMapAction) {
+                        roleBadgeText = '(อ่านอย่างเดียว)';
                     } else {
                         roleBadgeText = `(${currentUser.departments.join(', ')}${currentUser.extraCameras.length ? ` +${currentUser.extraCameras.length} อุปกรณ์นอกแผนก` : ''})`;
                     }
@@ -6003,14 +6012,18 @@
                 const permDevText = devPermList.length ? `อุปกรณ์: ${devPermList.join('/')}` : 'อุปกรณ์: ดู';
 
                 let roleBadge = '';
+                const uHasAnyDev = perms.device.add || perms.device.edit || perms.device.delete;
+                const uHasAnyMap = perms.map.add || perms.map.edit || perms.map.delete;
                 if (isAdmin) {
                     roleBadge = '<span class="text-[10px] bg-amber-950/80 text-amber-300 border border-amber-700/60 px-1.5 py-0.2 rounded font-medium">👑 Admin</span>';
                 } else if (perms.device.edit && perms.device.add) {
                     roleBadge = '<span class="text-[10px] bg-blue-950/80 text-blue-300 border border-blue-700/60 px-1.5 py-0.2 rounded font-medium">💼 ผู้จัดการ</span>';
                 } else if (perms.device.add) {
                     roleBadge = '<span class="text-[10px] bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 px-1.5 py-0.2 rounded font-medium">📊 บัญชี</span>';
+                } else if (!uHasAnyDev && !uHasAnyMap) {
+                    roleBadge = '<span class="text-[10px] bg-slate-800 text-slate-300 border border-slate-600 px-1.5 py-0.2 rounded font-normal">👀 อ่านอย่างเดียว</span>';
                 } else {
-                    roleBadge = '<span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.2 rounded font-normal">👀 ผู้ใช้ทั่วไป</span>';
+                    roleBadge = '<span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.2 rounded font-normal">👤 ผู้ใช้ทั่วไป</span>';
                 }
 
                 div.innerHTML = `
