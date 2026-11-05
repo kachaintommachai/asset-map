@@ -2832,13 +2832,10 @@
         };
 
         function parseUserPermissions(val, isAdmin = false) {
-            if (isAdmin) {
-                return JSON.parse(JSON.stringify(ROLE_PRESETS.admin));
-            }
-            const perms = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS));
-            if (!val) return perms;
-            const str = String(val).trim();
+            const str = val ? String(val).trim() : '';
+            // If explicit permissions JSON exists, ALWAYS respect it first
             if (str.startsWith('perm:')) {
+                const perms = JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS));
                 try {
                     const parsed = JSON.parse(str.slice(5));
                     if (parsed.map) {
@@ -2856,7 +2853,11 @@
                     console.warn('Failed to parse permission string:', e);
                 }
             }
-            return perms;
+            // Fallback for legacy admin users who have no custom permissions configured
+            if (isAdmin) {
+                return JSON.parse(JSON.stringify(ROLE_PRESETS.admin));
+            }
+            return JSON.parse(JSON.stringify(DEFAULT_PERMISSIONS));
         }
 
         function stringifyUserPermissions(perms) {
@@ -2865,10 +2866,12 @@
 
         function hasUserPermission(form, action) {
             if (!currentUser) return false;
-            if (currentUser.isAdmin) return true;
+            // Always check explicit permissions first if configured
             if (currentUser.permissions && currentUser.permissions[form]) {
                 return !!currentUser.permissions[form][action];
             }
+            // Fallback for root admin if permissions object is empty
+            if (currentUser.isAdmin) return true;
             return false;
         }
 
@@ -2923,7 +2926,7 @@
             if (btnDb) btnDb.style.display = currentUser.isAdmin ? '' : 'none';
         }
 
-        // ─── LOGIN ───
+         // ─── LOGIN ───
         async function handleLogin(e) {
             e.preventDefault();
             const username = document.getElementById('login-username').value.trim();
@@ -2937,8 +2940,20 @@
                 if (records.length > 0) {
                     const user = sanitizeFields(records[0].fields || {});
                     const userName = user.Name || user.name || user.username || username;
+
+                    // ─── Defense in depth: ตรวจสอบ username ให้ตรงกับที่ login ───
+                    // ป้องกันกรณีที่ API ส่ง record ผิดคนมา
+                    const returnedName = String(userName || '').trim().toLowerCase();
+                    const inputName = String(username || '').trim().toLowerCase();
+                    if (returnedName !== inputName) {
+                        throw new Error('ข้อมูลผู้ใช้ไม่ถูกต้อง กรุณา Login ใหม่');
+                    }
+
                     const depts = parseDepartments(user.department);
-                    const isAdmin = depts.includes('admin') || (userName || '').toLowerCase() === 'admin';
+                    const hasExplicitPerm = String(user.camera_user || '').trim().startsWith('perm:');
+                    // isAdmin: เฉพาะ username 'admin' เท่านั้น หรือ dept รวม 'admin' แต่ต้องไม่มี explicit perm
+                    // (ถ้า dept=admin + มี perm: → ให้ใช้ explicit perm แทน ไม่ถือเป็น full admin)
+                    const isAdmin = inputName === 'admin' || (!hasExplicitPerm && depts.includes('admin'));
                     currentUser = {
                         name: userName,
                         department: user.department || '',
@@ -5990,7 +6005,8 @@
                 const div = document.createElement('div');
                 div.className = 'flex items-center gap-3 p-3 bg-slate-700 rounded-xl';
                 const depts = parseDepartments(u.department);
-                const isAdmin = depts.includes('admin') || (u.name || '').toLowerCase() === 'admin';
+                const hasExplicitPerm = String(u.camera_user || '').trim().startsWith('perm:');
+                const isAdmin = (u.name || '').toLowerCase() === 'admin' || (!hasExplicitPerm && depts.includes('admin'));
                 const perms = parseUserPermissions(u.camera_user, isAdmin);
                 const userMaps = parseMapUser(u.map_user);
                 const userSites = parseSites(u.site);
@@ -6060,11 +6076,12 @@
             const u = allUsers.find(u => String(u._recordId) === String(recordId));
             if (!u) return;
             const depts = parseDepartments(u.department);
-            const isAdmin = depts.includes('admin') || (u.name || '').toLowerCase() === 'admin';
+            const hasExplicitPerm = String(u.camera_user || '').trim().startsWith('perm:');
+            const isAdmin = (u.name || '').toLowerCase() === 'admin' || (!hasExplicitPerm && depts.includes('admin'));
             const perms = parseUserPermissions(u.camera_user, isAdmin);
 
             document.getElementById('user-perms-rec-id').value = recordId;
-            document.getElementById('user-perms-name').textContent = `ผู้ใช้: ${userName} ${isAdmin ? '(เป็น Admin อยู่แล้ว - มีสิทธิ์ทุกฟอร์ม)' : ''}`;
+            document.getElementById('user-perms-name').textContent = `ผู้ใช้: ${userName} ${isAdmin ? '(เป็น Admin เริ่มต้น - มีสิทธิ์ทุกฟอร์ม)' : ''}`;
 
             document.getElementById('perm-edit-map-add').checked = perms.map.add;
             document.getElementById('perm-edit-map-edit').checked = perms.map.edit;
@@ -6104,6 +6121,7 @@
                 // If editing self, update currentUser session live
                 if (currentUser && String(currentUser.name).toLowerCase() === String(u.name).toLowerCase()) {
                     currentUser.permissions = perms;
+                    currentUser.isAdmin = (currentUser.name || '').toLowerCase() === 'admin';
                     updateAdminMenuUI();
                 }
 

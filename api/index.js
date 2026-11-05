@@ -489,6 +489,39 @@ module.exports = async (req, res) => {
   if (req.method === 'GET') {
     let fetchUrl = `${supabaseUrl}/rest/v1/${supabaseTable}?select=*`;
 
+    // ─── LOGIN: Filter users by name + password server-side ───
+    // ป้องกัน bug ที่ทำให้ user ทุกคนถูก return มาแล้ว frontend เอา record แรก
+    if (supabaseTable === 'users' && query.name) {
+      const loginName = query.name.trim();
+      const loginPass = (query.password || '').trim();
+      if (!loginName || !loginPass) {
+        return res.status(400).json({ error: 'Missing name or password' });
+      }
+      fetchUrl += `&name=eq.${encodeURIComponent(loginName)}&password=eq.${encodeURIComponent(loginPass)}`;
+      try {
+        const response = await fetch(fetchUrl, {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`
+          }
+        });
+        if (!response.ok) {
+          const errText = await response.text();
+          return res.status(response.status).json({ error: errText });
+        }
+        const rows = await response.json();
+        // Strip password field from response เพื่อความปลอดภัย
+        const records = rows.map(r => {
+          const formatted = formatRow(supabaseTable, r);
+          if (formatted && formatted.fields) delete formatted.fields.password;
+          return formatted;
+        });
+        return res.status(200).json({ records });
+      } catch (err) {
+        return res.status(500).json({ error: err.message });
+      }
+    }
+
     // Filter by specific ID or Asset Code
     if (query.id) {
       const rawId = query.id.trim();
@@ -525,7 +558,14 @@ module.exports = async (req, res) => {
         rows = await fetchAllRowsFromSupabase(fetchUrl, supabaseKey);
       }
 
-      const records = rows.map(r => formatRow(supabaseTable, r));
+      // Strip password field จาก users records เพื่อความปลอดภัย
+      const records = rows.map(r => {
+        const formatted = formatRow(supabaseTable, r);
+        if (supabaseTable === 'users' && formatted && formatted.fields) {
+          delete formatted.fields.password;
+        }
+        return formatted;
+      });
       return res.status(200).json({ records });
     } catch (err) {
       return res.status(500).json({ error: err.message });
