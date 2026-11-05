@@ -197,7 +197,50 @@
                 page-break-inside: avoid;
                 break-inside: avoid;
             }
+            /* ─── Mini Label (50 per A4: 5 col × 10 row, 38mm × 27mm) ─── */
+            .a4-mini-label-page {
+                width: 200mm;
+                height: 282mm;
+                max-height: 282mm;
+                box-sizing: border-box;
+                display: grid !important;
+                grid-template-columns: repeat(5, 38mm);
+                grid-template-rows: repeat(10, 27mm);
+                column-gap: 2mm;
+                row-gap: 1.2mm;
+                padding: 1mm 0;
+                margin: 0 auto;
+                page-break-after: always;
+                break-after: page;
+                background: #fff !important;
+            }
+            .a4-mini-label-page:last-child {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+            .asset-print-mini-label-item {
+                width: 38mm;
+                height: 27mm;
+                max-width: 38mm;
+                max-height: 27mm;
+                border: 1px solid #555 !important;
+                border-radius: 3px;
+                padding: 1mm;
+                box-sizing: border-box;
+                background: #fff !important;
+                color: #000 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 0.5mm;
+                overflow: hidden;
+                position: relative;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
         }
+
         .dragging { opacity: 0.6; }
         .floor-plan-container { position: relative; background: #0f172a; border: 2px dashed #334155; min-height: 400px; overflow: auto; }
         .group-tag { font-size: 11px; padding: 3px 8px; border-radius: 9999px; }
@@ -1428,7 +1471,7 @@
         </div>
     </div>
 
-    <!-- ─── BATCH ASSET TAGS PRINT PREVIEW MODAL (A4 PORTRAIT - 10 LABELS/PAGE) ─── -->
+    <!-- ─── BATCH ASSET TAGS PRINT PREVIEW MODAL (A4 PORTRAIT - 10 or 50 LABELS/PAGE) ─── -->
     <div id="modal-batch-print" class="fixed inset-0 z-[80] hidden items-center justify-center modal-overlay">
         <div class="bg-slate-900 rounded-2xl w-full max-w-5xl mx-3 sm:mx-6 border border-slate-750 shadow-2xl flex flex-col" style="height: 94vh;">
             <!-- Header -->
@@ -1438,10 +1481,10 @@
                         <i data-lucide="printer" class="w-5 h-5"></i>
                     </div>
                     <div>
-                        <h3 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-                            ตัวอย่างก่อนพิมพ์ป้ายทรัพย์สิน (A4 แนวตั้ง 10 ป้าย/หน้า)
+                        <h3 id="batch-print-modal-title" class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                            ตัวอย่างก่อนพิมพ์ป้ายทรัพย์สิน
                         </h3>
-                        <p class="text-xs text-slate-400">
+                        <p id="batch-print-modal-subtitle" class="text-xs text-slate-400">
                             ขนาดป้ายมาตรฐาน 95 × 52 มม. (2 คอลัมน์ × 5 แถว) พร้อม QR Code สแกนดูข้อมูลทันที
                         </p>
                     </div>
@@ -1453,6 +1496,24 @@
                     <button type="button" onclick="closeModal('modal-batch-print')" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-700 transition-colors">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
+                </div>
+            </div>
+
+            <!-- Label Size Tabs -->
+            <div class="px-4 sm:px-6 pt-3 pb-0 bg-slate-800/60 border-b border-slate-700/60 shrink-0 flex items-center gap-1">
+                <button id="batch-tab-standard" onclick="switchBatchPrintMode('standard')"
+                    class="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-t-lg border-b-2 transition-all border-emerald-500 text-emerald-300 bg-emerald-950/60">
+                    <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+                    ป้ายมาตรฐาน <span class="ml-1 text-[10px] font-normal text-slate-400">(10 ป้าย/หน้า)</span>
+                </button>
+                <button id="batch-tab-mini" onclick="switchBatchPrintMode('mini')"
+                    class="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-t-lg border-b-2 transition-all border-transparent text-slate-400 hover:text-slate-200">
+                    <i data-lucide="grid-2x2" class="w-3.5 h-3.5"></i>
+                    ป้ายขนาดเล็ก <span class="ml-1 text-[10px] font-normal text-slate-500">(50 ป้าย/หน้า)</span>
+                </button>
+                <div class="ml-auto text-[10px] text-slate-500 pb-2 hidden sm:block">
+                    <span id="batch-tab-desc-standard">95 × 52 มม. · QR + ข้อมูลครบ</span>
+                    <span id="batch-tab-desc-mini" class="hidden">38 × 27 มม. · QR + รหัสทรัพย์สิน</span>
                 </div>
             </div>
 
@@ -1469,7 +1530,7 @@
                     </span>
                 </div>
                 <div class="flex items-center gap-2 text-[11px] text-slate-400">
-                    <span class="hidden sm:inline">💡 แนะนำ: ตั้งค่าการพิมพ์ในเบราว์เซอร์เป็น กระดาษ <strong>A4</strong>, ทิศทาง <strong>แนวตั้ง (Portrait)</strong>, ขอบกระดาษ <strong>ต่ำสุด (Minimum)</strong></span>
+                    <span class="hidden sm:inline">💡 แนะนำ: ตั้งค่าการพิมพ์เป็น กระดาษ <strong>A4</strong>, ทิศทาง <strong>แนวตั้ง (Portrait)</strong>, ขอบกระดาษ <strong>ต่ำสุด (Minimum)</strong></span>
                 </div>
             </div>
 
@@ -1497,6 +1558,7 @@
 
     <!-- Container used for @media print printing batch labels -->
     <div id="labels-print-container" class="print-only"></div>
+
 
     <!-- ─── PRINT DEVICE TABLE MODAL (A4 PORTRAIT / LANDSCAPE) ─── -->
     <div id="modal-print-table" class="fixed inset-0 z-[80] hidden items-center justify-center modal-overlay">
@@ -7966,7 +8028,10 @@
             }
         }
 
-        // ─── BATCH ASSET TAG PRINTING (A4 PORTRAIT - 10 LABELS/PAGE) ───
+        // ─── BATCH ASSET TAG PRINTING (A4 PORTRAIT - 10 or 50 LABELS/PAGE) ───
+        let currentBatchPrintMode = 'standard'; // 'standard' | 'mini'
+        let currentBatchPrintItems = [];
+
         function getSelectedDevicesList() {
             let selectedList = [];
             if (selectedDeviceKeys.size > 0) {
@@ -7975,6 +8040,7 @@
             return selectedList;
         }
 
+        // ─── Render: ป้ายมาตรฐาน (95×52 มม.) ───
         function renderAssetLabelItemHTML(cam, isPreview) {
             const assetCode = cam.asset_code || cam.id || cam.account_no || '-';
             const assetName = cam.asset_name || cam.eng_name || '-';
@@ -8034,6 +8100,144 @@
             `;
         }
 
+        // ─── Render: ป้ายขนาดเล็ก (38×27 มม.) – QR + รหัสทรัพย์สิน ───
+        function renderMiniLabelItemHTML(cam, isPreview) {
+            const assetCode = cam.asset_code || cam.id || cam.account_no || '-';
+
+            const directUrlKey = cam.asset_code || cam.id || cam.account_no || cam._recordId || '';
+            const url = new URL(window.location.href);
+            url.search = '';
+            url.hash = '';
+            if (directUrlKey) {
+                url.searchParams.set('asset', directUrlKey);
+            }
+            const directUrl = url.toString();
+
+            // ป้ายเล็ก: QR size ประมาณ 16mm → 60px สำหรับ preview, 60 สำหรับ print
+            let qrSvg = '';
+            if (window.QRCode) {
+                try {
+                    qrSvg = QRCode.generateSVG(directUrl, { size: isPreview ? 60 : 60, margin: 1 });
+                } catch (e) {
+                    qrSvg = '<span style="font-size:6px;color:#999;">QR</span>';
+                }
+            }
+
+            // font-size รหัส: ถ้ายาว > 10 ตัวอักษรให้เล็กลง
+            const codeFontSize = assetCode.length > 12 ? '5pt' : (assetCode.length > 9 ? '6pt' : '7pt');
+
+            return `
+                <div class="asset-print-mini-label-item" style="box-sizing:border-box; width:100%; height:100%; border:1px solid #444; border-radius:3px; padding:1mm 1.2mm; background:#fff; color:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.6mm; overflow:hidden; font-family:'IBM Plex Sans Thai',sans-serif;">
+                    <div style="width:16mm; height:16mm; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">
+                        ${qrSvg}
+                    </div>
+                    <div style="width:100%; text-align:center; overflow:hidden;">
+                        <span style="font-size:${codeFontSize}; font-family:monospace; font-weight:900; color:#000; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; letter-spacing:0.2px; line-height:1.2;">${assetCode}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ─── Tab switcher: สลับโหมดพิมพ์ ───
+        function switchBatchPrintMode(mode) {
+            currentBatchPrintMode = mode;
+
+            // อัปเดต tab UI
+            const tabStd = document.getElementById('batch-tab-standard');
+            const tabMini = document.getElementById('batch-tab-mini');
+            const descStd = document.getElementById('batch-tab-desc-standard');
+            const descMini = document.getElementById('batch-tab-desc-mini');
+            const modalTitle = document.getElementById('batch-print-modal-title');
+            const modalSubtitle = document.getElementById('batch-print-modal-subtitle');
+
+            if (mode === 'mini') {
+                tabStd.className = 'flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-t-lg border-b-2 transition-all border-transparent text-slate-400 hover:text-slate-200';
+                tabMini.className = 'flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-t-lg border-b-2 transition-all border-emerald-500 text-emerald-300 bg-emerald-950/60';
+                if (descStd) descStd.classList.add('hidden');
+                if (descMini) descMini.classList.remove('hidden');
+                if (modalTitle) modalTitle.textContent = 'ตัวอย่างก่อนพิมพ์ป้ายทรัพย์สิน (ขนาดเล็ก)';
+                if (modalSubtitle) modalSubtitle.textContent = 'ขนาดป้าย 38 × 27 มม. (5 คอลัมน์ × 10 แถว) มีเฉพาะ QR Code + รหัสทรัพย์สิน — 50 ป้าย/หน้า A4';
+            } else {
+                tabStd.className = 'flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-t-lg border-b-2 transition-all border-emerald-500 text-emerald-300 bg-emerald-950/60';
+                tabMini.className = 'flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-t-lg border-b-2 transition-all border-transparent text-slate-400 hover:text-slate-200';
+                if (descStd) descStd.classList.remove('hidden');
+                if (descMini) descMini.classList.add('hidden');
+                if (modalTitle) modalTitle.textContent = 'ตัวอย่างก่อนพิมพ์ป้ายทรัพย์สิน (มาตรฐาน)';
+                if (modalSubtitle) modalSubtitle.textContent = 'ขนาดป้ายมาตรฐาน 95 × 52 มม. (2 คอลัมน์ × 5 แถว) พร้อม QR Code สแกนดูข้อมูลทันที';
+            }
+
+            // Re-render preview ด้วย items ชุดเดิม
+            if (currentBatchPrintItems.length > 0) {
+                buildBatchPrintPreview(currentBatchPrintItems);
+            }
+        }
+
+        // ─── Core: สร้าง preview HTML ตาม mode ───
+        function buildBatchPrintPreview(items) {
+            const isMini = currentBatchPrintMode === 'mini';
+            const pageSize = isMini ? 50 : 10;
+            const totalPages = Math.ceil(items.length / pageSize);
+
+            const countEl = document.getElementById('batch-preview-count');
+            const pagesEl = document.getElementById('batch-preview-pages');
+            if (countEl) countEl.textContent = items.length;
+            if (pagesEl) pagesEl.textContent = totalPages;
+
+            const previewContainer = document.getElementById('batch-preview-container');
+            const printContainer = document.getElementById('labels-print-container');
+            if (!previewContainer || !printContainer) return;
+
+            let previewHTML = '';
+            let printHTML = '';
+
+            for (let p = 0; p < totalPages; p++) {
+                const pageItems = items.slice(p * pageSize, (p + 1) * pageSize);
+                const pageNumber = p + 1;
+
+                if (isMini) {
+                    // ─── Mini preview: 5×10 grid บนการ์ด A4 ───
+                    let sheetInnerCards = pageItems.map(cam => renderMiniLabelItemHTML(cam, true)).join('');
+                    previewHTML += `
+                        <div class="w-full flex flex-col items-center">
+                            <div class="text-xs text-slate-400 font-semibold mb-2 flex items-center justify-between w-full max-w-[794px] px-2">
+                                <span class="flex items-center gap-1.5"><i data-lucide="file" class="w-3.5 h-3.5 text-emerald-400"></i> แผ่นที่ ${pageNumber}/${totalPages} · A4 แนวตั้ง · ${pageItems.length} ป้าย (ขนาดเล็ก 38×27มม.)</span>
+                                <span class="font-mono text-[11px] text-slate-500">ลำดับที่ ${p * pageSize + 1} – ${p * pageSize + pageItems.length}</span>
+                            </div>
+                            <div class="bg-white text-slate-900 shadow-2xl rounded-sm border border-slate-300 w-full max-w-[794px] aspect-[210/297]" style="min-height:760px; padding:4mm 3mm;">
+                                <div style="display:grid; grid-template-columns:repeat(5,1fr); grid-template-rows:repeat(10,1fr); column-gap:2mm; row-gap:1.5mm; width:100%; height:100%;">
+                                    ${sheetInnerCards}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    let printCards = pageItems.map(cam => renderMiniLabelItemHTML(cam, false)).join('');
+                    printHTML += `<div class="a4-mini-label-page">${printCards}</div>`;
+                } else {
+                    // ─── Standard preview: 2×5 grid ───
+                    let sheetInnerCards = pageItems.map(cam => renderAssetLabelItemHTML(cam, true)).join('');
+                    previewHTML += `
+                        <div class="w-full flex flex-col items-center">
+                            <div class="text-xs text-slate-400 font-semibold mb-2 flex items-center justify-between w-full max-w-[794px] px-2">
+                                <span class="flex items-center gap-1.5"><i data-lucide="file" class="w-3.5 h-3.5 text-emerald-400"></i> แผ่นที่ ${pageNumber} จากทั้งหมด ${totalPages} หน้า (กระดาษ A4 แนวตั้ง - ${pageItems.length} ป้าย)</span>
+                                <span class="font-mono text-[11px] text-slate-500">ลำดับที่ ${p * pageSize + 1} - ${p * pageSize + pageItems.length}</span>
+                            </div>
+                            <div class="bg-white text-slate-900 shadow-2xl rounded-sm p-[8mm] border border-slate-300 w-full max-w-[794px] aspect-[210/297] box-sizing-border" style="min-height:760px;">
+                                <div style="display:grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(5, 1fr); column-gap: 6mm; row-gap: 4mm; width: 100%; height: 100%;">
+                                    ${sheetInnerCards}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    let printCards = pageItems.map(cam => renderAssetLabelItemHTML(cam, false)).join('');
+                    printHTML += `<div class="a4-label-page">${printCards}</div>`;
+                }
+            }
+
+            previewContainer.innerHTML = previewHTML;
+            printContainer.innerHTML = printHTML;
+            if (window.lucide) lucide.createIcons();
+        }
+
         function openBatchPrintModal() {
             let items = getSelectedDevicesList();
 
@@ -8059,57 +8263,12 @@
                 return;
             }
 
-            // Chunk items into 10 per A4 page
-            const pageSize = 10;
-            const totalPages = Math.ceil(items.length / pageSize);
-
-            const countEl = document.getElementById('batch-preview-count');
-            const pagesEl = document.getElementById('batch-preview-pages');
-            if (countEl) countEl.textContent = items.length;
-            if (pagesEl) pagesEl.textContent = totalPages;
-
-            const previewContainer = document.getElementById('batch-preview-container');
-            const printContainer = document.getElementById('labels-print-container');
-            if (!previewContainer || !printContainer) return;
-
-            let previewHTML = '';
-            let printHTML = '';
-
-            for (let p = 0; p < totalPages; p++) {
-                const pageItems = items.slice(p * pageSize, (p + 1) * pageSize);
-                const pageNumber = p + 1;
-
-                // Preview sheet card (Styled to represent an A4 sheet on dark screen)
-                let sheetInnerCards = pageItems.map(cam => renderAssetLabelItemHTML(cam, true)).join('');
-
-                previewHTML += `
-                    <div class="w-full flex flex-col items-center">
-                        <div class="text-xs text-slate-400 font-semibold mb-2 flex items-center justify-between w-full max-w-[794px] px-2">
-                            <span class="flex items-center gap-1.5"><i data-lucide="file" class="w-3.5 h-3.5 text-emerald-400"></i> แผ่นที่ ${pageNumber} จากทั้งหมด ${totalPages} หน้า (กระดาษ A4 แนวตั้ง - ${pageItems.length} ป้าย)</span>
-                            <span class="font-mono text-[11px] text-slate-500">ลำดับที่ ${(p * pageSize) + 1} - ${(p * pageSize) + pageItems.length}</span>
-                        </div>
-                        <div class="bg-white text-slate-900 shadow-2xl rounded-sm p-[8mm] border border-slate-300 w-full max-w-[794px] aspect-[210/297] box-sizing-border" style="min-height:760px;">
-                            <div style="display:grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(5, 1fr); column-gap: 6mm; row-gap: 4mm; width: 100%; height: 100%;">
-                                ${sheetInnerCards}
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                // Actual @media print layout (Fixed mm units for 100% exact 10 labels / A4)
-                let printCards = pageItems.map(cam => renderAssetLabelItemHTML(cam, false)).join('');
-                printHTML += `
-                    <div class="a4-label-page">
-                        ${printCards}
-                    </div>
-                `;
-            }
-
-            previewContainer.innerHTML = previewHTML;
-            printContainer.innerHTML = printHTML;
+            // Reset to standard mode เมื่อเปิด modal ใหม่
+            currentBatchPrintItems = items;
+            currentBatchPrintMode = 'standard';
+            switchBatchPrintMode('standard'); // อัปเดต tab UI + build preview
 
             openModal('modal-batch-print');
-            if (window.lucide) lucide.createIcons();
         }
 
         function executeBatchPrint() {
@@ -8122,6 +8281,8 @@
             // Remove any existing print iframe
             let oldIframe = document.getElementById('batch-print-iframe');
             if (oldIframe) oldIframe.remove();
+
+            const isMini = currentBatchPrintMode === 'mini';
 
             // Create invisible iframe for isolated, clean printing
             const iframe = document.createElement('iframe');
@@ -8142,7 +8303,7 @@
                 <html lang="th">
                 <head>
                     <meta charset="UTF-8">
-                    <title>พิมพ์ป้ายทรัพย์สินไอที (A4 แนวตั้ง)</title>
+                    <title>พิมพ์ป้ายทรัพย์สินไอที (A4 แนวตั้ง${isMini ? ' - ขนาดเล็ก 50 ป้าย' : ''})</title>
                     <link rel="stylesheet" href="asset/vendor/fonts/font.css">
                     <style>
                         * {
@@ -8153,7 +8314,7 @@
                         }
                         @page {
                             size: A4 portrait;
-                            margin: 8mm 6mm;
+                            margin: ${isMini ? '4mm 3mm' : '8mm 6mm'};
                         }
                         html, body {
                             background: #fff;
@@ -8163,6 +8324,48 @@
                             -webkit-print-color-adjust: exact !important;
                             print-color-adjust: exact !important;
                         }
+                        ${isMini ? `
+                        .a4-mini-label-page {
+                            width: 200mm;
+                            height: 282mm;
+                            max-height: 282mm;
+                            box-sizing: border-box;
+                            display: grid !important;
+                            grid-template-columns: repeat(5, 38mm);
+                            grid-template-rows: repeat(10, 27mm);
+                            column-gap: 2mm;
+                            row-gap: 1.2mm;
+                            padding: 1mm 0;
+                            margin: 0 auto;
+                            page-break-after: always;
+                            break-after: page;
+                            background: #fff !important;
+                        }
+                        .a4-mini-label-page:last-child {
+                            page-break-after: avoid;
+                            break-after: avoid;
+                        }
+                        .asset-print-mini-label-item {
+                            width: 38mm;
+                            height: 27mm;
+                            max-width: 38mm;
+                            max-height: 27mm;
+                            border: 1px solid #444 !important;
+                            border-radius: 3px;
+                            padding: 1mm;
+                            box-sizing: border-box;
+                            background: #fff !important;
+                            color: #000 !important;
+                            display: flex !important;
+                            flex-direction: column !important;
+                            align-items: center !important;
+                            justify-content: center !important;
+                            gap: 0.5mm;
+                            overflow: hidden;
+                            page-break-inside: avoid;
+                            break-inside: avoid;
+                        }
+                        ` : `
                         .a4-label-page {
                             width: 198mm;
                             height: 281mm;
@@ -8199,10 +8402,10 @@
                             align-items: center !important;
                             gap: 2.5mm;
                             overflow: hidden;
-                            position: relative;
                             page-break-inside: avoid;
                             break-inside: avoid;
                         }
+                        `}
                     </style>
                 </head>
                 <body>
