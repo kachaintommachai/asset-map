@@ -4390,7 +4390,10 @@
                 const gColor = getGroupColor(cam.group);
                 const isBookmarked = bookmarks.includes(cam.id);
                 const iconName = getDeviceIconName(cam.type);
-                const hasPosition = cam.x != null && cam.y != null;
+                const xVal = cam.x;
+                const yVal = cam.y;
+                const hasPosition = (xVal != null && xVal !== '' && Number(xVal) !== 0) &&
+                                    (yVal != null && yVal !== '' && Number(yVal) !== 0);
 
                 const hasImage = !!(cam.image_url || cam.image || cam.go2rtc || LocalImageStore.get(cam.id) || LocalImageStore.get(cam._recordId) || LocalImageStore.get(cam.asset_code));
 
@@ -4403,7 +4406,7 @@
                         <div class="flex items-center gap-1.5">
                             <span class="text-xs font-bold text-slate-100">${cam.id}</span>
                             <span class="text-[10px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.2 rounded font-medium">${getDeviceType(cam.type)}</span>
-                            ${!hasPosition ? '<span class="text-[10px] text-amber-400" title="ยังไม่ได้วางบนแผนผัง">⚠️</span>' : ''}
+                            <span class="inline-block w-2 h-2 rounded-full shrink-0 ${hasPosition ? 'bg-green-400' : 'bg-red-500'}" title="${hasPosition ? `จัดวางแล้ว (x:${xVal}, y:${yVal})` : 'ยังไม่ได้จัดวางตำแหน่งบนแผนผัง'}"></span>
                         </div>
                         <div class="text-[11px] text-slate-200 truncate font-medium">${cam.asset_name || cam.eng_name || cam.asset_code || cam.id || '-'}</div>
                         <div class="text-[10px] text-slate-400 truncate flex items-center gap-1.5">
