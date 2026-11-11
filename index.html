@@ -647,7 +647,7 @@
             <!-- Table Area -->
             <div class="flex-1 overflow-auto p-4 custom-scrollbar">
                 <div class="rounded-xl border border-slate-700 overflow-x-auto shadow-sm">
-                    <table class="w-full min-w-[1150px] text-left text-xs text-slate-300">
+                    <table class="w-full min-w-[1220px] text-left text-xs text-slate-300">
                         <thead class="bg-slate-900/95 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-700 sticky top-0 backdrop-blur-sm z-10">
                             <tr>
                                 <th class="py-3 px-3 w-10 text-center">
@@ -676,7 +676,12 @@
                                 </th>
                                 <th class="py-3 px-3">ไซต์ (Site)</th>
                                 <th class="py-3 px-3">IP / MAC</th>
-                                <th class="py-3 px-3">แผนผัง / พิกัด</th>
+                                <th class="py-3 px-3">
+                                    <div class="inline-flex items-center gap-1.5" title="สามารถเลือกเปลี่ยนแผนผังได้โดยตรงจากตาราง">
+                                        <span>แผนผัง / พิกัด</span>
+                                        <i data-lucide="pencil" class="w-3 h-3 text-emerald-400 opacity-80"></i>
+                                    </div>
+                                </th>
                                 <th class="py-3 px-3 text-center">ค่าเสื่อม / มูลค่า</th>
                                 <th class="py-3 px-3 text-center">
                                     <div class="inline-flex items-center justify-center gap-1.5 w-full" title="สามารถคลิกเปลี่ยนสถานะได้โดยตรงจากตาราง">
@@ -6728,6 +6733,58 @@
                     }
                 }
 
+                // Build Map Select
+                const curMapId = String(c.map_id || '');
+                const sortedMaps = sortNatural([...maps], m => m.map_name || m.map_id);
+                const mapOptionsHtml = sortedMaps.map(m => {
+                    const isSelected = String(m.map_id) === curMapId || String(m._recordId) === curMapId;
+                    const label = m.map_name || `แผนผัง ${m.map_id}`;
+                    return `<option value="${escapeHtml(String(m.map_id))}" style="background-color: #1e293b; color: #f8fafc;" ${isSelected ? 'selected' : ''}>${escapeHtml(label)}</option>`;
+                }).join('');
+
+                let extraMapOption = '';
+                if (curMapId && !sortedMaps.some(m => String(m.map_id) === curMapId || String(m._recordId) === curMapId)) {
+                    extraMapOption = `<option value="${escapeHtml(curMapId)}" style="background-color: #1e293b; color: #f8fafc;" selected>${escapeHtml(`ผัง ${curMapId}`)}</option>`;
+                }
+
+                const mapSelectHtml = canEditDev ? `
+                    <div class="min-w-[125px] max-w-[180px]">
+                        <select onchange="quickUpdateDeviceMap('${c._recordId}', this.value, this)" 
+                                style="background-color: #1e293b; color: #f8fafc;"
+                                class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs rounded-lg px-2.5 py-1.5 border border-slate-600 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors w-full truncate cursor-pointer font-medium shadow-sm" 
+                                title="คลิกเพื่อเลือกเปลี่ยนแผนผังทันที">
+                            <option value="" style="background-color: #1e293b; color: #94a3b8;">-- ไม่ระบุผัง --</option>
+                            ${extraMapOption}
+                            ${mapOptionsHtml}
+                        </select>
+                        <div class="mt-0.5">
+                            ${hasPos ? `
+                                <span class="text-[10px] text-emerald-400 font-mono">📍 X:${c.x}% Y:${c.y}%</span>
+                            ` : `
+                                <span class="text-[10px] text-amber-400 font-medium">⚠️ ยังไม่วาง</span>
+                            `}
+                        </div>
+                    </div>
+                ` : `
+                    <div class="min-w-[100px]">
+                        <span class="inline-block px-2 py-1 rounded bg-slate-800/80 text-slate-200 text-xs font-medium">${escapeHtml(mapLabel || 'ไม่ระบุ')}</span>
+                        <div class="mt-0.5">
+                            ${hasPos ? `
+                                <span class="text-[10px] text-emerald-400 font-mono">📍 X:${c.x}% Y:${c.y}%</span>
+                            ` : `
+                                <span class="text-[10px] text-amber-400 font-medium">⚠️ ยังไม่วาง</span>
+                            `}
+                        </div>
+                    </div>
+                `;
+
+                const mapColumnHtml = devCat === 'software' ? `
+                    <div class="text-amber-300 font-semibold text-xs flex items-center gap-1 uppercase">
+                        <i data-lucide="key" class="w-3.5 h-3.5 text-amber-400"></i> ${c.license_type || 'Volume'}
+                    </div>
+                    <span class="text-[10px] text-slate-500">License (ไม่กำหนดผัง)</span>
+                ` : mapSelectHtml;
+
                 return `
                     <tr class="hover:bg-slate-750/70 transition-colors ${isChecked ? 'bg-emerald-950/20' : ''}">
                         <td class="py-2.5 px-3 text-center">
@@ -6761,19 +6818,7 @@
                             ${c.mac_address ? `<div class="text-[10px] text-slate-500">${c.mac_address}</div>` : ''}
                         </td>
                         <td class="py-2.5 px-3">
-                            ${devCat === 'software' ? `
-                                <div class="text-amber-300 font-semibold text-xs flex items-center gap-1 uppercase">
-                                    <i data-lucide="key" class="w-3.5 h-3.5 text-amber-400"></i> ${c.license_type || 'Volume'}
-                                </div>
-                                <span class="text-[10px] text-slate-500">License (ไม่กำหนดผัง)</span>
-                            ` : `
-                                <div class="text-slate-200 font-medium">${mapLabel}</div>
-                                ${hasPos ? `
-                                    <span class="text-[10px] text-emerald-400 font-mono">📍 X:${c.x}% Y:${c.y}%</span>
-                                ` : `
-                                    <span class="text-[10px] text-amber-400 font-medium">⚠️ ยังไม่วาง</span>
-                                `}
-                            `}
+                            ${mapColumnHtml}
                         </td>
                         <td class="py-2.5 px-3 text-center">${depBadge}</td>
                         <td class="py-2.5 px-3 text-center">${statusSelectHtml}</td>
@@ -6831,6 +6876,10 @@
             await quickUpdateDeviceField(recId, 'department', newDept, selectEl);
         }
 
+        async function quickUpdateDeviceMap(recId, newMapId, selectEl) {
+            await quickUpdateDeviceField(recId, 'map_id', newMapId, selectEl);
+        }
+
         async function quickUpdateDeviceStatus(recId, newStatus, selectEl) {
             updateStatusSelectStyle(selectEl, newStatus);
             await quickUpdateDeviceField(recId, 'status', newStatus, selectEl);
@@ -6867,6 +6916,10 @@
                 if (fieldName === 'status') {
                     fields['Status'] = newValue;
                 }
+                if (fieldName === 'map_id') {
+                    fields['map_id'] = newValue;
+                    fields['Map ID'] = newValue;
+                }
                 if (fieldName === 'type') {
                     fields['Type'] = newValue;
                     const matchedType = customDeviceTypes.find(d => 
@@ -6897,6 +6950,9 @@
                         departments = sortNatural(departments);
                     }
                 }
+                if (fieldName === 'map_id') {
+                    cam.map_id = newValue;
+                }
                 if (fieldName === 'type') {
                     const matchedType = customDeviceTypes.find(d => 
                         (d.name && d.name.toLowerCase() === (newValue || '').toLowerCase()) ||
@@ -6926,18 +6982,27 @@
                 const fieldLabelMap = {
                     'department': 'แผนก',
                     'status': 'สถานะ',
-                    'type': 'ชนิดอุปกรณ์'
+                    'type': 'ชนิดอุปกรณ์',
+                    'map_id': 'แผนผัง'
                 };
                 const fieldLabel = fieldLabelMap[fieldName] || fieldName;
-                const displayVal = fieldName === 'status' ? (statusLabelMap[newValue] || newValue) : (newValue || 'ไม่ระบุ');
+                let displayVal = newValue || 'ไม่ระบุ';
+                if (fieldName === 'status') {
+                    displayVal = statusLabelMap[newValue] || newValue;
+                } else if (fieldName === 'map_id') {
+                    const targetMapObj = maps.find(m => String(m.map_id) === String(newValue) || String(m._recordId) === String(newValue));
+                    displayVal = targetMapObj ? (targetMapObj.map_name || `แผนผัง ${targetMapObj.map_id}`) : (newValue ? `แผนผัง ${newValue}` : 'ไม่ระบุผัง');
+                }
                 showToastNotification(`อัปเดต${fieldLabel}ของ "${assetCode}" เป็น "${displayVal}" สำเร็จ`, 'success');
 
                 // Sync UI
                 if (typeof renderGroupFilter === 'function') renderGroupFilter();
                 if (typeof renderTypeFilter === 'function') renderTypeFilter();
                 if (typeof renderMapCameras === 'function') renderMapCameras();
+                if (typeof renderCameras === 'function') renderCameras();
+                if (typeof renderCameraList === 'function') renderCameraList();
                 if (typeof renderBookmarks === 'function') renderBookmarks();
-                if (fieldName === 'type') {
+                if (fieldName === 'type' || fieldName === 'map_id') {
                     renderDeviceManagerList();
                 }
 
