@@ -1958,7 +1958,7 @@
 
     <script>
         // ─── BUILD ───
-        const APP_BUILD = '2026-11-16.Supabase-v6';
+        const APP_BUILD = '2026-11-16.Supabase-v7';
         console.log('[it-asset-map] build', APP_BUILD);
 
         // ─── API CONFIG ───
@@ -7057,11 +7057,11 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             ${canEditMap ? `
-                                <button type="button" onclick="triggerMapUpload('${m._recordId}')" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-600 hover:bg-slate-500 active:bg-slate-700 border border-slate-500 border-dashed rounded-lg cursor-pointer transition-all text-left shadow-sm">
-                                    <i data-lucide="upload" class="w-3.5 h-3.5 text-emerald-400 shrink-0 pointer-events-none"></i>
-                                    <span class="text-[11px] text-slate-200 truncate pointer-events-none" id="map-file-label-${m._recordId}">${m.map_url ? 'เปลี่ยนรูปภาพ...' : 'อัปโหลดรูปผัง...'}</span>
-                                </button>
-                                <input type="file" id="map-file-input-${m._recordId}" accept="image/*" class="absolute w-px h-px opacity-0 overflow-hidden" style="top:-9999px;left:-9999px" data-record-id="${m._recordId}" data-map-id="${m.map_id || ''}">
+                                <label class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-600 hover:bg-slate-500 active:bg-slate-700 border border-slate-500 border-dashed rounded-lg cursor-pointer transition-all text-left shadow-sm">
+                                    <i data-lucide="upload" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                                    <span class="text-[11px] text-slate-200 truncate" id="map-file-label-${m._recordId}">${m.map_url ? 'เปลี่ยนรูปภาพ...' : 'อัปโหลดรูปผัง...'}</span>
+                                    <input type="file" id="map-file-input-${m._recordId}" accept="image/*" class="hidden" data-record-id="${m._recordId}" data-map-id="${m.map_id || ''}" onchange="uploadMapFile(this, '${m._recordId}', '${m.map_id || ''}')">
+                                </label>
                                 <span id="map-upload-status-${m._recordId}" class="text-[10px] text-slate-400 ml-1"></span>
                             ` : `
                                 <span class="text-xs text-slate-400">${m.map_url ? 'มีไฟล์รูปภาพแผนผัง' : 'ไม่มีรูปภาพ'}</span>
@@ -7100,11 +7100,16 @@
             console.log('[triggerMapUpload] triggered for recordId:', recordId);
             const el = document.getElementById(`map-file-input-${recordId}`);
             if (el) {
-                el.value = null;
                 el.click();
             } else {
-                console.warn('Map file input not found for recordId:', recordId);
-                alert(`ไม่พบช่องเลือกไฟล์ของแผนผังนี้ (ID: ${recordId})`);
+                // fallback dynamic input
+                const tempInput = document.createElement('input');
+                tempInput.type = 'file';
+                tempInput.accept = 'image/*';
+                tempInput.onchange = function() {
+                    uploadMapFile(this, recordId);
+                };
+                tempInput.click();
             }
         }
         window.triggerMapUpload = triggerMapUpload;
