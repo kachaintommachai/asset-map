@@ -1958,7 +1958,7 @@
 
     <script>
         // ─── BUILD ───
-        const APP_BUILD = '2026-11-16.Supabase-v9';
+        const APP_BUILD = '2026-11-16.Supabase-v10';
         console.log('[it-asset-map] build', APP_BUILD);
 
         // ─── API CONFIG ───
@@ -7058,8 +7058,11 @@
                         <div class="flex-1 min-w-0">
                             ${canEditMap ? `
                                 <div class="flex items-center gap-1.5 flex-wrap">
-                                    <input type="file" id="map-file-input-${m._recordId}" accept="image/*" data-record-id="${m._recordId}" data-map-id="${m.map_id || ''}" onchange="uploadMapFile(this, '${m._recordId}', '${m.map_id || ''}')" class="text-[11px] text-slate-300 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border file:border-slate-500 file:border-dashed file:text-xs file:font-medium file:bg-slate-600 file:text-emerald-400 hover:file:bg-slate-500 cursor-pointer">
-                                    <span id="map-upload-status-${m._recordId}" class="text-[10px] text-slate-400"></span>
+                                    <button type="button" onclick="openMapFilePicker('${m._recordId}', '${m.map_id || ''}')" style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;background:#475569;border:1px dashed #64748b;border-radius:8px;color:#e2e8f0;font-size:11px;cursor:pointer;" onmouseover="this.style.background='#64748b'" onmouseout="this.style.background='#475569'">
+                                        <svg style="width:14px;height:14px;color:#34d399;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                        <span id="map-file-label-${m._recordId}">${m.map_url ? 'เปลี่ยนรูปภาพ...' : 'อัปโหลดรูปผัง...'}</span>
+                                    </button>
+                                    <span id="map-upload-status-${m._recordId}" style="font-size:10px;color:#94a3b8;"></span>
                                 </div>
                             ` : `
                                 <span class="text-xs text-slate-400">${m.map_url ? 'มีไฟล์รูปภาพแผนผัง' : 'ไม่มีรูปภาพ'}</span>
@@ -7082,32 +7085,34 @@
                     </div>
                 `;
                 list.appendChild(div);
-                // Native file input allows direct selection without wrapper hacks
-                const fileInput = div.querySelector('input[type="file"][data-record-id]');
-                if (fileInput) {
-                    fileInput.addEventListener('click', function() {
-                        this.value = '';
-                    });
-                }
+                // No inline file input needed; uses openMapFilePicker() with temp body-level input
             });
             lucide.createIcons();
         }
 
+        function openMapFilePicker(recordId, mapId) {
+            // สร้าง input ชั่วคราวที่ body-level เพื่อหลีกเลี่ยงปัญหา overflow/clip/z-index
+            const tempInput = document.createElement('input');
+            tempInput.type = 'file';
+            tempInput.accept = 'image/*';
+            tempInput.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;';
+            document.body.appendChild(tempInput);
+            tempInput.addEventListener('change', function() {
+                uploadMapFile(this, recordId, mapId);
+                if (document.body.contains(tempInput)) document.body.removeChild(tempInput);
+            });
+            tempInput.addEventListener('cancel', function() {
+                if (document.body.contains(tempInput)) document.body.removeChild(tempInput);
+            });
+            setTimeout(function() {
+                if (document.body.contains(tempInput) && !tempInput.files.length) document.body.removeChild(tempInput);
+            }, 60000);
+            tempInput.click();
+        }
+        window.openMapFilePicker = openMapFilePicker;
+
         function triggerMapUpload(recordId) {
-            console.log('[triggerMapUpload] triggered for recordId:', recordId);
-            const el = document.getElementById(`map-file-input-${recordId}`);
-            if (el) {
-                el.click();
-            } else {
-                // fallback dynamic input
-                const tempInput = document.createElement('input');
-                tempInput.type = 'file';
-                tempInput.accept = 'image/*';
-                tempInput.onchange = function() {
-                    uploadMapFile(this, recordId);
-                };
-                tempInput.click();
-            }
+            openMapFilePicker(recordId, '');
         }
         window.triggerMapUpload = triggerMapUpload;
 
