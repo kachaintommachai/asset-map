@@ -5275,30 +5275,8 @@
             if (!file) return;
             try {
                 const assetCode = document.getElementById('detail-id')?.value.trim();
-                
-                // พยายามอัปโหลดขึ้น Cloudinary ผ่าน /api/upload
-                let finalUrl = '';
-                try {
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    formData.append('type', 'device');
-                    if (recordId) formData.append('record_id', recordId);
-
-                    const res = await fetch('/api/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await res.json().catch(() => ({}));
-                    if (res.ok && data.success && data.url) {
-                        finalUrl = data.url;
-                    }
-                } catch (netErr) {
-                    console.warn('Detail image direct upload notice:', netErr);
-                }
-
-                if (!finalUrl) {
-                    finalUrl = await compressAndReadImage(file, 900, 0.75);
-                }
+                const finalUrl = await uploadImageToCloudinary(file, 'asset_map/devices');
+                if (!finalUrl) throw new Error('ไม่สามารถอัปโหลดไฟล์รูปภาพได้');
 
                 const inputUrl = document.getElementById('detail-image-url');
                 if (inputUrl) inputUrl.value = finalUrl;
@@ -5660,35 +5638,65 @@
             });
         }
 
+        // ─── Cloudinary Upload Helper (Direct Unsigned Upload + Server Fallback) ───
+        async function uploadImageToCloudinary(file, folder = 'asset_map/maps') {
+            if (!file) return '';
+            const cloudName = 'ugkaemul';
+            const uploadPreset = 'asset_map';
+
+            // 1. ลองอัปโหลดตรงไปยัง Cloudinary (Direct Unsigned Upload)
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('upload_preset', uploadPreset);
+                formData.append('folder', folder);
+
+                const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && (data.secure_url || data.url)) {
+                    return data.secure_url || data.url;
+                }
+            } catch (err) {
+                console.warn('Direct Cloudinary upload notice:', err);
+            }
+
+            // 2. ลองผ่าน /api/upload (Server Proxy)
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('type', folder.includes('map') ? 'map' : 'device');
+
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.success && data.url && !data.url.startsWith('data:')) {
+                    return data.url;
+                }
+            } catch (err) {
+                console.warn('Server proxy upload notice:', err);
+            }
+
+            // 3. Fallback: บีบอัดรูปภาพเป็น Base64
+            const maxDim = folder.includes('map') ? 1800 : 900;
+            const quality = folder.includes('map') ? 0.85 : 0.75;
+            return await compressAndReadImage(file, maxDim, quality);
+        }
+
         async function handleDeviceImageUpload(input) {
             const file = input.files[0];
             if (!file) return;
             const textEl = document.getElementById('cam-upload-text');
+            const originalText = textEl ? textEl.textContent : 'อัปโหลดภาพ';
             if (textEl) textEl.textContent = 'กำลังอัปโหลด...';
             
             try {
-                // พยายามอัปโหลดขึ้น Cloudinary ผ่าน /api/upload
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('type', 'device');
-
-                let finalUrl = '';
-                try {
-                    const res = await fetch('/api/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await res.json().catch(() => ({}));
-                    if (res.ok && data.success && data.url) {
-                        finalUrl = data.url;
-                    }
-                } catch (netErr) {
-                    console.warn('Direct upload network error:', netErr);
-                }
-
-                if (!finalUrl) {
-                    finalUrl = await compressAndReadImage(file, 900, 0.75);
-                }
+                const finalUrl = await uploadImageToCloudinary(file, 'asset_map/devices');
+                if (!finalUrl) throw new Error('ไม่สามารถอัปโหลดไฟล์รูปภาพได้');
 
                 document.getElementById('cam-image-url').value = finalUrl;
                 showDeviceImagePreview(finalUrl);
@@ -7119,55 +7127,45 @@
                 showToastNotification('คุณไม่มีสิทธิ์อัปโหลดหรือแก้ไขรูปภาพแผนผัง', 'error');
                 return;
             }
-            let file = input.files[0];
+            const file = input.files[0];
             if (!file) return;
             const label = document.getElementById(`map-file-label-${recordId}`);
             const status = document.getElementById(`map-upload-status-${recordId}`);
             if (label) label.textContent = file.name;
             if (status) {
-                status.textContent = 'กำลังอัปโหลดไปยัง Cloudinary...';
+                status.textContent = 'กำลังอัปโหลด...';
                 status.className = 'text-[11px] text-amber-400';
             }
             try {
-                // พยายามอัปโหลดขึ้น Cloudinary ผ่าน /api/upload
-                let finalUrl = '';
-                try {
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    formData.append('type', 'map');
-                    if (recordId) formData.append('record_id', recordId);
+                const finalUrl = await uploadImageToCloudinary(file, 'asset_map/maps');
+                if (!finalUrl) throw new Error('ไม่สามารถอัปโหลดไฟล์รูปภาพได้');
 
-                    const res = await fetch('/api/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await res.json().catch(() => ({}));
-                    if (res.ok && data.success && data.url) {
-                        finalUrl = data.url;
-                    }
-                } catch (netErr) {
-                    console.warn('Map upload notice:', netErr);
-                }
-
-                if (!finalUrl) {
-                    finalUrl = await compressAndReadImage(file, 1600, 0.82);
-                }
-
+                // บันทึก URL ลง LocalImageStore ทันที
                 if (mapId) LocalImageStore.save(`map_${mapId}`, finalUrl);
                 if (recordId) LocalImageStore.save(`map_${recordId}`, finalUrl);
                 if (selectedMapId) LocalImageStore.save(`map_${selectedMapId}`, finalUrl);
 
+                // อัปเดตไปยังตาราง map ใน Supabase
                 const targetUpdateId = recordId || mapId;
                 if (targetUpdateId) {
                     await apiUpdate('map', targetUpdateId, {
-                        map_pic: finalUrl,
-                        map_url: finalUrl
-                    }).catch(e => console.warn('Supabase map update fallback notice:', e));
+                        map_pic: finalUrl
+                    });
                 }
+
                 if (status) {
                     status.textContent = 'อัปโหลดสำเร็จ!';
                     status.className = 'text-[11px] text-emerald-400';
                 }
+                showToastNotification('อัปโหลดและบันทึกรูปภาพแผนผังเรียบร้อยแล้ว', 'success');
+
+                // อัปเดตข้อมูล map ใน state ของ frontend ทันที
+                const m = maps.find(item => String(item._recordId) === String(recordId) || String(item.map_id) === String(mapId));
+                if (m) {
+                    m.map_pic = finalUrl;
+                    m.map_url = finalUrl;
+                }
+
                 await fetchMaps();
                 renderMapsList();
                 renderMapSelector();
@@ -7177,6 +7175,8 @@
                     status.textContent = 'เกิดข้อผิดพลาด: ' + err.message;
                     status.className = 'text-[11px] text-red-400';
                 }
+                showToastNotification('เกิดข้อผิดพลาดในการอัปโหลด: ' + err.message, 'error');
+                console.error('uploadMapFile error:', err);
             }
         }
 
@@ -7210,7 +7210,7 @@
                 return;
             }
 
-            // 2. ตรวจสอบกับตาราง Airtable จริงแบบ Real-time ก่อนทำการบันทึก
+            // 2. ตรวจสอบกับตารางข้อมูลจริงแบบ Real-time ก่อนทำการบันทึก
             try {
                 const latestRecords = await apiGetAll('map');
                 const dbDup = latestRecords.find(r => {
@@ -7221,7 +7221,7 @@
                 });
                 if (dbDup) {
                     const dupName = (dbDup.fields && (dbDup.fields.map_name || dbDup.fields['Map Name'] || dbDup.fields.Name)) || `แผนผัง ${newId}`;
-                    alert(`รหัสแผนผัง "${newId}" มีอยู่ในตาราง Airtable แล้ว (${dupName})\nกรุณาแก้ไขรหัสก่อนบันทึก`);
+                    alert(`รหัสแผนผัง "${newId}" มีอยู่ในระบบแล้ว (${dupName})\nกรุณาแก้ไขรหัสก่อนบันทึก`);
                     if (idInput) { idInput.focus(); idInput.select(); }
                     return;
                 }
@@ -7276,7 +7276,7 @@
             if (btn) { btn.disabled = true; btn.textContent = 'กำลังตรวจสอบรหัสในตาราง...'; }
 
             try {
-                // 2. ตรวจสอบรหัสในตาราง Airtable จริงแบบ Real-time ก่อนทำการบันทึก
+                // 2. ตรวจสอบรหัสในตารางจริงแบบ Real-time ก่อนทำการบันทึก
                 try {
                     const latestRecords = await apiGetAll('map');
                     const dbDup = latestRecords.find(r => {
@@ -7294,23 +7294,23 @@
                     console.warn('Real-time duplicate check warning:', chkErr);
                 }
 
-                if (btn) { btn.textContent = 'กำลังบันทึกแผนผัง...'; }
                 let mapUrl = '';
                 if (file) {
-                    mapUrl = await compressAndReadImage(file, 1600, 0.82);
-                    LocalImageStore.save(`map_${mapId}`, mapUrl);
-                    LocalImageStore.save(`map_${mapName}`, mapUrl);
+                    if (btn) btn.textContent = 'กำลังอัปโหลดรูปภาพ...';
+                    mapUrl = await uploadImageToCloudinary(file, 'asset_map/maps');
+                    if (mapUrl) {
+                        LocalImageStore.save(`map_${mapId}`, mapUrl);
+                        LocalImageStore.save(`map_${mapName}`, mapUrl);
+                    }
                 }
+                if (btn) btn.textContent = 'กำลังบันทึกแผนผัง...';
                 const fields = {
                     map_id: String(mapId),
                     map_name: mapName
                 };
                 if (mapSite) fields.site = mapSite;
-                if (mapUrl) {
-                    fields.map_url = mapUrl;
-                    fields.map_pic = mapUrl;
-                    fields.image = mapUrl;
-                }
+                if (mapUrl) fields.map_pic = mapUrl;
+
                 await apiCreate('map', fields);
                 document.getElementById('add-map-form').reset();
                 document.getElementById('new-map-file-label').textContent = 'เลือกไฟล์รูปภาพแผนผัง...';

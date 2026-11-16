@@ -14,10 +14,10 @@ function getSupabaseConfig() {
 
 // ─── Cloudinary Config & Upload Helper ───
 function getCloudinaryConfig() {
-  let cloudName = (process.env.CLOUDINARY_CLOUD_NAME || '').trim();
+  let cloudName = (process.env.CLOUDINARY_CLOUD_NAME || 'ugkaemul').trim();
   const apiKey    = (process.env.CLOUDINARY_API_KEY    || '').trim();
   const apiSecret = (process.env.CLOUDINARY_API_SECRET || '').trim();
-  const uploadPreset = (process.env.CLOUDINARY_UPLOAD_PRESET || process.env.CLOUDINARY_PRESET || '').trim();
+  const uploadPreset = (process.env.CLOUDINARY_UPLOAD_PRESET || process.env.CLOUDINARY_PRESET || 'asset_map').trim();
 
   if (cloudName.toLowerCase() === 'asset_map' || cloudName.toLowerCase() === 'asset-map') {
     cloudName = 'ugkaemul';

@@ -1,0 +1,14 @@
+﻿type_ID,category,discription,depreciation
+Free software,software,Software for free use,0
+GPL,software,General plublic license,0
+MIT,software,MIT license,0
+Printer,hardware,"เครื่องพิมพ์,เครื่องถ่ายเอกสาร,เครื่องสแกน",5
+UPS,hardware,เครื่องสำรองไฟ,5
+PC,hardware,"คอมพิวเตอร์ส่วนบุคคล ชนิดตั้งโต๊ะ, All in One, Notebook",5
+Router,hardware,Router,5
+Switch,hardware,"Switch hub L1,L2,L3",5
+Oracle lc,software,Oracle license,10
+OEM,software,OEM license,10
+FPP,software,FPP (ซื้อแยกแบบกล่อง/ดิจิทัล),10
+Adobe,software,Adobe license,10
+Dynamic,software,Microsoft Dynamic license,10
