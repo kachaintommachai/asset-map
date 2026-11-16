@@ -132,12 +132,9 @@ function parseMultipart(req) {
       return resolve({ fields: {}, file: null });
     }
     const boundary = match[1] || match[2];
-    const chunks = [];
 
-    req.on('data', chunk => chunks.push(chunk));
-    req.on('end', () => {
+    function processBuffer(buffer) {
       try {
-        const buffer = Buffer.concat(chunks);
         const boundaryBuffer = Buffer.from('--' + boundary);
         const parts = [];
         let start = 0;
@@ -168,23 +165,32 @@ function parseMultipart(req) {
 
           if (filename) {
             const typeMatch = headerStr.match(/Content-Type:\s*([^\r\n]+)/i);
-            fileData = {
-              filename,
-              mimeType: typeMatch ? typeMatch[1].trim() : 'image/jpeg',
-              buffer: body
-            };
+            const mimeType  = typeMatch ? typeMatch[1].trim() : 'application/octet-stream';
+            fileData = { filename, mimeType, buffer: body };
           } else {
             fields[fieldName] = body.toString('utf-8').trim();
           }
         }
-
         resolve({ fields, file: fileData });
       } catch (err) {
         reject(err);
       }
-    });
+    }
 
-    req.on('error', reject);
+    if (Buffer.isBuffer(req.body)) {
+      return processBuffer(req.body);
+    }
+    if (typeof req.body === 'string') {
+      return processBuffer(Buffer.from(req.body, 'binary'));
+    }
+    if (typeof req.on === 'function') {
+      const chunks = [];
+      req.on('data', chunk => chunks.push(chunk));
+      req.on('end', () => processBuffer(Buffer.concat(chunks)));
+      req.on('error', err => reject(err));
+    } else {
+      resolve({ fields: {}, file: null });
+    }
   });
 }
 
@@ -286,8 +292,7 @@ async function handler(req, res) {
   }
 }
 
-handler.config = {
+module.exports = handler;
+module.exports.config = {
   api: { bodyParser: false }
 };
-
-module.exports = handler;

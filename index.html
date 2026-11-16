@@ -1958,7 +1958,7 @@
 
     <script>
         // ─── BUILD ───
-        const APP_BUILD = '2026-11-16.Supabase-v3';
+        const APP_BUILD = '2026-11-16.Supabase-v4';
         console.log('[it-asset-map] build', APP_BUILD);
 
         // ─── API CONFIG ───
@@ -5637,7 +5637,7 @@
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('upload_preset', uploadPreset);
-                formData.append('folder', folder);
+                if (folder) formData.append('folder', folder);
 
                 const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
                     method: 'POST',
@@ -5645,10 +5645,12 @@
                 });
                 const data = await res.json().catch(() => ({}));
                 if (res.ok && (data.secure_url || data.url)) {
+                    console.log('[Cloudinary Direct Upload Success]:', data.secure_url || data.url);
                     return data.secure_url || data.url;
                 }
+                console.warn('[Cloudinary Direct Upload Notice]:', res.status, data);
             } catch (err) {
-                console.warn('Direct Cloudinary upload notice:', err);
+                console.warn('[Cloudinary Direct Upload Network Warning]:', err);
             }
 
             // 2. ลองผ่าน /api/upload (Server Proxy)
@@ -5663,13 +5665,16 @@
                 });
                 const data = await res.json().catch(() => ({}));
                 if (res.ok && data.success && data.url && !data.url.startsWith('data:')) {
+                    console.log('[Cloudinary Server Upload Success]:', data.url);
                     return data.url;
                 }
+                console.warn('[Cloudinary Server Upload Notice]:', res.status, data);
             } catch (err) {
-                console.warn('Server proxy upload notice:', err);
+                console.warn('[Cloudinary Server Upload Warning]:', err);
             }
 
             // 3. Fallback: บีบอัดรูปภาพเป็น Base64
+            console.warn('[Cloudinary fallback to Base64]');
             const maxDim = folder.includes('map') ? 1800 : 900;
             const quality = folder.includes('map') ? 0.85 : 0.75;
             return await compressAndReadImage(file, maxDim, quality);
@@ -7188,6 +7193,14 @@
                 return;
             }
 
+            const saveBtn = document.querySelector(`button[onclick*="saveMap('${recordId}')"]`);
+            const origSaveText = saveBtn ? saveBtn.innerHTML : '';
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>กำลังบันทึก...</span>';
+                if (window.lucide) lucide.createIcons();
+            }
+
             // 2. ตรวจสอบกับตารางข้อมูลจริงแบบ Real-time ก่อนทำการบันทึก
             try {
                 const latestRecords = await apiGetAll('map');
@@ -7204,7 +7217,29 @@
                     return;
                 }
 
-                await apiUpdate('map', recordId, { map_id: newId, map_name: name, site: siteVal });
+                const fileInput = document.getElementById(`map-file-input-${recordId}`);
+                const newFile = fileInput && fileInput.files && fileInput.files[0];
+                const updateFields = { map_id: newId, map_name: name, site: siteVal };
+
+                if (newFile) {
+                    if (saveBtn) {
+                        saveBtn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>กำลังอัปโหลดรูป...</span>';
+                        if (window.lucide) lucide.createIcons();
+                    }
+                    const finalUrl = await uploadImageToCloudinary(newFile, 'asset_map/maps');
+                    if (finalUrl) {
+                        updateFields.map_pic = finalUrl;
+                        LocalImageStore.save(`map_${newId}`, finalUrl);
+                        LocalImageStore.save(`map_${recordId}`, finalUrl);
+                    }
+                } else {
+                    const existingMap = maps.find(m => String(m._recordId) === String(recordId));
+                    if (existingMap && existingMap.map_pic) {
+                        updateFields.map_pic = existingMap.map_pic;
+                    }
+                }
+
+                await apiUpdate('map', recordId, updateFields);
                 await fetchMaps();
                 renderMapsList();
                 renderMapSelector();
@@ -7213,6 +7248,12 @@
             } catch (err) {
                 showToastNotification('เกิดข้อผิดพลาด: ' + err.message, 'error');
                 if (idInput) { idInput.focus(); idInput.select(); }
+            } finally {
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = origSaveText;
+                    if (window.lucide) lucide.createIcons();
+                }
             }
         }
 
@@ -7229,7 +7270,7 @@
             const mapSiteInput = document.getElementById('new-map-site');
             const mapSite = mapSiteInput ? mapSiteInput.value.trim() : '';
             const fileInput = document.getElementById('new-map-file');
-            let file = fileInput.files[0];
+            let file = fileInput && fileInput.files && fileInput.files[0];
 
             if (!mapId) {
                 alert('กรุณากำหนดรหัสแผนผัง (ID)');
@@ -7274,11 +7315,13 @@
 
                 let mapUrl = '';
                 if (file) {
-                    if (btn) btn.textContent = 'กำลังอัปโหลดรูปภาพ...';
+                    if (btn) btn.textContent = 'กำลังอัปโหลดรูปภาพไปยัง Cloudinary...';
                     mapUrl = await uploadImageToCloudinary(file, 'asset_map/maps');
                     if (mapUrl) {
                         LocalImageStore.save(`map_${mapId}`, mapUrl);
                         LocalImageStore.save(`map_${mapName}`, mapUrl);
+                    } else {
+                        throw new Error('ไม่สามารถอัปโหลดไฟล์รูปภาพไปยัง Cloudinary ได้');
                     }
                 }
                 if (btn) btn.textContent = 'กำลังบันทึกแผนผัง...';
