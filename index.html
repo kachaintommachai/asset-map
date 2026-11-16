@@ -1958,7 +1958,7 @@
 
     <script>
         // ─── BUILD ───
-        const APP_BUILD = '2026-11-16.Supabase-v7';
+        const APP_BUILD = '2026-11-16.Supabase-v8';
         console.log('[it-asset-map] build', APP_BUILD);
 
         // ─── API CONFIG ───
@@ -7057,10 +7057,10 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             ${canEditMap ? `
-                                <label class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-600 hover:bg-slate-500 active:bg-slate-700 border border-slate-500 border-dashed rounded-lg cursor-pointer transition-all text-left shadow-sm">
+                                <label for="map-file-input-${m._recordId}" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-600 hover:bg-slate-500 active:bg-slate-700 border border-slate-500 border-dashed rounded-lg cursor-pointer transition-all text-left shadow-sm">
                                     <i data-lucide="upload" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
                                     <span class="text-[11px] text-slate-200 truncate" id="map-file-label-${m._recordId}">${m.map_url ? 'เปลี่ยนรูปภาพ...' : 'อัปโหลดรูปผัง...'}</span>
-                                    <input type="file" id="map-file-input-${m._recordId}" accept="image/*" class="hidden" data-record-id="${m._recordId}" data-map-id="${m.map_id || ''}" onchange="uploadMapFile(this, '${m._recordId}', '${m.map_id || ''}')">
+                                    <input type="file" id="map-file-input-${m._recordId}" accept="image/*" class="sr-only" data-record-id="${m._recordId}" data-map-id="${m.map_id || ''}" onchange="uploadMapFile(this, '${m._recordId}', '${m.map_id || ''}')">
                                 </label>
                                 <span id="map-upload-status-${m._recordId}" class="text-[10px] text-slate-400 ml-1"></span>
                             ` : `
@@ -7084,12 +7084,12 @@
                     </div>
                 `;
                 list.appendChild(div);
-                // ผูก change event บน file input โดยตรง (หลัง DOM insert)
+                // reset file input on click so the same file can be selected again
                 const fileInput = div.querySelector('input[type="file"][data-record-id]');
                 if (fileInput) {
-                    fileInput.addEventListener('click', function() { this.value = ''; });
-                    fileInput.addEventListener('change', function() {
-                        uploadMapFile(this, this.dataset.recordId, this.dataset.mapId);
+                    fileInput.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        this.value = '';
                     });
                 }
             });
