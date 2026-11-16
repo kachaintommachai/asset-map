@@ -1968,7 +1968,7 @@
 
     <script>
         // ─── BUILD ───
-        const APP_BUILD = '2026-11-16.Supabase-v13-fast';
+        const APP_BUILD = '2026-11-16.Supabase-v14-paging';
         console.log('[it-asset-map] build', APP_BUILD);
 
         // ─── API CONFIG ───
@@ -6412,6 +6412,18 @@
         // ─── DEVICE MANAGER (ADMIN) ───
         const selectedDeviceKeys = new Set();
         let lastFilteredDeviceKeys = [];
+        let devMgrLimit = 100;
+        const DEV_MGR_BATCH = 100;
+
+        function loadMoreDeviceManager() {
+            devMgrLimit += DEV_MGR_BATCH;
+            renderDeviceManagerList();
+        }
+
+        function loadAllDeviceManager() {
+            devMgrLimit = 999999;
+            renderDeviceManagerList();
+        }
 
         function getDeviceUniqueKey(c) {
             return String(c._recordId || c.asset_code || c.id || '');
@@ -6476,6 +6488,7 @@
         }
 
         function openDeviceManager() {
+            devMgrLimit = DEV_MGR_BATCH;
             populateDeviceManagerFilters();
             renderDeviceManagerList();
             const addBtn = document.getElementById('dev-mgr-add-btn');
@@ -6617,7 +6630,10 @@
             const totalBadge = document.getElementById('dev-mgr-total-badge');
             if (totalBadge) totalBadge.textContent = `${cameras.length} อุปกรณ์`;
             const footerCount = document.getElementById('dev-mgr-footer-count');
-            if (footerCount) footerCount.textContent = `แสดง ${list.length} จากทั้งหมด ${cameras.length} อุปกรณ์`;
+            if (footerCount) {
+                const shownCount = Math.min(devMgrLimit, list.length);
+                footerCount.innerHTML = `แสดง <strong class="text-emerald-400 font-bold">${shownCount}</strong> จาก ${list.length} อุปกรณ์ ${list.length < cameras.length ? `(จากทั้งหมด ${cameras.length})` : ''} ${list.length > devMgrLimit ? `<button type="button" onclick="loadMoreDeviceManager()" class="text-xs text-emerald-400 hover:text-emerald-300 underline ml-2 cursor-pointer font-medium">+ แสดงเพิ่มอีก ${Math.min(DEV_MGR_BATCH, list.length - devMgrLimit)} รายการ</button>` : ''}`;
+            }
 
             updateDeviceManagerSelectionUI();
 
@@ -6887,7 +6903,28 @@
                         </td>
                     </tr>
                 `;
-            }).slice(0, 100).join('');
+            }).slice(0, devMgrLimit).join('');
+
+            // แถวปุ่มแสดงเพิ่มอีก... ในตารางจัดการอุปกรณ์ (Modal Devices)
+            if (list.length > devMgrLimit) {
+                const remaining = list.length - devMgrLimit;
+                const nextCount = Math.min(DEV_MGR_BATCH, remaining);
+                tbody.innerHTML += `
+                    <tr id="dev-mgr-load-more-row">
+                        <td colspan="13" class="py-4 px-3 text-center bg-slate-800/95 border-t border-slate-700">
+                            <div class="inline-flex items-center gap-2 flex-wrap justify-center">
+                                <button type="button" onclick="loadMoreDeviceManager()" class="px-5 py-2.5 bg-slate-700 hover:bg-slate-650 active:bg-slate-600 text-emerald-400 font-semibold rounded-xl text-xs border border-slate-600 transition-all shadow-md inline-flex items-center gap-2 cursor-pointer">
+                                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                                    <span>แสดงเพิ่มอีก ${nextCount} รายการ (แสดงอยู่ ${Math.min(devMgrLimit, list.length)} จากทั้งหมด ${list.length})</span>
+                                </button>
+                                <button type="button" onclick="loadAllDeviceManager()" class="px-4 py-2.5 bg-slate-750 hover:bg-slate-700 text-slate-300 rounded-xl text-xs border border-slate-600 transition-all cursor-pointer">
+                                    แสดงทั้งหมด (${list.length})
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
 
             if (window.lucide) lucide.createIcons({ root: tbody });
         }
@@ -7693,6 +7730,16 @@
                     </tr>
                 `;
             }).slice(0, 100).join('');
+
+            if (filtered.length > 100) {
+                tbody.innerHTML += `
+                    <tr>
+                        <td colspan="9" class="py-3 text-center bg-slate-800/90 text-xs text-slate-400 border-t border-slate-700">
+                            แสดง 100 รายการแรกจาก ${filtered.length} รายการ (สามารถพิมพ์ค้นหาหรือกรองสถานะด้านบนเพื่อดูรายการที่ต้องการได้)
+                        </td>
+                    </tr>
+                `;
+            }
 
             if (window.lucide) lucide.createIcons({ root: tbody });
         }
