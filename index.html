@@ -1102,11 +1102,11 @@
                             </div>
                         </div>
                         <div class="flex flex-col sm:flex-row items-center gap-2">
-                            <button type="button" onclick="document.getElementById('new-map-file').click()" class="flex-1 w-full flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-650 active:bg-slate-600 border border-slate-600 border-dashed rounded-lg cursor-pointer hover:border-emerald-500 transition-all text-left">
+                            <label class="relative flex-1 w-full overflow-hidden flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-650 active:bg-slate-600 border border-slate-600 border-dashed rounded-lg cursor-pointer hover:border-emerald-500 transition-all text-left select-none">
                                 <i data-lucide="upload" class="w-4 h-4 text-emerald-400 shrink-0 pointer-events-none"></i>
                                 <span class="text-xs text-slate-200 truncate pointer-events-none" id="new-map-file-label">เลือกไฟล์รูปภาพแผนผัง...</span>
-                            </button>
-                            <input type="file" id="new-map-file" accept="image/*" style="display:none" onclick="this.value=null" onchange="document.getElementById('new-map-file-label').textContent = this.files[0] ? this.files[0].name : 'เลือกไฟล์รูปภาพแผนผัง...'">
+                                <input type="file" id="new-map-file" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onclick="this.value=null" onchange="document.getElementById('new-map-file-label').textContent = this.files[0] ? this.files[0].name : 'เลือกไฟล์รูปภาพแผนผัง...'">
+                            </label>
                             <button type="submit" class="w-full sm:w-auto px-5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium transition-all shrink-0">เพิ่มแผนผัง</button>
                         </div>
                     </form>
@@ -1958,7 +1958,7 @@
 
     <script>
         // ─── BUILD ───
-        const APP_BUILD = '2026-11-16.Supabase-v2';
+        const APP_BUILD = '2026-11-16.Supabase-v3';
         console.log('[it-asset-map] build', APP_BUILD);
 
         // ─── API CONFIG ───
@@ -7052,11 +7052,11 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             ${canEditMap ? `
-                                <button type="button" onclick="triggerMapUpload('${m._recordId}')" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-600 hover:bg-slate-500 active:bg-slate-700 border border-slate-500 border-dashed rounded-lg cursor-pointer transition-all max-w-full text-left shadow-sm">
+                                <label class="relative inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-600 hover:bg-slate-500 active:bg-slate-700 border border-slate-500 border-dashed rounded-lg cursor-pointer transition-all max-w-full text-left shadow-sm overflow-hidden select-none">
                                     <i data-lucide="upload" class="w-3.5 h-3.5 text-emerald-400 shrink-0 pointer-events-none"></i>
                                     <span class="text-[11px] text-slate-200 truncate pointer-events-none" id="map-file-label-${m._recordId}">${m.map_url ? 'เปลี่ยนรูปภาพ...' : 'อัปโหลดรูปผัง...'}</span>
-                                </button>
-                                <input type="file" id="map-file-input-${m._recordId}" accept="image/*" style="display:none" onclick="this.value=null" onchange="uploadMapFile(this, '${m._recordId}', '${m.map_id || ''}')">
+                                    <input type="file" id="map-file-input-${m._recordId}" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onclick="this.value=null" onchange="uploadMapFile(this, '${m._recordId}', '${m.map_id || ''}')">
+                                </label>
                                 <span id="map-upload-status-${m._recordId}" class="text-[10px] text-slate-400 ml-1"></span>
                             ` : `
                                 <span class="text-xs text-slate-400">${m.map_url ? 'มีไฟล์รูปภาพแผนผัง' : 'ไม่มีรูปภาพ'}</span>
