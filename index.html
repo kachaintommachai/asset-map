@@ -887,10 +887,15 @@
                     </label>
                     <div class="flex items-center gap-2">
                         <input id="cam-image-url" type="text" placeholder="URL รูปภาพ หรือคลิกอัปโหลดไฟล์รูปภาพ" class="flex-1 px-2.5 py-1.5 bg-slate-700/90 border border-slate-600 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-emerald-500">
-                        <label class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium cursor-pointer transition-all shrink-0 shadow-sm">
+                        <label class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium cursor-pointer transition-all shrink-0 shadow-sm" title="เลือกรูปภาพจากเครื่อง">
                             <i data-lucide="upload" class="w-3.5 h-3.5"></i>
                             <span id="cam-upload-text">อัปโหลดภาพ</span>
-                            <input type="file" id="cam-image-file" accept="image/*" class="hidden" onchange="handleDeviceImageUpload(this)">
+                            <input type="file" id="cam-image-file" accept="image/*" class="hidden" onchange="handleDeviceImageUpload(this, 'cam-upload-text')">
+                        </label>
+                        <label class="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-medium cursor-pointer transition-all shrink-0 shadow-sm" title="ถ่ายภาพจากกล้องโดยตรง (สำหรับมือถือ/แท็บเล็ต)">
+                            <i data-lucide="camera" class="w-3.5 h-3.5"></i>
+                            <span id="cam-camera-text">ถ่ายภาพ</span>
+                            <input type="file" id="cam-camera-file" accept="image/*" capture="environment" class="hidden" onchange="handleDeviceImageUpload(this, 'cam-camera-text')">
                         </label>
                     </div>
                     <div id="cam-image-preview-container" class="hidden mt-2">
@@ -1102,10 +1107,15 @@
                             </div>
                         </div>
                         <div class="flex flex-col sm:flex-row items-center gap-2">
-                            <label class="relative flex-1 w-full overflow-hidden flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-650 active:bg-slate-600 border border-slate-600 border-dashed rounded-lg cursor-pointer hover:border-emerald-500 transition-all text-left select-none">
+                            <label class="relative flex-1 w-full overflow-hidden flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-650 active:bg-slate-600 border border-slate-600 border-dashed rounded-lg cursor-pointer hover:border-emerald-500 transition-all text-left select-none" title="เลือกไฟล์รูปภาพ">
                                 <i data-lucide="upload" class="w-4 h-4 text-emerald-400 shrink-0 pointer-events-none"></i>
                                 <span class="text-xs text-slate-200 truncate pointer-events-none" id="new-map-file-label">เลือกไฟล์รูปภาพแผนผัง...</span>
                                 <input type="file" id="new-map-file" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onclick="this.value=null" onchange="document.getElementById('new-map-file-label').textContent = this.files[0] ? this.files[0].name : 'เลือกไฟล์รูปภาพแผนผัง...'">
+                            </label>
+                            <label class="relative shrink-0 overflow-hidden flex items-center gap-1.5 px-3 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg cursor-pointer transition-all shadow-sm" title="ถ่ายภาพจากกล้อง">
+                                <i data-lucide="camera" class="w-4 h-4 pointer-events-none"></i>
+                                <span class="text-xs font-medium pointer-events-none">ถ่ายภาพ</span>
+                                <input type="file" accept="image/*" capture="environment" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onclick="this.value=null" onchange="if(this.files[0]){ const dt = new DataTransfer(); dt.items.add(this.files[0]); document.getElementById('new-map-file').files = dt.files; document.getElementById('new-map-file-label').textContent = this.files[0].name; }">
                             </label>
                             <button type="submit" class="w-full sm:w-auto px-5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium transition-all shrink-0">เพิ่มแผนผัง</button>
                         </div>
@@ -1958,7 +1968,7 @@
 
     <script>
         // ─── BUILD ───
-        const APP_BUILD = '2026-11-16.Supabase-v11';
+        const APP_BUILD = '2026-11-16.Supabase-v12';
         console.log('[it-asset-map] build', APP_BUILD);
 
         // ─── API CONFIG ───
@@ -5135,9 +5145,13 @@
                                         <label class="text-xs text-slate-300 font-semibold flex items-center gap-1.5">
                                             <i data-lucide="image" class="w-3.5 h-3.5 text-emerald-400"></i> ภาพถ่ายอุปกรณ์จริง
                                         </label>
-                                        <label class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium cursor-pointer transition-all flex items-center gap-1 shadow-sm">
+                                        <label class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium cursor-pointer transition-all flex items-center gap-1 shadow-sm" title="เลือกรูปภาพจากเครื่อง">
                                             <i data-lucide="upload" class="w-3 h-3"></i> อัปโหลดรูป
                                             <input type="file" accept="image/*" class="hidden" onchange="uploadDetailDeviceImage(this, '${cam._recordId}')">
+                                        </label>
+                                        <label class="px-2.5 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-medium cursor-pointer transition-all flex items-center gap-1 shadow-sm" title="ถ่ายภาพจากกล้อง">
+                                            <i data-lucide="camera" class="w-3 h-3"></i> ถ่ายภาพ
+                                            <input type="file" accept="image/*" capture="environment" class="hidden" onchange="uploadDetailDeviceImage(this, '${cam._recordId}')">
                                         </label>
                                     </div>
                                     <div class="flex items-center gap-2 mb-2">
@@ -5680,10 +5694,10 @@
             return await compressAndReadImage(file, maxDim, quality);
         }
 
-        async function handleDeviceImageUpload(input) {
+        async function handleDeviceImageUpload(input, statusId = 'cam-upload-text') {
             const file = input.files[0];
             if (!file) return;
-            const textEl = document.getElementById('cam-upload-text');
+            const textEl = document.getElementById(statusId) || document.getElementById('cam-upload-text');
             const originalText = textEl ? textEl.textContent : 'อัปโหลดภาพ';
             if (textEl) textEl.textContent = 'กำลังอัปโหลด...';
             
@@ -7057,11 +7071,17 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             ${canEditMap ? `
-                                <label class="relative flex-1 w-full overflow-hidden flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-600 hover:bg-slate-500 border border-slate-500 border-dashed rounded-lg cursor-pointer transition-all text-left select-none">
-                                    <svg class="w-3.5 h-3.5 shrink-0 pointer-events-none" style="color:#34d399" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                    <span class="text-[11px] text-slate-200 truncate pointer-events-none" id="map-file-label-${m._recordId}">${m.map_url ? 'เปลี่ยนรูปภาพ...' : 'อัปโหลดรูปผัง...'}</span>
-                                    <input type="file" id="map-file-input-${m._recordId}" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onclick="this.value=null" onchange="uploadMapFile(this, '${m._recordId}', '${m.map_id || ''}')">
-                                </label>
+                                <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                                    <label class="relative flex-1 min-w-0 overflow-hidden flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-600 hover:bg-slate-500 border border-slate-500 border-dashed rounded-lg cursor-pointer transition-all text-left select-none" title="เลือกไฟล์ภาพ">
+                                        <svg class="w-3.5 h-3.5 shrink-0 pointer-events-none" style="color:#34d399" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                        <span class="text-[11px] text-slate-200 truncate pointer-events-none" id="map-file-label-${m._recordId}">${m.map_url ? 'เปลี่ยนรูป...' : 'อัปโหลดผัง...'}</span>
+                                        <input type="file" id="map-file-input-${m._recordId}" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onclick="this.value=null" onchange="uploadMapFile(this, '${m._recordId}', '${m.map_id || ''}')">
+                                    </label>
+                                    <label class="relative shrink-0 overflow-hidden flex items-center justify-center p-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg cursor-pointer transition-all shadow-sm" title="ถ่ายภาพจากกล้อง">
+                                        <i data-lucide="camera" class="w-3.5 h-3.5 pointer-events-none"></i>
+                                        <input type="file" accept="image/*" capture="environment" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onclick="this.value=null" onchange="uploadMapFile(this, '${m._recordId}', '${m.map_id || ''}')">
+                                    </label>
+                                </div>
                                 <span id="map-upload-status-${m._recordId}" class="text-[10px] text-slate-400"></span>
                             ` : `
                                 <span class="text-xs text-slate-400">${m.map_url ? 'มีไฟล์รูปภาพแผนผัง' : 'ไม่มีรูปภาพ'}</span>
