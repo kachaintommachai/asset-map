@@ -1,8 +1,7 @@
 // Vercel Serverless Function for Image Uploads
-// Uploads file to Cloudinary and updates Airtable record if record_id is provided
+// Uploads file to Cloudinary and updates Supabase record if record_id is provided
 
 const crypto = require('crypto');
-const AIRTABLE_API_ROOT = 'https://api.airtable.com/v0';
 
 // ─── Cloudinary Config ───
 function getCloudinaryConfig() {
@@ -122,32 +121,6 @@ async function uploadToCloudinary(buffer, mimeType, folder) {
   }
 
   return data.secure_url || data.url || '';
-}
-
-// ─── Airtable Config ───
-function cleanToken(token) {
-  let t = (token || '').trim();
-  if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
-    t = t.slice(1, -1).trim();
-  }
-  if (t.toLowerCase().startsWith('bearer ')) {
-    t = t.slice(7).trim();
-  }
-  return t;
-}
-
-function cleanBaseId(baseId) {
-  let b = (baseId || '').trim();
-  if ((b.startsWith('"') && b.endsWith('"')) || (b.startsWith("'") && b.endsWith("'"))) {
-    b = b.slice(1, -1).trim();
-  }
-  return b;
-}
-
-function getAirtableConfig() {
-  const rawToken  = process.env.AIRTABLE_TOKEN || process.env.AIRTABLE_API_KEY || process.env.AIRTABLE_PAT || '';
-  const rawBaseId = process.env.AIRTABLE_BASE_ID || process.env.AIRTABLE_BASE || '';
-  return { token: cleanToken(rawToken), baseId: cleanBaseId(rawBaseId) };
 }
 
 // ─── Multipart Parser ───
@@ -303,41 +276,6 @@ async function handler(req, res) {
         });
       } catch (sbErr) {
         console.warn('Supabase sync warning:', sbErr);
-      }
-    }
-
-    // ─── Sync URL to Airtable (Legacy/Fallback) ───
-    const { token, baseId } = getAirtableConfig();
-    if (token && baseId && recordId) {
-      const tableName     = isMap ? 'map' : 'device';
-      const updatePayload = isMap
-        ? { map_url: imageUrl, map_pic: imageUrl }
-        : { image_url: imageUrl, go2rtc_link: imageUrl };
-
-      try {
-        let patchRes = await fetch(`${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(tableName)}/${encodeURIComponent(recordId)}`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ fields: updatePayload, typecast: true })
-        });
-        let patchData = await patchRes.json().catch(() => ({}));
-        // ถ้าขึ้น error Unknown field name ให้ลองส่งเฉพาะฟิลด์ที่รองรับ
-        if (!patchRes.ok && patchData.error?.message?.includes('Unknown field name:')) {
-          const singleField = isMap ? { map_pic: imageUrl } : { image_url: imageUrl };
-          await fetch(`${AIRTABLE_API_ROOT}/${baseId}/${encodeURIComponent(tableName)}/${encodeURIComponent(recordId)}`, {
-            method: 'PATCH',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ fields: singleField, typecast: true })
-          });
-        }
-      } catch (err) {
-        console.warn('Airtable sync warning:', err);
       }
     }
 

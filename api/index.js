@@ -1,5 +1,5 @@
 // Vercel Serverless Function Proxy for Supabase API
-// Drop-in replacement for api.php and Airtable on Vercel
+// Backend API proxy for Supabase on Vercel
 
 const fs     = require('fs');
 const path   = require('path');
@@ -177,7 +177,7 @@ async function fetchAllRowsFromSupabase(baseUrl, apiKey) {
   return allRows;
 }
 
-// Map Fields from Supabase row to Frontend Airtable-like format
+// Map Fields from Supabase row to Frontend format
 function formatRow(tName, row) {
   if (!row) return null;
   const target = resolveSupabaseTable(tName);

@@ -1,4 +1,4 @@
-// Bundled CSV data (empty — data is managed in Airtable)
+// Bundled CSV data (data is managed in Supabase)
 module.exports = {
   device: [],
   map: [],

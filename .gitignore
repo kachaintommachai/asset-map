@@ -13,5 +13,5 @@ Thumbs.db
 /tmp/
 
 # Sensitive or environment configuration
-# db_config.local.php
-airtable.local.php
+.env*.local
+*.local.json
