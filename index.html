@@ -1968,7 +1968,7 @@
 
     <script>
         // ─── BUILD ───
-        const APP_BUILD = '2026-11-16.Supabase-v12';
+        const APP_BUILD = '2026-11-16.Supabase-v13-fast';
         console.log('[it-asset-map] build', APP_BUILD);
 
         // ─── API CONFIG ───
@@ -4366,14 +4366,102 @@
             return compareText(cameraSortName(a), cameraSortName(b));
         }
 
-        function renderCameraList() {
+        let deviceListLimit = 50;
+        const DEVICE_LIST_BATCH = 50;
+
+        function loadMoreDevices() {
+            const filtered = getFilteredCameras();
+            if (deviceListLimit >= filtered.length) return;
+            const prevLimit = deviceListLimit;
+            deviceListLimit += DEVICE_LIST_BATCH;
+            renderCameraList(true, prevLimit);
+        }
+
+        function createDeviceItemElement(cam, canEditDev, canDeleteDev) {
+            const div = document.createElement('div');
+            div.className = 'sidebar-item flex items-center gap-2.5 p-2 rounded-xl mb-1 border border-transparent hover:border-slate-700 cursor-pointer';
+            const gColor = getGroupColor(cam.group);
+            const isBookmarked = bookmarks.includes(cam.id);
+            const iconName = getDeviceIconName(cam.type);
+            const xVal = cam.x;
+            const yVal = cam.y;
+            const hasPosition = (xVal != null && xVal !== '' && Number(xVal) !== 0) &&
+                                (yVal != null && yVal !== '' && Number(yVal) !== 0);
+
+            const hasImage = !!(cam.image_url || cam.image || cam.go2rtc || LocalImageStore.get(cam.id) || LocalImageStore.get(cam._recordId) || LocalImageStore.get(cam.asset_code));
+
+            div.innerHTML = `
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm text-white relative" style="background:${gColor}">
+                    <i data-lucide="${iconName}" class="w-4 h-4"></i>
+                    ${hasImage ? '<span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 border-2 border-slate-800 rounded-full" title="มีภาพถ่าย"></span>' : ''}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-bold text-slate-100">${cam.id}</span>
+                        <span class="text-[10px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.2 rounded font-medium">${getDeviceType(cam.type)}</span>
+                        <span class="inline-block w-2 h-2 rounded-full shrink-0 ${hasPosition ? 'bg-green-400' : 'bg-red-500'}" title="${hasPosition ? `จัดวางแล้ว (x:${xVal}, y:${yVal})` : 'ยังไม่ได้จัดวางตำแหน่งบนแผนผัง'}"></span>
+                    </div>
+                    <div class="text-[11px] text-slate-200 truncate font-medium">${cam.asset_name || cam.eng_name || cam.asset_code || cam.id || '-'}</div>
+                    <div class="text-[10px] text-slate-400 truncate flex items-center gap-1.5">
+                        ${(cam.holder || cam.thai_name) ? `<span class="text-emerald-300 font-normal truncate">👤 ${cam.holder || cam.thai_name}</span><span>•</span>` : ''}
+                        <span class="truncate">${cam.department || 'ไม่ระบุแผนก'}</span>
+                        ${cam.ip ? `<span class="font-mono text-slate-400 shrink-0">(${cam.ip})</span>` : ''}
+                    </div>
+                </div>
+                <button onclick="event.stopPropagation(); toggleBookmark('${cam.id}')" class="p-1.5 rounded-lg hover:bg-slate-700 ${isBookmarked ? 'text-amber-400' : 'text-slate-500 hover:text-amber-400'}" title="${isBookmarked ? 'เอาออกจากหมุด' : 'ปักหมุดดูภาพถ่าย'}">
+                    <i data-lucide="bookmark" class="w-4 h-4" ${isBookmarked ? 'fill="currentColor"' : ''}></i>
+                </button>
+                ${canEditDev ? `
+                    <button onclick="event.stopPropagation(); openEditDevice('${cam._recordId}')" class="text-slate-400 hover:text-emerald-400 p-1 rounded hover:bg-slate-700" title="แก้ไข">
+                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                    </button>
+                ` : ''}
+                ${canDeleteDev ? `
+                    <button onclick="event.stopPropagation(); requestDelete('${cam._recordId}','device')" class="text-slate-400 hover:text-red-400 p-1 rounded hover:bg-slate-700" title="ลบ">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                ` : ''}
+            `;
+
+            div.onclick = (e) => {
+                if (e.target.closest('button')) return;
+                if (window.innerWidth < 1024) toggleMobileSidebar(false);
+                showCameraDetail(cam);
+            };
+
+            if (canEditDev) {
+                div.draggable = true;
+                div.style.cursor = 'grab';
+                div.ondragstart = () => { dragTarget = cam; div.classList.add('opacity-50'); };
+                div.ondragend = () => div.classList.remove('opacity-50');
+            }
+            return div;
+        }
+
+        function renderCameraList(appendOnly = false, prevLimit = 0) {
             const list = document.getElementById('camera-list');
+            if (!list) return;
+
+            // ผูก Infinite Scroll แค่ครั้งเดียว
+            if (!list._hasScrollListener) {
+                list._hasScrollListener = true;
+                list.addEventListener('scroll', () => {
+                    if (list.scrollTop + list.clientHeight >= list.scrollHeight - 150) {
+                        loadMoreDevices();
+                    }
+                }, { passive: true });
+            }
+
             const filtered = getFilteredCameras().slice().sort(compareCameraNames);
             const canAddDev = hasUserPermission('device', 'add');
             const canEditDev = hasUserPermission('device', 'edit');
             const canDeleteDev = hasUserPermission('device', 'delete');
-            list.innerHTML = '';
-            
+
+            if (!appendOnly) {
+                deviceListLimit = DEVICE_LIST_BATCH;
+                list.innerHTML = '';
+            }
+
             if (filtered.length === 0) {
                 if (!cameras || cameras.length === 0) {
                     list.innerHTML = `
@@ -4391,69 +4479,36 @@
                 return;
             }
 
+            // นำปุ่มโหลดเพิ่มเดิมออกก่อน
+            const oldMoreBtn = document.getElementById('load-more-devices-container');
+            if (oldMoreBtn) oldMoreBtn.remove();
+
+            const startIndex = appendOnly ? prevLimit : 0;
+            const itemsToRender = filtered.slice(startIndex, deviceListLimit);
 
             const fragment = document.createDocumentFragment();
-            filtered.forEach(cam => {
-                const div = document.createElement('div');
-                div.className = 'sidebar-item flex items-center gap-2.5 p-2 rounded-xl mb-1 border border-transparent hover:border-slate-700 cursor-pointer';
-                const gColor = getGroupColor(cam.group);
-                const isBookmarked = bookmarks.includes(cam.id);
-                const iconName = getDeviceIconName(cam.type);
-                const xVal = cam.x;
-                const yVal = cam.y;
-                const hasPosition = (xVal != null && xVal !== '' && Number(xVal) !== 0) &&
-                                    (yVal != null && yVal !== '' && Number(yVal) !== 0);
-
-                const hasImage = !!(cam.image_url || cam.image || cam.go2rtc || LocalImageStore.get(cam.id) || LocalImageStore.get(cam._recordId) || LocalImageStore.get(cam.asset_code));
-
-                div.innerHTML = `
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm text-white relative" style="background:${gColor}">
-                        <i data-lucide="${iconName}" class="w-4 h-4"></i>
-                        ${hasImage ? '<span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 border-2 border-slate-800 rounded-full" title="มีภาพถ่าย"></span>' : ''}
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-xs font-bold text-slate-100">${cam.id}</span>
-                            <span class="text-[10px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.2 rounded font-medium">${getDeviceType(cam.type)}</span>
-                            <span class="inline-block w-2 h-2 rounded-full shrink-0 ${hasPosition ? 'bg-green-400' : 'bg-red-500'}" title="${hasPosition ? `จัดวางแล้ว (x:${xVal}, y:${yVal})` : 'ยังไม่ได้จัดวางตำแหน่งบนแผนผัง'}"></span>
-                        </div>
-                        <div class="text-[11px] text-slate-200 truncate font-medium">${cam.asset_name || cam.eng_name || cam.asset_code || cam.id || '-'}</div>
-                        <div class="text-[10px] text-slate-400 truncate flex items-center gap-1.5">
-                            ${(cam.holder || cam.thai_name) ? `<span class="text-emerald-300 font-normal truncate">👤 ${cam.holder || cam.thai_name}</span><span>•</span>` : ''}
-                            <span class="truncate">${cam.department || 'ไม่ระบุแผนก'}</span>
-                            ${cam.ip ? `<span class="font-mono text-slate-400 shrink-0">(${cam.ip})</span>` : ''}
-                        </div>
-                    </div>
-                    <button onclick="event.stopPropagation(); toggleBookmark('${cam.id}')" class="p-1.5 rounded-lg hover:bg-slate-700 ${isBookmarked ? 'text-amber-400' : 'text-slate-500 hover:text-amber-400'}" title="${isBookmarked ? 'เอาออกจากหมุด' : 'ปักหมุดดูภาพถ่าย'}">
-                        <i data-lucide="bookmark" class="w-4 h-4" ${isBookmarked ? 'fill="currentColor"' : ''}></i>
-                    </button>
-                    ${canEditDev ? `
-                        <button onclick="event.stopPropagation(); openEditDevice('${cam._recordId}')" class="text-slate-400 hover:text-emerald-400 p-1 rounded hover:bg-slate-700" title="แก้ไข">
-                            <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
-                        </button>
-                    ` : ''}
-                    ${canDeleteDev ? `
-                        <button onclick="event.stopPropagation(); requestDelete('${cam._recordId}','device')" class="text-slate-400 hover:text-red-400 p-1 rounded hover:bg-slate-700" title="ลบ">
-                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                        </button>
-                    ` : ''}
-                `;
-
-                div.onclick = (e) => {
-                    if (e.target.closest('button')) return;
-                    if (window.innerWidth < 1024) toggleMobileSidebar(false);
-                    showCameraDetail(cam);
-                };
-
-                if (canEditDev) {
-                    div.draggable = true;
-                    div.style.cursor = 'grab';
-                    div.ondragstart = () => { dragTarget = cam; div.classList.add('opacity-50'); };
-                    div.ondragend = () => div.classList.remove('opacity-50');
-                }
-                fragment.appendChild(div);
+            itemsToRender.forEach(cam => {
+                fragment.appendChild(createDeviceItemElement(cam, canEditDev, canDeleteDev));
             });
+
+            // เพิ่มปุ่มแสดงเพิ่มเติมถ้ายังมีรายการเหลือ
+            if (filtered.length > deviceListLimit) {
+                const moreCont = document.createElement('div');
+                moreCont.id = 'load-more-devices-container';
+                moreCont.className = 'py-2.5 text-center';
+                const remaining = filtered.length - deviceListLimit;
+                const nextBatch = Math.min(DEVICE_LIST_BATCH, remaining);
+                moreCont.innerHTML = `
+                    <button type="button" onclick="loadMoreDevices()" class="w-full py-2 px-3 bg-slate-700/80 hover:bg-slate-650 active:bg-slate-600 text-slate-200 rounded-xl text-xs font-medium border border-slate-600/80 transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer">
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-emerald-400"></i>
+                        <span>แสดงเพิ่มอีก ${nextBatch} รายการ (แสดงอยู่ ${deviceListLimit}/${filtered.length})</span>
+                    </button>
+                `;
+                fragment.appendChild(moreCont);
+            }
+
             list.appendChild(fragment);
+
             if (window.lucide) {
                 lucide.createIcons({ root: list });
             }
@@ -6832,9 +6887,9 @@
                         </td>
                     </tr>
                 `;
-            }).join('');
+            }).slice(0, 100).join('');
 
-            if (window.lucide) lucide.createIcons();
+            if (window.lucide) lucide.createIcons({ root: tbody });
         }
 
         // ─── INLINE QUICK EDIT FOR DEVICE TABLE ───
@@ -7637,9 +7692,9 @@
                         </td>
                     </tr>
                 `;
-            }).join('');
+            }).slice(0, 100).join('');
 
-            if (window.lucide) lucide.createIcons();
+            if (window.lucide) lucide.createIcons({ root: tbody });
         }
 
         function inspectDeviceFromMaintenance(assetCode) {
@@ -7886,8 +7941,6 @@
             const contentY = viewport.scrollTop + py;
 
             content.style.width = `${currentZoom}%`;
-            void content.offsetHeight;
-
             viewport.scrollLeft = contentX * ratio - px;
             viewport.scrollTop = contentY * ratio - py;
 
