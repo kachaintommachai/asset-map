@@ -7680,7 +7680,7 @@
                 `;
             }
 
-            tbody.innerHTML = list.map(m => {
+            tbody.innerHTML = list.slice(0, 100).map(m => {
                 const badge = getMaintenanceTypeBadge(m.type);
                 const statusBadge = getMaintenanceStatusBadge(m.status);
                 const costStr = m.cost ? formatCurrency(m.cost) : '';
@@ -7729,13 +7729,13 @@
                         </td>
                     </tr>
                 `;
-            }).slice(0, 100).join('');
+            }).join('');
 
-            if (filtered.length > 100) {
+            if (list.length > 100) {
                 tbody.innerHTML += `
                     <tr>
                         <td colspan="9" class="py-3 text-center bg-slate-800/90 text-xs text-slate-400 border-t border-slate-700">
-                            แสดง 100 รายการแรกจาก ${filtered.length} รายการ (สามารถพิมพ์ค้นหาหรือกรองสถานะด้านบนเพื่อดูรายการที่ต้องการได้)
+                            แสดง 100 รายการแรกจาก ${list.length} รายการ (สามารถพิมพ์ค้นหาหรือกรองสถานะด้านบนเพื่อดูรายการที่ต้องการได้)
                         </td>
                     </tr>
                 `;
