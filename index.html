@@ -962,7 +962,24 @@
         </div>
     </div>
 
+    <!-- Auto-Logout Warning Modal -->
+    <div id="modal-auto-logout" class="fixed inset-0 z-[200] hidden items-center justify-center" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(4px)">
+        <div class="bg-slate-800 border border-amber-500/50 rounded-2xl p-6 w-full max-w-sm mx-4 shadow-2xl text-center">
+            <div class="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="clock" class="w-7 h-7 text-amber-400"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1">หมดเวลาการใช้งาน</h3>
+            <p class="text-sm text-slate-400 mb-3">ระบบจะออกจากระบบอัตโนมัติใน</p>
+            <div id="auto-logout-countdown" class="text-5xl font-bold text-amber-400 mb-4 tabular-nums">60</div>
+            <p class="text-xs text-slate-500 mb-5">เนื่องจากไม่มีการใช้งานเกิน 15 นาที</p>
+            <button onclick="resetIdleTimer()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-semibold text-sm transition-all">
+                ยังอยู่ที่นี่ — ต่อเวลาการใช้งาน
+            </button>
+        </div>
+    </div>
+
     <!-- Device Type & License Manager Modal -->
+
     <div id="modal-type-license" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay">
         <div class="bg-slate-800 rounded-2xl p-4 sm:p-6 w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl mx-2 sm:mx-4 border border-slate-700 shadow-2xl max-h-[92vh] flex flex-col">
             <div class="flex items-center justify-between pb-3 border-b border-slate-700 shrink-0">
@@ -3078,6 +3095,7 @@
                     document.getElementById('dept-display').textContent = roleBadgeText + siteText;
 
                     updateAdminMenuUI();
+                    resetIdleTimer();
                     await initializeApp();
                 } else {
                     errorEl.textContent = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
@@ -3111,7 +3129,71 @@
             document.getElementById('admin-menu').classList.add('hidden');
             document.getElementById('login-username').value = '';
             document.getElementById('login-password').value = '';
+            stopIdleTimer();
         }
+
+        // ─── AUTO-LOGOUT (IDLE TIMEOUT 15 นาที) ───
+        const IDLE_TIMEOUT_MS  = 15 * 60 * 1000;  // 15 นาที
+        const WARN_BEFORE_MS   = 60 * 1000;        // เตือนก่อน 60 วินาที
+        let _idleTimer         = null;
+        let _warnTimer         = null;
+        let _countdownInterval = null;
+
+        function resetIdleTimer() {
+            const modal = document.getElementById('modal-auto-logout');
+            if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+            if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
+            if (!currentUser) return;
+            if (_idleTimer) { clearTimeout(_idleTimer); _idleTimer = null; }
+            if (_warnTimer) { clearTimeout(_warnTimer); _warnTimer = null; }
+            _warnTimer = setTimeout(() => {
+                if (!currentUser) return;
+                const wModal = document.getElementById('modal-auto-logout');
+                const countEl = document.getElementById('auto-logout-countdown');
+                if (!wModal || !countEl) return;
+                wModal.classList.remove('hidden');
+                wModal.classList.add('flex');
+                if (window.lucide) lucide.createIcons();
+                let secs = Math.round(WARN_BEFORE_MS / 1000);
+                countEl.textContent = secs;
+                _countdownInterval = setInterval(() => {
+                    secs--;
+                    if (countEl) countEl.textContent = secs > 0 ? secs : 0;
+                    if (secs <= 0) { clearInterval(_countdownInterval); _countdownInterval = null; }
+                }, 1000);
+            }, IDLE_TIMEOUT_MS - WARN_BEFORE_MS);
+            _idleTimer = setTimeout(() => {
+                if (!currentUser) return;
+                logout();
+                const errEl = document.getElementById('login-error');
+                if (errEl) {
+                    errEl.textContent = 'ออกจากระบบอัตโนมัติ เนื่องจากไม่มีการใช้งานเกิน 15 นาที';
+                    errEl.classList.remove('hidden');
+                }
+            }, IDLE_TIMEOUT_MS);
+        }
+
+        function stopIdleTimer() {
+            if (_idleTimer)         { clearTimeout(_idleTimer);          _idleTimer        = null; }
+            if (_warnTimer)         { clearTimeout(_warnTimer);          _warnTimer        = null; }
+            if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
+            const modal = document.getElementById('modal-auto-logout');
+            if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+        }
+
+        // ผูก event reset กับ activity ของ user (throttle 500ms)
+        (function setupIdleListeners() {
+            const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+            let _throttle = false;
+            const handler = () => {
+                if (!currentUser) return;
+                if (_throttle) return;
+                _throttle = true;
+                setTimeout(() => { _throttle = false; }, 500);
+                resetIdleTimer();
+            };
+            events.forEach(ev => document.addEventListener(ev, handler, { passive: true }));
+        })();
 
         // ─── INIT ───
         async function initializeApp() {
