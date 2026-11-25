@@ -4153,15 +4153,25 @@
         function renderTypeFilter() {
             const container = document.getElementById('type-filter');
             if (!container) return;
-            const visible = getVisibleCameras();
+            // กรองเฉพาะ hardware ก่อนนับ (Type Filter เกี่ยวกับ hardware เท่านั้น)
+            const hwTypeNames = new Set(
+                customDeviceTypes.filter(d => (d.category || 'hardware') === 'hardware').map(d => d.name)
+            );
+            const visible = getVisibleCameras().filter(c => {
+                const t = getDeviceType(c.type);
+                return hwTypeNames.size === 0 || hwTypeNames.has(t);
+            });
             const counts = { 'ALL': visible.length };
             visible.forEach(c => {
                 const t = getDeviceType(c.type);
                 counts[t] = (counts[t] || 0) + 1;
             });
 
-            // สร้างรายการตัวกรองจาก customDeviceTypes ทั้งหมด (แสดงเฉพาะชนิดที่มีอุปกรณ์ > 0)
-            const availableTypes = customDeviceTypes.map(d => d.name).filter(t => (counts[t] || 0) > 0);
+            // สร้างรายการตัวกรองจาก customDeviceTypes เฉพาะ hardware (แสดงเฉพาะชนิดที่มีอุปกรณ์ > 0)
+            const availableTypes = customDeviceTypes
+                .filter(d => (d.category || 'hardware') === 'hardware')
+                .map(d => d.name)
+                .filter(t => (counts[t] || 0) > 0);
             
             // ปุ่ม "ทั้งหมด"
             const isAll = selectedTypeFilters.size === 0;
@@ -4528,7 +4538,14 @@
         function renderGroupFilter() {
             const container = document.getElementById('group-filter');
             if (!container) return;
-            const visible = getVisibleCameras();
+            // กรองเฉพาะ hardware ก่อนนับแผนก (ไม่นับ software/license)
+            const hardwareTypeNames = new Set(
+                customDeviceTypes.filter(d => (d.category || 'hardware') === 'hardware').map(d => d.name)
+            );
+            const visible = getVisibleCameras().filter(c => {
+                const t = getDeviceType(c.type);
+                return hardwareTypeNames.size === 0 || hardwareTypeNames.has(t);
+            });
             // นับจำนวนอุปกรณ์ในแต่ละแผนกบนแผนผังปัจจุบัน
             const groupCounts = {};
             visible.forEach(c => {
