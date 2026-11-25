@@ -307,6 +307,7 @@ function preparePayloadForSupabase(tName, fields) {
 
   if (target === 'repair') {
     const payload = {};
+    if (f.id !== undefined && !isNaN(Number(f.id))) payload.id = Number(f.id);
     if (f.asset_code !== undefined) payload.asset_code = String(f.asset_code).trim();
     if (f.Name !== undefined) payload.name = f.Name;
     if (f.name !== undefined) payload.name = f.name;
@@ -587,10 +588,30 @@ module.exports = async (req, res) => {
     }
 
     const payload = preparePayloadForSupabase(supabaseTable, fields);
+
+    // ป้องกันปัญหา Duplicate Key ในตาราง repair ที่ sequence ใน Postgres ไม่ตรงกับ id สูงสุดเดิม
+    if (supabaseTable === 'repair' && !payload.id) {
+      try {
+        const maxRes = await fetch(`${supabaseUrl}/rest/v1/repair?select=id&order=id.desc&limit=1`, {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`
+          }
+        });
+        if (maxRes.ok) {
+          const maxRows = await maxRes.json();
+          const maxId = (Array.isArray(maxRows) && maxRows.length > 0 && maxRows[0].id) ? Number(maxRows[0].id) : 0;
+          payload.id = maxId + 1;
+        }
+      } catch (seqErr) {
+        console.error('Failed to resolve next repair ID:', seqErr);
+      }
+    }
+
     const postUrl = `${supabaseUrl}/rest/v1/${supabaseTable}`;
 
     try {
-      const response = await fetch(postUrl, {
+      let response = await fetch(postUrl, {
         method: 'POST',
         headers: {
           'apikey': supabaseKey,
@@ -600,6 +621,31 @@ module.exports = async (req, res) => {
         },
         body: JSON.stringify(payload)
       });
+
+      // ถ้าติด duplicate key บน repair_pkey ลองดึง max ID ใหม่อีกครั้งแล้ว retry
+      if (response.status === 409 && supabaseTable === 'repair') {
+        const errText = await response.text();
+        if (errText.includes('repair_pkey')) {
+          const retryMaxRes = await fetch(`${supabaseUrl}/rest/v1/repair?select=id&order=id.desc&limit=1`, {
+            headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` }
+          });
+          if (retryMaxRes.ok) {
+            const retryRows = await retryMaxRes.json();
+            const retryMaxId = (Array.isArray(retryRows) && retryRows.length > 0 && retryRows[0].id) ? Number(retryRows[0].id) : (payload.id || 0);
+            payload.id = retryMaxId + 1;
+            response = await fetch(postUrl, {
+              method: 'POST',
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+              },
+              body: JSON.stringify(payload)
+            });
+          }
+        }
+      }
 
       if (!response.ok) {
         const errText = await response.text();
